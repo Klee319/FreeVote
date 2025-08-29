@@ -1,0 +1,54 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(mkdir:*)",
+      "Bash(npm:*)",
+      "Bash(npx:*)",
+      "Bash(touch:*)",
+      "Bash(mv:*)",
+      "Bash(node:*)",
+      "Bash(git:*)",
+      "Bash(cp:*)",
+      "Bash(rm:*)",
+      "Bash(cat:*)",
+      "Bash(echo:*)",
+      "Bash(grep:*)",
+      "Bash(less:*)",
+      "Bash(tail:*)",
+      "Bash(head:*)",
+      "Bash(pwd:*)",
+      "Bash(pip:*)",
+      "Bash(python:*)",
+      "Bash(rg:*)",
+      "Bash(sqlite3:*)",
+      "Bash(pkill:*)",
+      "Bash(python3:*)",
+      "Bash(claude:*)",
+      "Bash(gemini:*)",
+      "Bash(curl:*)",
+      "Bash(timeout 30 npm run lint)",
+      "Bash(tsc --noEmit)",
+      "mcp__playwright__browser_navigate",
+      "Bash(timeout 3 npm run dev)",
+      "Bash(cmd.exe:*)",
+      "Bash(set PORT=3002)",
+      "Bash(taskkill:*)",
+      "Bash(timeout:*)",
+      "mcp__playwright__browser_wait_for",
+      "Bash(attrib:*)",
+      "Bash(icacls \"C:\\Users\\T-319\\Documents\\Program\\ClaudeCodeDev\\products\\Vote_site\\accent-vote-site\\.next\\trace\")",
+      "Bash(wmic process where \"name='node.exe'\" get processid,commandline:*)",
+      "Bash(powershell:*)"
+    ],
+    "deny": [],
+    "additionalDirectories": [
+      "C:\\mnt\\c\\Users\\T-319\\Documents\\Program\\ClaudeCodeDev\\products\\Vote_site"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "playwright"
+  ]
+}

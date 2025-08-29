@@ -1,0 +1,45 @@
+# Prometheus設定ファイル
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'accent-vote-monitor'
+
+# アラートマネージャー設定（オプション）
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+# ルールファイル（オプション）
+rule_files:
+  # - "first_rules.yml"
+
+# スクレイプ設定
+scrape_configs:
+  # Prometheus自身のメトリクス
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Node Exporter (ホストメトリクス)
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  # PostgreSQL Exporter
+  - job_name: 'postgresql'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+    metrics_path: /metrics
+
+  # Redis Exporter
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+
+  # Next.js アプリケーション（将来的に実装）
+  - job_name: 'nextjs-app'
+    static_configs:
+      - targets: ['app:3000']
+    metrics_path: /api/metrics

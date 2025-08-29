@@ -1,0 +1,15 @@
+# 日本語アクセント投票サイト robots.txt
+# https://accent-vote.jp
+
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /_next/
+Disallow: /static/
+
+# サイトマップの場所
+Sitemap: https://accent-vote.jp/sitemap.xml
+
+# クローラーへの指示
+Crawl-delay: 1

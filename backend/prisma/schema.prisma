@@ -1,0 +1,303 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ユーザー認証テーブル
+model User {
+  id           String       @id @default(uuid()) @db.Uuid
+  email        String       @unique @db.VarChar(255)
+  displayName  String?      @map("display_name") @db.VarChar(100)
+  role         String       @default("user") @db.VarChar(20)
+  prefectureCode String?    @map("prefecture_code") @db.Char(2)
+  ageGroup     String?      @map("age_group") @db.VarChar(10)
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  prefecture   Prefecture?  @relation(fields: [prefectureCode], references: [code])
+  submittedWords Word[]     @relation("SubmittedWords")
+  approvedWords  Word[]     @relation("ApprovedWords")
+  votes        Vote[]
+  submissions  Submission[]
+  moderatedSubmissions Submission[] @relation("ModeratedSubmissions")
+  auditLogs    AuditLog[]
+
+  @@map("users")
+}
+
+// 都道府県マスタテーブル
+model Prefecture {
+  code   String  @id @db.Char(2)
+  name   String  @db.VarChar(10)
+  region String  @db.VarChar(10)
+
+  // Relations
+  users        User[]
+  anonymousUsers AnonymousUser[]
+  votes        Vote[]
+  submissions  Submission[]
+  wordPrefStats WordPrefStats[]
+
+  @@map("prefectures")
+}
+
+// 語カテゴリマスタテーブル
+model WordCategory {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique @db.VarChar(50)
+  description String?  @db.Text
+
+  // Relations
+  words       Word[]
+  submissions Submission[]
+
+  @@map("word_categories")
+}
+
+// 単語マスタテーブル
+model Word {
+  id           Int      @id @default(autoincrement())
+  headword     String   @db.VarChar(100)
+  reading      String   @db.VarChar(200)
+  categoryId   Int?     @map("category_id")
+  moraCount    Int      @map("mora_count")
+  moraSegments Json     @map("mora_segments") @db.JsonB
+  status       String   @default("approved") @db.VarChar(20)
+  submittedBy  String?  @map("submitted_by") @db.Uuid
+  approvedBy   String?  @map("approved_by") @db.Uuid
+  approvedAt   DateTime? @map("approved_at") @db.Timestamptz
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  category     WordCategory? @relation(fields: [categoryId], references: [id])
+  submitter    User?        @relation("SubmittedWords", fields: [submittedBy], references: [id])
+  approver     User?        @relation("ApprovedWords", fields: [approvedBy], references: [id])
+  aliases      WordAlias[]
+  accentOptions AccentOption[]
+  votes        Vote[]
+  prefStats    WordPrefStats[]
+  nationalStats WordNationalStats[]
+
+  @@unique([headword, reading])
+  @@map("words")
+}
+
+// 別表記テーブル
+model WordAlias {
+  id        Int      @id @default(autoincrement())
+  wordId    Int      @map("word_id")
+  alias     String   @db.VarChar(100)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  word      Word     @relation(fields: [wordId], references: [id], onDelete: Cascade)
+
+  @@map("word_aliases")
+}
+
+// アクセント型定義テーブル
+model AccentType {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique @db.VarChar(20)
+  name        String   @db.VarChar(20)
+  description String?  @db.Text
+  sortOrder   Int      @default(0) @map("sort_order")
+
+  // Relations
+  accentOptions AccentOption[]
+  votes         Vote[]
+  prefStats     WordPrefStats[]
+  nationalStats WordNationalStats[]
+  submissions   Submission[]
+
+  @@map("accent_types")
+}
+
+// 各語のアクセント型オプションテーブル
+model AccentOption {
+  id             Int      @id @default(autoincrement())
+  wordId         Int      @map("word_id")
+  accentTypeId   Int      @map("accent_type_id")
+  accentPattern  Json     @map("accent_pattern") @db.JsonB
+  dropPosition   Int?     @map("drop_position")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  word           Word       @relation(fields: [wordId], references: [id], onDelete: Cascade)
+  accentType     AccentType @relation(fields: [accentTypeId], references: [id])
+
+  @@unique([wordId, accentTypeId])
+  @@map("accent_options")
+}
+
+// デバイス識別テーブル
+model Device {
+  id              String   @id @default(uuid()) @db.Uuid
+  fingerprintHash String   @unique @map("fingerprint_hash") @db.VarChar(64)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+  lastSeenAt      DateTime @default(now()) @map("last_seen_at") @db.Timestamptz
+
+  // Relations
+  votes           Vote[]
+  auditLogs       AuditLog[]
+
+  @@map("devices")
+}
+
+// 投票テーブル
+model Vote {
+  id                   Int      @id @default(autoincrement())
+  wordId               Int      @map("word_id")
+  accentTypeId         Int      @map("accent_type_id")
+  deviceId             String   @map("device_id") @db.Uuid
+  userId               String?  @map("user_id") @db.Uuid
+  anonymousDeviceId    String?  @map("anonymous_device_id") @db.Uuid
+  prefectureCode       String?  @map("prefecture_code") @db.Char(2)
+  ageGroup             String?  @map("age_group") @db.VarChar(10)
+  ipAddress            String?  @map("ip_address") @db.Inet
+  userAgent            String?  @map("user_agent") @db.Text
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  word           Word           @relation(fields: [wordId], references: [id], onDelete: Cascade)
+  accentType     AccentType     @relation(fields: [accentTypeId], references: [id])
+  device         Device         @relation(fields: [deviceId], references: [id])
+  user           User?          @relation(fields: [userId], references: [id])
+  anonymousUser  AnonymousUser? @relation("AnonymousVotes", fields: [anonymousDeviceId], references: [deviceId])
+  prefecture     Prefecture?    @relation(fields: [prefectureCode], references: [code])
+
+  @@unique([deviceId, wordId])
+  @@index([anonymousDeviceId])
+  @@map("votes")
+}
+
+// 都道府県別統計テーブル
+model WordPrefStats {
+  id               Int      @id @default(autoincrement())
+  wordId           Int      @map("word_id")
+  prefectureCode   String   @map("prefecture_code") @db.Char(2)
+  accentTypeId     Int      @map("accent_type_id")
+  voteCount        Int      @default(0) @map("vote_count")
+  votePercentage   Decimal  @default(0.00) @map("vote_percentage") @db.Decimal(5, 2)
+  totalVotesInPref Int      @default(0) @map("total_votes_in_pref")
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  word             Word       @relation(fields: [wordId], references: [id], onDelete: Cascade)
+  prefecture       Prefecture @relation(fields: [prefectureCode], references: [code])
+  accentType       AccentType @relation(fields: [accentTypeId], references: [id])
+
+  @@unique([wordId, prefectureCode, accentTypeId])
+  @@map("word_pref_stats")
+}
+
+// 全国統計テーブル
+model WordNationalStats {
+  id             Int      @id @default(autoincrement())
+  wordId         Int      @map("word_id")
+  accentTypeId   Int      @map("accent_type_id")
+  voteCount      Int      @default(0) @map("vote_count")
+  votePercentage Decimal  @default(0.00) @map("vote_percentage") @db.Decimal(5, 2)
+  totalVotes     Int      @default(0) @map("total_votes")
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  word           Word       @relation(fields: [wordId], references: [id], onDelete: Cascade)
+  accentType     AccentType @relation(fields: [accentTypeId], references: [id])
+
+  @@unique([wordId, accentTypeId])
+  @@map("word_national_stats")
+}
+
+// 新語投稿テーブル
+model Submission {
+  id                  Int      @id @default(autoincrement())
+  headword            String   @db.VarChar(100)
+  reading             String   @db.VarChar(200)
+  categoryId          Int?     @map("category_id")
+  aliases             String?  @db.Text
+  submittedBy         String?  @map("submitted_by") @db.Uuid
+  initialAccentTypeId Int?     @map("initial_accent_type_id")
+  prefectureCode      String?  @map("prefecture_code") @db.Char(2)
+  ageGroup            String?  @map("age_group") @db.VarChar(10)
+  status              String   @default("pending") @db.VarChar(20)
+  moderatorComment    String?  @map("moderator_comment") @db.Text
+  approvedBy          String?  @map("approved_by") @db.Uuid
+  approvedAt          DateTime? @map("approved_at") @db.Timestamptz
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  category            WordCategory? @relation(fields: [categoryId], references: [id])
+  submitter           User?        @relation(fields: [submittedBy], references: [id])
+  approver            User?        @relation("ModeratedSubmissions", fields: [approvedBy], references: [id])
+  initialAccentType   AccentType?  @relation(fields: [initialAccentTypeId], references: [id])
+  prefecture          Prefecture?  @relation(fields: [prefectureCode], references: [code])
+
+  @@unique([headword, reading])
+  @@map("submissions")
+}
+
+// レート制限テーブル
+model RateLimit {
+  id          Int      @id @default(autoincrement())
+  ipAddress   String   @map("ip_address") @db.Inet
+  actionType  String   @map("action_type") @db.VarChar(50)
+  count       Int      @default(1)
+  windowStart DateTime @default(now()) @map("window_start") @db.Timestamptz
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@unique([ipAddress, actionType, windowStart])
+  @@map("rate_limits")
+}
+
+// 監査ログテーブル
+model AuditLog {
+  id           Int      @id @default(autoincrement())
+  userId       String?  @map("user_id") @db.Uuid
+  deviceId     String?  @map("device_id") @db.Uuid
+  action       String   @db.VarChar(100)
+  resourceType String   @map("resource_type") @db.VarChar(50)
+  resourceId   Int?     @map("resource_id")
+  oldData      Json?    @map("old_data") @db.JsonB
+  newData      Json?    @map("new_data") @db.JsonB
+  ipAddress    String?  @map("ip_address") @db.Inet
+  userAgent    String?  @map("user_agent") @db.Text
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  user         User?    @relation(fields: [userId], references: [id])
+  device       Device?  @relation(fields: [deviceId], references: [id])
+
+  @@map("audit_logs")
+}
+
+// 匿名ユーザー管理テーブル
+model AnonymousUser {
+  deviceId       String   @id @default(uuid()) @map("device_id") @db.Uuid
+  ageGroup       String   @map("age_group") @db.VarChar(10)
+  gender         String   @db.VarChar(20)
+  prefectureCode String   @map("prefecture_code") @db.Char(2)
+  registeredAt   DateTime @default(now()) @map("registered_at") @db.Timestamptz
+  lastActiveAt   DateTime @default(now()) @map("last_active_at") @db.Timestamptz
+  sessionData    Json     @default("{}") @map("session_data") @db.JsonB
+
+  // Relations
+  prefecture     Prefecture @relation(fields: [prefectureCode], references: [code])
+  votes          Vote[]     @relation("AnonymousVotes")
+
+  @@index([prefectureCode])
+  @@index([lastActiveAt])
+  @@index([registeredAt])
+  @@map("anonymous_users")
+}
