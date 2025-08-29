@@ -40,7 +40,11 @@
       "Bash(attrib:*)",
       "Bash(icacls \"C:\\Users\\T-319\\Documents\\Program\\ClaudeCodeDev\\products\\Vote_site\\accent-vote-site\\.next\\trace\")",
       "Bash(wmic process where \"name='node.exe'\" get processid,commandline:*)",
-      "Bash(powershell:*)"
+      "Bash(powershell:*)",
+      "Bash(docker compose:*)",
+      "Bash(wsl:*)",
+      "Bash(psql:*)",
+      "Bash(docker:*)"
     ],
     "deny": [],
     "additionalDirectories": [
