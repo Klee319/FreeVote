@@ -4,6 +4,15 @@ const nextConfig = {
   images: {
     domains: ['localhost'],
   },
+  // APIプロキシ設定
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: 'http://localhost:3003/api/:path*',
+      },
+    ];
+  },
   // Windows環境でのEPERMエラー対策
   experimental: {
     disableOptimizedLoading: true,
