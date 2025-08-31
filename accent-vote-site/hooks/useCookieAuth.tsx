@@ -26,6 +26,8 @@ interface AuthContextType {
   user: AnonymousUser | null;
   isLoading: boolean;
   isRegistered: boolean;
+  hasSkippedAttributes: boolean;
+  hasAttributes: boolean;
   error: string | null;
   csrfToken: string | null;
   register: (data: RegisterData) => Promise<void>;
@@ -55,6 +57,8 @@ export function CookieAuthProvider({ children }: { children: React.ReactNode }) 
   const [user, setUser] = useState<AnonymousUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRegistered, setIsRegistered] = useState(false);
+  const [hasSkippedAttributes, setHasSkippedAttributes] = useState(false);
+  const [hasAttributes, setHasAttributes] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [csrfToken, setCsrfToken] = useState<string | null>(null);
 
@@ -93,9 +97,22 @@ export function CookieAuthProvider({ children }: { children: React.ReactNode }) 
         if (data.requiresRegistration) {
           setIsRegistered(false);
           setUser(null);
+          // スキップ状態をチェック
+          const skipped = sessionStorage.getItem('registration-skipped') === 'true';
+          setHasSkippedAttributes(skipped);
+          setHasAttributes(false);
         } else {
           setIsRegistered(true);
           setUser(data.user);
+          setHasSkippedAttributes(false);
+          // 属性情報の有無をチェック
+          const userHasAttributes = Boolean(
+            data.user?.ageGroup || 
+            data.user?.gender || 
+            data.user?.prefectureCode ||
+            data.user?.prefecture
+          );
+          setHasAttributes(userHasAttributes);
         }
 
         // CSRFトークンを保存
@@ -138,6 +155,17 @@ export function CookieAuthProvider({ children }: { children: React.ReactNode }) 
       if (result.success) {
         setUser(result.data.user);
         setIsRegistered(true);
+        setHasSkippedAttributes(false);
+        // 属性情報の有無をチェック
+        const userHasAttributes = Boolean(
+          result.data.user?.ageGroup || 
+          result.data.user?.gender || 
+          result.data.user?.prefectureCode ||
+          result.data.user?.prefecture
+        );
+        setHasAttributes(userHasAttributes);
+        // スキップ状態をクリア
+        sessionStorage.removeItem('registration-skipped');
 
         // CSRFトークンを保存
         if (result.data.csrfToken) {
@@ -177,6 +205,19 @@ export function CookieAuthProvider({ children }: { children: React.ReactNode }) 
 
       if (result.success) {
         setUser(result.data.user);
+        // 属性情報の有無を更新
+        const userHasAttributes = Boolean(
+          result.data.user?.ageGroup || 
+          result.data.user?.gender || 
+          result.data.user?.prefectureCode ||
+          result.data.user?.prefecture
+        );
+        setHasAttributes(userHasAttributes);
+        // 属性が入力されたらスキップ状態をクリア
+        if (userHasAttributes) {
+          setHasSkippedAttributes(false);
+          sessionStorage.removeItem('registration-skipped');
+        }
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : '更新中にエラーが発生しました';
@@ -226,8 +267,11 @@ export function CookieAuthProvider({ children }: { children: React.ReactNode }) 
       if (result.success) {
         setUser(null);
         setIsRegistered(false);
+        setHasSkippedAttributes(false);
+        setHasAttributes(false);
         setCsrfToken(null);
         localStorage.removeItem('csrf-token');
+        sessionStorage.removeItem('registration-skipped');
         router.push('/');
       }
     } catch (err) {
@@ -238,10 +282,21 @@ export function CookieAuthProvider({ children }: { children: React.ReactNode }) 
     }
   }, [router]);
 
-  // 初回マウント時にCookie検証
+  // 初回マウント時にCookie検証とスキップ状態のチェック
   useEffect(() => {
     verifyCookie();
-  }, [verifyCookie]);
+    // スキップ状態の監視
+    const checkSkipStatus = () => {
+      const skipped = sessionStorage.getItem('registration-skipped') === 'true';
+      if (skipped && !isRegistered) {
+        setHasSkippedAttributes(true);
+      }
+    };
+    checkSkipStatus();
+    // sessionStorageの変更を監視
+    window.addEventListener('storage', checkSkipStatus);
+    return () => window.removeEventListener('storage', checkSkipStatus);
+  }, [verifyCookie, isRegistered]);
 
   // 定期的にセッションをリフレッシュ（15分ごと）
   useEffect(() => {
@@ -258,6 +313,8 @@ export function CookieAuthProvider({ children }: { children: React.ReactNode }) 
     user,
     isLoading,
     isRegistered,
+    hasSkippedAttributes,
+    hasAttributes,
     error,
     csrfToken,
     register,

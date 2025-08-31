@@ -35,6 +35,9 @@ const envSchema = z.object({
   SESSION_SECRET: z.string().min(32),
   SESSION_MAX_AGE: z.string().transform(Number).default('86400'),
   
+  // Cookie暗号化
+  COOKIE_SECRET_KEY: z.string().min(32).default('dev_cookie_secret_key_change_in_production_1234567890'),
+  
   // セキュリティ
   CORS_ORIGINS: z.string().transform((val) => val.split(',')).default('http://localhost:3000'),
   
@@ -92,6 +95,7 @@ class EnvironmentConfig {
           DATABASE_URL: '***',
           JWT_SECRET: '***',
           SESSION_SECRET: '***',
+          COOKIE_SECRET_KEY: '***',
           TURNSTILE_SECRET_KEY: '***',
         };
         logger.debug('Environment configuration loaded:', safeConfig);

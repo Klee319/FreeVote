@@ -49,6 +49,27 @@
       stroke-dashoffset: 0;
     }
   }
+  
+  /* モーダル内のセレクトボックスのz-index調整 */
+  [data-radix-popper-content-wrapper] {
+    z-index: 100 !important;
+  }
+  
+  /* セレクトボックスの背景を確実に不透明にする */
+  [role="listbox"] {
+    @apply bg-white dark:bg-gray-900;
+    opacity: 1 !important;
+  }
+  
+  /* ダイアログコンテンツのz-index階層を適切に設定 */
+  [role="dialog"] {
+    z-index: 50;
+  }
+  
+  /* ドロップダウンメニューがモーダルの上に表示されるように */
+  .radix-select-content {
+    z-index: 100 !important;
+  }
 }
 
 body {

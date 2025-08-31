@@ -5,12 +5,26 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import AnonymousRegistrationForm from './AnonymousRegistrationForm';
 import { useCookieAuth } from '@/hooks/useCookieAuth';
 
-export default function AnonymousRegistrationModal() {
+interface AnonymousRegistrationModalProps {
+  isForceOpen?: boolean;
+  onForceClose?: () => void;
+}
+
+export default function AnonymousRegistrationModal({ 
+  isForceOpen = false, 
+  onForceClose 
+}: AnonymousRegistrationModalProps) {
   const { isRegistered, isLoading } = useCookieAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [hasShownOnce, setHasShownOnce] = useState(false);
 
   useEffect(() => {
+    // 外部から強制的に開く場合
+    if (isForceOpen) {
+      setIsOpen(true);
+      return;
+    }
+    
     // 初回のみ表示（既に表示済みの場合はスキップ）
     if (!isLoading && !isRegistered && !hasShownOnce) {
       const hasSkipped = sessionStorage.getItem('registration-skipped');
@@ -19,20 +33,28 @@ export default function AnonymousRegistrationModal() {
         setHasShownOnce(true);
       }
     }
-  }, [isRegistered, isLoading, hasShownOnce]);
+  }, [isRegistered, isLoading, hasShownOnce, isForceOpen]);
 
   const handleSuccess = () => {
     setIsOpen(false);
     sessionStorage.removeItem('registration-skipped');
+    if (onForceClose) {
+      onForceClose();
+    }
   };
 
   const handleSkip = () => {
     setIsOpen(false);
-    sessionStorage.setItem('registration-skipped', 'true');
+    if (!isForceOpen) {
+      sessionStorage.setItem('registration-skipped', 'true');
+    }
+    if (onForceClose) {
+      onForceClose();
+    }
   };
 
-  // 登録済みまたはローディング中は表示しない
-  if (isLoading || isRegistered) {
+  // 強制表示でない場合は、登録済みまたはローディング中は表示しない
+  if (!isForceOpen && (isLoading || isRegistered)) {
     return null;
   }
 

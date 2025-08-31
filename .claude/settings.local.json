@@ -44,7 +44,9 @@
       "Bash(docker compose:*)",
       "Bash(wsl:*)",
       "Bash(psql:*)",
-      "Bash(docker:*)"
+      "Bash(docker:*)",
+      "Bash(dir \"C:\\Users\\T-319\\Documents\\Program\\ClaudeCodeDev\\products\\Vote_site\\components\\ui\")",
+      "mcp__playwright__browser_close"
     ],
     "deny": [],
     "additionalDirectories": [

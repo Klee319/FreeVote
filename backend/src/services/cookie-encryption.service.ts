@@ -11,7 +11,8 @@ export class CookieEncryptionService {
 
   constructor() {
     // 環境変数から暗号化キーを取得（32バイト必須）
-    const key = config.COOKIE_SECRET_KEY || process.env.COOKIE_SECRET_KEY;
+    const env = config.validate();
+    const key = env.COOKIE_SECRET_KEY;
     if (!key || key.length < 32) {
       throw new Error('COOKIE_SECRET_KEY must be at least 32 characters long');
     }
