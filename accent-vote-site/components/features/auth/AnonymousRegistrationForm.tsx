@@ -14,6 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, AlertCircle } from 'lucide-react';
+import { useCookieAuth } from '@/hooks/useCookieAuth';
 
 // 都道府県データ
 const PREFECTURES = [
@@ -95,6 +96,7 @@ export default function AnonymousRegistrationForm({
   onSkip 
 }: AnonymousRegistrationFormProps) {
   const router = useRouter();
+  const { register } = useCookieAuth(); // useCookieAuthから register 関数を取得
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -116,29 +118,12 @@ export default function AnonymousRegistrationForm({
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/auth/anonymous-register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          age,
-          gender,
-          prefecture,
-        }),
-        credentials: 'include', // Cookieを含める
+      // useCookieAuthのregister関数を使用して登録
+      await register({
+        age,
+        gender,
+        prefecture,
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || '登録に失敗しました');
-      }
-
-      // CSRFトークンをlocalStorageに保存
-      if (data.data?.csrfToken) {
-        localStorage.setItem('csrf-token', data.data.csrfToken);
-      }
 
       // 成功コールバックまたはホームページへ遷移
       if (onSuccess) {

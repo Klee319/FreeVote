@@ -14,7 +14,7 @@ export default function AnonymousRegistrationModal({
   isForceOpen = false, 
   onForceClose 
 }: AnonymousRegistrationModalProps) {
-  const { isRegistered, isLoading } = useCookieAuth();
+  const { isRegistered, isLoading, verifyCookie } = useCookieAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [hasShownOnce, setHasShownOnce] = useState(false);
 
@@ -35,9 +35,11 @@ export default function AnonymousRegistrationModal({
     }
   }, [isRegistered, isLoading, hasShownOnce, isForceOpen]);
 
-  const handleSuccess = () => {
+  const handleSuccess = async () => {
     setIsOpen(false);
     sessionStorage.removeItem('registration-skipped');
+    // 登録成功後に認証状態を再確認
+    await verifyCookie();
     if (onForceClose) {
       onForceClose();
     }

@@ -108,6 +108,7 @@ export default function UserStatusDisplay() {
   }, [user]);
 
   const handleEditAttributes = () => {
+    console.log('[UserStatusDisplay] Opening edit attributes modal');
     setIsEditModalOpen(true);
   };
 
@@ -165,12 +166,17 @@ export default function UserStatusDisplay() {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="relative">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="relative"
+            aria-label="ユーザーメニュー"
+          >
             <User className="h-5 w-5" />
             <ChevronDown className="h-3 w-3 absolute -bottom-0.5 -right-0.5" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-64">
+        <DropdownMenuContent align="end" className="w-64 z-[200]">
           <DropdownMenuLabel>ユーザー情報</DropdownMenuLabel>
           <DropdownMenuSeparator />
           
