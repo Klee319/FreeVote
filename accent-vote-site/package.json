@@ -5,9 +5,12 @@
   "main": "index.js",
   "scripts": {
     "dev": "next dev",
+    "dev:clean": "rm -rf .next && next dev",
+    "dev:win": "set NEXT_TELEMETRY_DISABLED=1 && next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "clean": "rm -rf .next node_modules/.cache"
   },
   "keywords": [],
   "author": "",
