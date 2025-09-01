@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import ScrollToTopButton from '@/components/common/ScrollToTopButton';
 
 export const metadata: Metadata = {
   title: 'サイトマップ | 日本語アクセント投票サイト',
@@ -7,7 +8,16 @@ export const metadata: Metadata = {
 };
 
 export default function SitemapPage() {
-  const siteStructure = [
+  const siteStructure: {
+    title: string;
+    pages: Array<{
+      href: string;
+      label: string;
+      description: string;
+      available?: boolean;
+      restricted?: boolean;
+    }>;
+  }[] = [
     {
       title: 'メイン',
       pages: [
@@ -177,29 +187,7 @@ export default function SitemapPage() {
         </section>
 
         {/* ページトップへ戻るボタン */}
-        <div className="mt-12 pt-8 border-t border-gray-200">
-          <button
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="text-primary-600 hover:text-primary-700 font-medium flex items-center focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 rounded px-2 py-1"
-            aria-label="ページの先頭へ戻る"
-          >
-            <svg
-              className="w-5 h-5 mr-2"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 10l7-7m0 0l7 7m-7-7v18"
-              />
-            </svg>
-            ページトップへ
-          </button>
-        </div>
+        <ScrollToTopButton />
       </article>
     </main>
   );
