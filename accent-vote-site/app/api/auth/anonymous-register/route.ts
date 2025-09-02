@@ -15,12 +15,7 @@ export async function POST(request: NextRequest) {
     // Cookieヘッダーを取得
     const cookieHeader = request.headers.get('cookie');
     
-    console.log('[API Proxy] Forwarding anonymous registration to backend:', {
-      url: `${BACKEND_API_URL}/api/auth/anonymous-register`,
-      hasBody: !!body,
-      hasCookie: !!cookieHeader,
-      bodyContent: body
-    });
+    // 匿名登録リクエストのAPIプロキシ処理
     
     // バックエンドAPIにリクエストを転送
     const response = await fetch(`${BACKEND_API_URL}/api/auth/anonymous-register`, {
@@ -35,21 +30,38 @@ export async function POST(request: NextRequest) {
     
     const data = await response.json();
     
-    console.log('[API Proxy] Backend registration response:', {
-      status: response.status,
-      data
-    });
-    
-    // レスポンスヘッダーからSet-Cookieを取得
-    const setCookieHeader = response.headers.get('set-cookie');
+    // 登録レスポンス処理済み
     
     // レスポンスを作成
     const nextResponse = NextResponse.json(data, { status: response.status });
     
-    // Set-Cookieヘッダーがあれば転送
-    if (setCookieHeader) {
-      nextResponse.headers.set('set-cookie', setCookieHeader);
+    // Set-Cookieヘッダーを転送（複数のCookieに対応）
+    // Next.js 13+ではgetSetCookie()メソッドが利用可能
+    let setCookieHeaders: string[] = [];
+    
+    // Node.js 19.7.0+のgetSetCookie()メソッドを安全に使用
+    const headersWithGetSetCookie = response.headers as Headers & {
+      getSetCookie?: () => string[];
+    };
+    
+    if (typeof headersWithGetSetCookie.getSetCookie === 'function') {
+      setCookieHeaders = headersWithGetSetCookie.getSetCookie();
+    } else {
+      // フォールバック: 単一のset-cookieヘッダーを取得
+      const singleCookie = response.headers.get('set-cookie');
+      if (singleCookie) {
+        setCookieHeaders = [singleCookie];
+      }
     }
+    
+    // Set-Cookieヘッダーの処理
+    
+    // Set-Cookieヘッダーを個別に追加
+    setCookieHeaders.forEach((cookie: string) => {
+      if (cookie) {
+        nextResponse.headers.append('set-cookie', cookie);
+      }
+    });
     
     return nextResponse;
   } catch (error) {

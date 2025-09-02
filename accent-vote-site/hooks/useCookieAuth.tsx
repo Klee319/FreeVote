@@ -113,6 +113,11 @@ export function CookieAuthProvider({ children }: { children: React.ReactNode }) 
             data.user?.prefecture
           );
           setHasAttributes(userHasAttributes);
+          
+          // ユーザー情報をローカルストレージに保存（フォールバック用）
+          if (data.user) {
+            localStorage.setItem('anonymous-user', JSON.stringify(data.user));
+          }
         }
 
         // CSRFトークンを保存
@@ -166,6 +171,9 @@ export function CookieAuthProvider({ children }: { children: React.ReactNode }) 
         setHasAttributes(userHasAttributes);
         // スキップ状態をクリア
         sessionStorage.removeItem('registration-skipped');
+        
+        // ユーザー情報をローカルストレージに保存（フォールバック用）
+        localStorage.setItem('anonymous-user', JSON.stringify(result.data.user));
 
         // CSRFトークンを保存
         if (result.data.csrfToken) {
@@ -218,6 +226,9 @@ export function CookieAuthProvider({ children }: { children: React.ReactNode }) 
           setHasSkippedAttributes(false);
           sessionStorage.removeItem('registration-skipped');
         }
+        
+        // ユーザー情報をローカルストレージに保存（フォールバック用）
+        localStorage.setItem('anonymous-user', JSON.stringify(result.data.user));
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : '更新中にエラーが発生しました';
@@ -271,6 +282,7 @@ export function CookieAuthProvider({ children }: { children: React.ReactNode }) 
         setHasAttributes(false);
         setCsrfToken(null);
         localStorage.removeItem('csrf-token');
+        localStorage.removeItem('anonymous-user');
         sessionStorage.removeItem('registration-skipped');
         router.push('/');
       }
@@ -282,21 +294,56 @@ export function CookieAuthProvider({ children }: { children: React.ReactNode }) 
     }
   }, [router]);
 
-  // 初回マウント時にCookie検証とスキップ状態のチェック
+  // 初回マウント時にCookie検証を実行
   useEffect(() => {
-    verifyCookie();
-    // スキップ状態の監視
+    // 初回マウント時のみ実行
+    let mounted = true;
+    
+    const initializeAuth = async () => {
+      if (!mounted) return;
+      
+      try {
+        // Cookie検証を実行
+        await verifyCookie();
+        
+        // スキップ状態のチェック
+        const skipped = sessionStorage.getItem('registration-skipped') === 'true';
+        if (skipped && !isRegistered) {
+          setHasSkippedAttributes(true);
+        }
+      } catch (error) {
+        // 初期化エラーの処理
+        // エラー時はローカルストレージから情報を復元を試みる
+        const savedUser = localStorage.getItem('anonymous-user');
+        if (savedUser) {
+          try {
+            const userData = JSON.parse(savedUser);
+            setUser(userData);
+            setIsRegistered(true);
+          } catch (parseError) {
+            // 保存されたユーザーデータのパースエラー
+          }
+        }
+      }
+    };
+    
+    initializeAuth();
+    
+    // sessionStorageの変更を監視
     const checkSkipStatus = () => {
       const skipped = sessionStorage.getItem('registration-skipped') === 'true';
       if (skipped && !isRegistered) {
         setHasSkippedAttributes(true);
       }
     };
-    checkSkipStatus();
-    // sessionStorageの変更を監視
+    
     window.addEventListener('storage', checkSkipStatus);
-    return () => window.removeEventListener('storage', checkSkipStatus);
-  }, [verifyCookie, isRegistered]);
+    
+    return () => {
+      mounted = false;
+      window.removeEventListener('storage', checkSkipStatus);
+    };
+  }, []); // 依存配列を空にして初回マウント時のみ実行
 
   // 定期的にセッションをリフレッシュ（15分ごと）
   useEffect(() => {

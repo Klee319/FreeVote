@@ -17,6 +17,7 @@ export default function AnonymousRegistrationModal({
   const { isRegistered, isLoading, verifyCookie } = useCookieAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [hasShownOnce, setHasShownOnce] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     // 外部から強制的に開く場合
@@ -36,16 +37,27 @@ export default function AnonymousRegistrationModal({
   }, [isRegistered, isLoading, hasShownOnce, isForceOpen]);
 
   const handleSuccess = async () => {
-    setIsOpen(false);
-    sessionStorage.removeItem('registration-skipped');
-    // 登録成功後に認証状態を再確認
-    await verifyCookie();
-    if (onForceClose) {
-      onForceClose();
+    if (isProcessing) return;
+    setIsProcessing(true);
+    
+    try {
+      sessionStorage.removeItem('registration-skipped');
+      // 登録成功後に認証状態を再確認
+      await verifyCookie();
+      setIsOpen(false);
+      if (onForceClose) {
+        onForceClose();
+      }
+    } catch (error) {
+      console.error('[AnonymousRegistrationModal] Error handling success:', error);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   const handleSkip = () => {
+    if (isProcessing) return;
+    
     setIsOpen(false);
     if (!isForceOpen) {
       sessionStorage.setItem('registration-skipped', 'true');
@@ -60,9 +72,18 @@ export default function AnonymousRegistrationModal({
     return null;
   }
 
+  const handleOpenChange = (open: boolean) => {
+    if (!isProcessing) {
+      setIsOpen(open);
+      if (!open && onForceClose) {
+        onForceClose();
+      }
+    }
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="sm:max-w-[500px]">
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+      <DialogContent className="sm:max-w-[500px]" onPointerDownOutside={(e) => isProcessing && e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>ようこそ！</DialogTitle>
           <DialogDescription>
@@ -72,6 +93,7 @@ export default function AnonymousRegistrationModal({
         <AnonymousRegistrationForm 
           onSuccess={handleSuccess}
           onSkip={handleSkip}
+          disabled={isProcessing}
         />
       </DialogContent>
     </Dialog>

@@ -95,6 +95,7 @@ export default function UserStatusDisplay() {
   const { isRegistered, user, isLoading, verifyCookie } = useCookieAuth();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [attributes, setAttributes] = useState<UserAttributes>({});
+  const [modalKey, setModalKey] = useState(0); // モーダルの再マウントを強制するためのキー
 
   useEffect(() => {
     // useCookieAuthからuser情報を取得して属性を設定
@@ -108,7 +109,7 @@ export default function UserStatusDisplay() {
   }, [user]);
 
   const handleEditAttributes = () => {
-    console.log('[UserStatusDisplay] Opening edit attributes modal');
+    setModalKey(prev => prev + 1); // キーを更新してモーダルを再マウント
     setIsEditModalOpen(true);
   };
 
@@ -145,15 +146,32 @@ export default function UserStatusDisplay() {
 
   if (!isRegistered) {
     return (
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => setIsEditModalOpen(true)}
-        className="flex items-center gap-2"
-      >
-        <User className="h-4 w-4" />
-        <span className="hidden sm:inline">登録</span>
-      </Button>
+      <>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            setModalKey(prev => prev + 1);
+            setIsEditModalOpen(true);
+          }}
+          className="flex items-center gap-2"
+        >
+          <User className="h-4 w-4" />
+          <span className="hidden sm:inline">登録</span>
+        </Button>
+        
+        {/* 登録モーダル */}
+        {isEditModalOpen && (
+          <AnonymousRegistrationModal
+            key={modalKey}
+            isForceOpen={true}
+            onForceClose={() => {
+              setIsEditModalOpen(false);
+              verifyCookie();
+            }}
+          />
+        )}
+      </>
     );
   }
 
@@ -221,6 +239,7 @@ export default function UserStatusDisplay() {
       {/* 属性編集モーダル */}
       {isEditModalOpen && (
         <AnonymousRegistrationModal
+          key={modalKey}
           isForceOpen={true}
           onForceClose={handleModalClose}
         />
