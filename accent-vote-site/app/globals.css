@@ -7,6 +7,10 @@
     --foreground-rgb: 0, 0, 0;
     --background-start-rgb: 255, 255, 255;
     --background-end-rgb: 255, 255, 255;
+    
+    /* ポップオーバー用の変数 */
+    --popover: 255, 255, 255; /* white */
+    --popover-foreground: 17, 24, 39; /* gray-900 */
   }
 
   @media (prefers-color-scheme: dark) {
@@ -14,6 +18,10 @@
       --foreground-rgb: 255, 255, 255;
       --background-start-rgb: 0, 0, 0;
       --background-end-rgb: 0, 0, 0;
+      
+      /* ダークモード用のポップオーバー変数 */
+      --popover: 3, 7, 18; /* gray-950 */
+      --popover-foreground: 243, 244, 246; /* gray-100 */
     }
   }
 }
@@ -69,6 +77,17 @@
   /* ドロップダウンメニューがモーダルの上に表示されるように */
   .radix-select-content {
     z-index: 100 !important;
+  }
+  
+  /* ユーザーステータスポップアップの背景を確実に不透明にする */
+  [data-radix-collection-item] {
+    @apply bg-white dark:bg-gray-950;
+  }
+  
+  /* ドロップダウンメニューコンテンツの背景を強制 */
+  [role="menu"] {
+    @apply bg-white dark:bg-gray-950;
+    opacity: 1 !important;
   }
 }
 

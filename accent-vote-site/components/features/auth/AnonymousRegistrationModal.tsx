@@ -28,10 +28,14 @@ export default function AnonymousRegistrationModal({
     
     // 初回のみ表示（既に表示済みの場合はスキップ）
     if (!isLoading && !isRegistered && !hasShownOnce) {
+      const hasShownModal = sessionStorage.getItem('hasShownRegistrationModal');
       const hasSkipped = sessionStorage.getItem('registration-skipped');
-      if (!hasSkipped) {
+      
+      // モーダルが表示されたことがなく、スキップもされていない場合のみ表示
+      if (!hasShownModal && !hasSkipped) {
         setIsOpen(true);
         setHasShownOnce(true);
+        sessionStorage.setItem('hasShownRegistrationModal', 'true');
       }
     }
   }, [isRegistered, isLoading, hasShownOnce, isForceOpen]);
@@ -41,7 +45,10 @@ export default function AnonymousRegistrationModal({
     setIsProcessing(true);
     
     try {
+      // 登録成功時は両方のフラグを削除
       sessionStorage.removeItem('registration-skipped');
+      sessionStorage.removeItem('hasShownRegistrationModal');
+      
       // 登録成功後に認証状態を再確認
       await verifyCookie();
       setIsOpen(false);

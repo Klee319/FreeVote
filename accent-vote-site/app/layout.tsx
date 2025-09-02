@@ -5,7 +5,6 @@ import { Providers } from './providers';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Toaster } from 'react-hot-toast';
-import AnonymousRegistrationModal from '@/components/features/auth/AnonymousRegistrationModal';
 import Script from 'next/script';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -134,7 +133,6 @@ export default function RootLayout({
               },
             }}
           />
-          <AnonymousRegistrationModal />
         </Providers>
       </body>
     </html>

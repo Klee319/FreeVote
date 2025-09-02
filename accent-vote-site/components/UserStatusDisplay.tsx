@@ -121,15 +121,25 @@ export default function UserStatusDisplay() {
 
   const handleClearData = () => {
     if (confirm('本当にユーザーデータをクリアしますか？投票履歴も削除されます。')) {
-      // すべてのCookieをクリア
+      // すべてのCookieをクリア（ドメインとパスを考慮）
       document.cookie.split(';').forEach((c) => {
-        document.cookie = c
-          .replace(/^ +/, '')
-          .replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
+        const eqPos = c.indexOf('=');
+        const name = eqPos > -1 ? c.substr(0, eqPos).trim() : c.trim();
+        // 複数のパスとドメインでCookieを削除
+        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname}`;
+        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.${window.location.hostname}`;
       });
-      // localStorageもクリア
+      
+      // localStorageをクリア
       localStorage.clear();
+      
+      // sessionStorageをクリア（ただし、初回登録モーダルのフラグもクリア）
       sessionStorage.clear();
+      // 初回登録モーダルを再表示するためのフラグを削除
+      sessionStorage.removeItem('hasShownRegistrationModal');
+      sessionStorage.removeItem('registration-skipped');
+      
       // ページをリロード
       window.location.reload();
     }

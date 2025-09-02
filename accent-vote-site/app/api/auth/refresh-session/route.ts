@@ -43,14 +43,12 @@ export async function PUT(request: NextRequest) {
     const nextResponse = NextResponse.json(data, { status: response.status });
     
     // Set-Cookieヘッダーを転送（複数のCookieに対応）
-    const setCookieHeaders = response.headers.raw ? 
-      response.headers.raw()['set-cookie'] : 
-      response.headers.getSetCookie ? 
-        response.headers.getSetCookie() : 
-        [response.headers.get('set-cookie')].filter(Boolean);
+    const setCookieHeaders = response.headers.getSetCookie ? 
+      response.headers.getSetCookie() : 
+      [response.headers.get('set-cookie')].filter(Boolean);
     
     if (setCookieHeaders && setCookieHeaders.length > 0) {
-      setCookieHeaders.forEach((cookie: string) => {
+      setCookieHeaders.forEach((cookie) => {
         if (cookie) {
           nextResponse.headers.append('set-cookie', cookie);
         }
