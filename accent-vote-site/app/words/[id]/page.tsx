@@ -1,21 +1,33 @@
 'use client';
 
 import { useParams } from 'next/navigation';
+import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { AccentVotingSection } from '@/components/features/accent/AccentVotingSection';
 import { WordHeader } from '@/components/features/accent/WordHeader';
 import { StatisticsVisualization } from '@/components/features/stats/StatisticsVisualization';
 import { RelatedWords } from '@/components/features/accent/RelatedWords';
-import { storage, generateDeviceId } from '@/lib/utils';
 import toast from 'react-hot-toast';
+import { useCookieAuth } from '@/hooks/useCookieAuth';
 
 export default function WordDetailPage() {
   const params = useParams();
   const wordId = params.id as string;
   const queryClient = useQueryClient();
+  const { user, isRegistered } = useCookieAuth();
   const [selectedPrefecture, setSelectedPrefecture] = useState<string>('13'); // 東京都をデフォルト
+  
+  // デバッグログ
+  useEffect(() => {
+    console.log('[WordDetailPage] Cookie Auth State:', {
+      isRegistered,
+      hasUser: !!user,
+      deviceId: user?.deviceId,
+      userDetails: user
+    });
+  }, [user, isRegistered]);
 
   // 語詳細取得
   const { data: wordDetail, isLoading, error } = useQuery({
@@ -34,18 +46,19 @@ export default function WordDetailPage() {
   // 投票処理
   const voteMutation = useMutation({
     mutationFn: async (accentTypeId: number) => {
-      // デバイスID取得または生成
-      let deviceId = storage.get('deviceId');
-      if (!deviceId) {
-        deviceId = generateDeviceId();
-        storage.set('deviceId', deviceId);
+      // Cookie認証から取得したdeviceIdを使用
+      if (!user?.deviceId) {
+        console.error('[WordDetailPage] No deviceId found in user context');
+        throw new Error('認証情報が見つかりません。ページを再読み込みしてください。');
       }
+      
+      console.log('[WordDetailPage] Submitting vote with deviceId:', user.deviceId);
 
       return api.submitVote({
         wordId: parseInt(wordId),
         accentTypeId,
         prefecture: selectedPrefecture as any,
-        deviceId,
+        deviceId: user.deviceId,
       });
     },
     onSuccess: () => {
@@ -89,9 +102,9 @@ export default function WordDetailPage() {
         <div className="text-center py-12">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">語が見つかりませんでした</h2>
           <p className="text-gray-600">指定された語は存在しないか、削除された可能性があります。</p>
-          <a href="/" className="mt-4 inline-block text-primary-600 hover:text-primary-700">
+          <Link href="/" className="mt-4 inline-block text-primary-600 hover:text-primary-700">
             トップページへ戻る
-          </a>
+          </Link>
         </div>
       </div>
     );
@@ -102,7 +115,7 @@ export default function WordDetailPage() {
       {/* パンくずリスト */}
       <nav className="mb-6 text-sm">
         <ol className="flex items-center space-x-2">
-          <li><a href="/" className="text-primary-600 hover:text-primary-700">ホーム</a></li>
+          <li><Link href="/" className="text-primary-600 hover:text-primary-700">ホーム</Link></li>
           <li className="text-gray-400">/</li>
           <li className="text-gray-600">{wordDetail.headword}</li>
         </ol>

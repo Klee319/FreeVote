@@ -46,7 +46,13 @@
       "Bash(psql:*)",
       "Bash(docker:*)",
       "Bash(dir \"C:\\Users\\T-319\\Documents\\Program\\ClaudeCodeDev\\products\\Vote_site\\components\\ui\")",
-      "mcp__playwright__browser_close"
+      "mcp__playwright__browser_close",
+      "Bash(pg_ctl:*)",
+      "Bash(tasklist:*)",
+      "Bash(dir:*)",
+      "mcp__playwright__browser_type",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_click"
     ],
     "deny": [],
     "additionalDirectories": [

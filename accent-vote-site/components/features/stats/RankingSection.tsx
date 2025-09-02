@@ -97,7 +97,7 @@ export function RankingSection() {
                       <span className="ml-2 text-sm text-gray-500">({word.reading})</span>
                     </div>
                     <div className="text-sm text-gray-500">
-                      {formatNumber(word.totalVotes)}票 ・ {word.prefectureCount}県
+                      {formatNumber(word.totalVotes || 0)}票 ・ {word.prefectureCount || 0}県
                     </div>
                   </div>
                 </div>

@@ -70,7 +70,7 @@ export class CookieAuthService {
           prefectureCode: userData.prefecture,
           registeredAt: new Date(),
           lastActiveAt: new Date(),
-          sessionData: {},
+          sessionData: '{}',
         },
         include: {
           prefecture: true,

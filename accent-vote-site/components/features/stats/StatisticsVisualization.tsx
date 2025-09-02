@@ -5,6 +5,7 @@ import { AccentStat, PrefectureStat } from '@/types';
 import { getAccentTypeName, getAccentTypeColor, getPrefectureName } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import { ChartBarIcon, MapIcon } from '@heroicons/react/24/outline';
+import { JapanMapVisualization } from './JapanMapVisualization';
 
 interface StatisticsVisualizationProps {
   wordId: number;
@@ -21,10 +22,16 @@ export function StatisticsVisualization({
   selectedPrefecture = '13',
   onPrefectureSelect,
 }: StatisticsVisualizationProps) {
-  const [activeTab, setActiveTab] = useState<'national' | 'prefecture'>('national');
+  const [activeTab, setActiveTab] = useState<'national' | 'prefecture' | 'map'>('national');
+  const [selectedPref, setSelectedPref] = useState(selectedPrefecture);
+
+  const handlePrefectureSelect = (prefecture: string) => {
+    setSelectedPref(prefecture);
+    onPrefectureSelect?.(prefecture);
+  };
 
   // 選択された都道府県のデータを取得
-  const selectedPrefData = prefectureStats.find(p => p.prefectureCode === selectedPrefecture);
+  const selectedPrefData = prefectureStats.find(p => p.prefectureCode === selectedPref);
 
   // 全国統計の最大値を取得（バーの幅計算用）
   const maxVotes = Math.max(...nationalStats.map(s => s.count));
@@ -39,7 +46,7 @@ export function StatisticsVisualization({
           <button
             onClick={() => setActiveTab('national')}
             className={cn(
-              'px-4 py-2 rounded-md transition-colors flex items-center space-x-2',
+              'px-3 py-2 rounded-md transition-colors flex items-center space-x-1.5',
               activeTab === 'national'
                 ? 'bg-white text-gray-900 shadow'
                 : 'text-gray-600 hover:text-gray-900'
@@ -51,7 +58,7 @@ export function StatisticsVisualization({
           <button
             onClick={() => setActiveTab('prefecture')}
             className={cn(
-              'px-4 py-2 rounded-md transition-colors flex items-center space-x-2',
+              'px-3 py-2 rounded-md transition-colors flex items-center space-x-1.5',
               activeTab === 'prefecture'
                 ? 'bg-white text-gray-900 shadow'
                 : 'text-gray-600 hover:text-gray-900'
@@ -59,6 +66,20 @@ export function StatisticsVisualization({
           >
             <MapIcon className="w-4 h-4" />
             <span className="text-sm font-medium">都道府県別</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('map')}
+            className={cn(
+              'px-3 py-2 rounded-md transition-colors flex items-center space-x-1.5',
+              activeTab === 'map'
+                ? 'bg-white text-gray-900 shadow'
+                : 'text-gray-600 hover:text-gray-900'
+            )}
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+            </svg>
+            <span className="text-sm font-medium">地図表示</span>
           </button>
         </div>
       </div>
@@ -98,7 +119,7 @@ export function StatisticsVisualization({
             </div>
           ))}
         </div>
-      ) : (
+      ) : activeTab === 'prefecture' ? (
         /* 都道府県別統計表示 */
         <div>
           <div className="mb-4">
@@ -107,8 +128,8 @@ export function StatisticsVisualization({
             </label>
             <select
               id="prefecture-select"
-              value={selectedPrefecture}
-              onChange={(e) => onPrefectureSelect?.(e.target.value)}
+              value={selectedPref}
+              onChange={(e) => handlePrefectureSelect(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-500"
             >
               {prefectureStats.map((pref) => (
@@ -122,7 +143,7 @@ export function StatisticsVisualization({
           {selectedPrefData ? (
             <div className="space-y-4">
               <h3 className="font-semibold text-gray-700">
-                {getPrefectureName(selectedPrefecture)}のアクセント分布
+                {getPrefectureName(selectedPref)}のアクセント分布
               </h3>
               
               <div className="p-4 bg-primary-50 rounded-lg">
@@ -178,16 +199,58 @@ export function StatisticsVisualization({
             </div>
           )}
         </div>
-      )}
-
-      {/* 簡易地図表示（実際の実装では ECharts を使用） */}
-      {activeTab === 'prefecture' && (
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-          <p className="text-sm text-gray-600">
-            ※ 地図表示機能は現在開発中です。都道府県別の統計は上記のドロップダウンからご確認ください。
-          </p>
+      ) : activeTab === 'map' ? (
+        /* 地図表示 */
+        <div>
+          <JapanMapVisualization
+            prefectureStats={prefectureStats}
+            selectedPrefecture={selectedPref}
+            onPrefectureSelect={handlePrefectureSelect}
+          />
+          
+          {/* 選択された都道府県の詳細情報 */}
+          {selectedPref && prefectureStats.find(p => p.prefectureCode === selectedPref) && (
+            <div className="mt-6 p-4 bg-primary-50 rounded-lg">
+              <h3 className="font-semibold text-gray-700 mb-3">
+                {getPrefectureName(selectedPref)}の詳細情報
+              </h3>
+              {(() => {
+                const prefData = prefectureStats.find(p => p.prefectureCode === selectedPref);
+                if (!prefData) return null;
+                
+                return (
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">最多アクセント型:</span>
+                      <span className="font-medium">{getAccentTypeName(prefData.dominantAccent)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">総投票数:</span>
+                      <span className="font-medium">{prefData.totalVotes}票</span>
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-primary-100">
+                      {Object.entries(prefData.accentDistribution).map(([accentType, voteStat]) => (
+                        <div key={accentType} className="flex justify-between items-center py-1">
+                          <div className="flex items-center space-x-2">
+                            <div
+                              className="w-3 h-3 rounded"
+                              style={{ backgroundColor: getAccentTypeColor(accentType) }}
+                            />
+                            <span className="text-sm">{getAccentTypeName(accentType)}</span>
+                          </div>
+                          <span className="text-sm text-gray-600">
+                            {voteStat.count}票 ({voteStat.percentage.toFixed(1)}%)
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

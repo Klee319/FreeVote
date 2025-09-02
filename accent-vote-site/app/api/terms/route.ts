@@ -1,0 +1,66 @@
+import { NextRequest, NextResponse } from 'next/server';
+
+// バックエンドAPIのURL（環境変数から取得、デフォルトはlocalhost:3003）
+const BACKEND_API_URL = process.env.BACKEND_API_URL || 'http://localhost:3003';
+
+/**
+ * 新語投稿APIプロキシ
+ * フロントエンドからの新語投稿リクエストをバックエンドにプロキシする
+ */
+export async function POST(request: NextRequest) {
+  try {
+    // リクエストボディを取得
+    const body = await request.json();
+    
+    // Cookieヘッダーを取得
+    const cookieHeader = request.headers.get('cookie');
+    
+    console.log('[API Proxy] Forwarding term submission to backend:', {
+      url: `${BACKEND_API_URL}/api/terms`,
+      hasBody: !!body,
+      hasCookie: !!cookieHeader,
+      bodyContent: body
+    });
+    
+    // バックエンドAPIにリクエストを転送
+    const response = await fetch(`${BACKEND_API_URL}/api/terms`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // Cookieを転送
+        ...(cookieHeader ? { 'Cookie': cookieHeader } : {})
+      },
+      body: JSON.stringify(body),
+    });
+    
+    const data = await response.json();
+    
+    console.log('[API Proxy] Backend term submission response:', {
+      status: response.status,
+      data
+    });
+    
+    // レスポンスヘッダーからSet-Cookieを取得
+    const setCookieHeader = response.headers.get('set-cookie');
+    
+    // レスポンスを作成
+    const nextResponse = NextResponse.json(data, { status: response.status });
+    
+    // Set-Cookieヘッダーがあれば転送
+    if (setCookieHeader) {
+      nextResponse.headers.set('set-cookie', setCookieHeader);
+    }
+    
+    return nextResponse;
+  } catch (error) {
+    console.error('[API Proxy] Error forwarding term submission:', error);
+    return NextResponse.json(
+      { 
+        success: false, 
+        message: '新語投稿処理中にエラーが発生しました',
+        error: 'SUBMISSION_FAILED'
+      },
+      { status: 500 }
+    );
+  }
+}

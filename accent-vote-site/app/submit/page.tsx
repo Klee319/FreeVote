@@ -1,14 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { SubmitTermData, WordCategory } from '@/types';
 import { ExclamationCircleIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { useCookieAuth } from '@/hooks/useCookieAuth';
 
 export default function SubmitPage() {
   const router = useRouter();
+  const { user, isRegistered } = useCookieAuth();
   const [formData, setFormData] = useState<SubmitTermData>({
     term: '',
     reading: '',
@@ -16,6 +18,16 @@ export default function SubmitPage() {
     category: 'general',
   });
   const [errors, setErrors] = useState<Partial<Record<keyof SubmitTermData, string>>>({});
+  
+  // デバッグログ
+  useEffect(() => {
+    console.log('[SubmitPage] Cookie Auth State:', {
+      isRegistered,
+      hasUser: !!user,
+      deviceId: user?.deviceId,
+      userDetails: user
+    });
+  }, [user, isRegistered]);
 
   const submitMutation = useMutation({
     mutationFn: (data: SubmitTermData) => api.submitTerm(data),
@@ -65,16 +77,18 @@ export default function SubmitPage() {
       return;
     }
 
-    // デバイスIDを生成（既存のものがあれば使用）
-    let deviceId = '';
-    if (typeof window !== 'undefined') {
-      deviceId = localStorage.getItem('deviceId') || `device_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      localStorage.setItem('deviceId', deviceId);
+    // Cookie認証から取得したdeviceIdを使用
+    if (!user?.deviceId) {
+      console.error('[SubmitPage] No deviceId found in user context');
+      setErrors({ term: '認証情報が見つかりません。ページを再読み込みしてください。' });
+      return;
     }
+    
+    console.log('[SubmitPage] Submitting term with deviceId:', user.deviceId);
 
     submitMutation.mutate({
       ...formData,
-      deviceId,
+      deviceId: user.deviceId,
     });
   };
 

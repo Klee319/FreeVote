@@ -68,9 +68,7 @@ export const exportRankingCSV = async (params: RankingParams): Promise<void> => 
   if (params.ageGroup) queryParams.append('ageGroup', params.ageGroup);
   if (params.gender) queryParams.append('gender', params.gender);
   
-  const response = await api.get(`/api/ranking/export?${queryParams.toString()}`, {
-    responseType: 'blob'
-  });
+  const response = await api.get(`/api/ranking/export?${queryParams.toString()}`);
   
   // ダウンロード処理
   const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' });

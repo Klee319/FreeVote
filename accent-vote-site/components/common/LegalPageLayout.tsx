@@ -113,7 +113,7 @@ interface HeadingProps {
 }
 
 export function Heading({ level, id, className = '', children }: HeadingProps) {
-  const Tag = `h${level}` as keyof JSX.IntrinsicElements;
+  const Tag = `h${level}` as React.ElementType;
   
   const defaultClasses = {
     1: 'text-3xl font-bold text-gray-900 mb-4',
