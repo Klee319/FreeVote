@@ -31,9 +31,10 @@ export const COOKIE_OPTIONS = {
   name: 'accent_vote_user',
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
-  sameSite: 'strict' as const,
+  sameSite: (process.env.NODE_ENV === 'production' ? 'strict' : 'lax') as 'strict' | 'lax',
   maxAge: 30 * 24 * 60 * 60 * 1000, // 30日
   path: '/',
+  domain: process.env.NODE_ENV === 'production' ? process.env.COOKIE_DOMAIN : undefined,
 };
 
 /**

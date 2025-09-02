@@ -6,6 +6,7 @@ import express, { Application, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import cookieParser from 'cookie-parser';
 import { rateLimit } from 'express-rate-limit';
 import { config } from './config/env';
 import { errorHandler } from './middleware/error-handler';
@@ -27,8 +28,11 @@ export function createApp(): Application {
     origin: env.CORS_ORIGINS || ['http://localhost:3000'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
   }));
+  
+  // Cookie パーサー
+  app.use(cookieParser());
   
   // ボディパーサー
   app.use(express.json({ limit: '10mb' }));

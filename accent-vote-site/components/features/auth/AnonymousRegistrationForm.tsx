@@ -89,11 +89,13 @@ const GENDERS = [
 interface AnonymousRegistrationFormProps {
   onSuccess?: () => void;
   onSkip?: () => void;
+  disabled?: boolean;
 }
 
 export default function AnonymousRegistrationForm({ 
   onSuccess, 
-  onSkip 
+  onSkip,
+  disabled = false 
 }: AnonymousRegistrationFormProps) {
   const router = useRouter();
   const { register } = useCookieAuth(); // useCookieAuthから register 関数を取得
@@ -216,7 +218,7 @@ export default function AnonymousRegistrationForm({
             <Button
               type="submit"
               className="flex-1"
-              disabled={isLoading || !age || !gender || !prefecture}
+              disabled={isLoading || disabled || !age || !gender || !prefecture}
             >
               {isLoading ? (
                 <>
@@ -231,7 +233,7 @@ export default function AnonymousRegistrationForm({
               type="button"
               variant="outline"
               onClick={handleSkip}
-              disabled={isLoading}
+              disabled={isLoading || disabled}
             >
               スキップ
             </Button>

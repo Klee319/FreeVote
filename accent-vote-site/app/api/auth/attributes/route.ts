@@ -46,15 +46,22 @@ export async function PUT(request: NextRequest) {
       data
     });
     
-    // レスポンスヘッダーからSet-Cookieを取得
-    const setCookieHeader = response.headers.get('set-cookie');
-    
     // レスポンスを作成
     const nextResponse = NextResponse.json(data, { status: response.status });
     
-    // Set-Cookieヘッダーがあれば転送
-    if (setCookieHeader) {
-      nextResponse.headers.set('set-cookie', setCookieHeader);
+    // Set-Cookieヘッダーを転送（複数のCookieに対応）
+    const setCookieHeaders = response.headers.raw ? 
+      response.headers.raw()['set-cookie'] : 
+      response.headers.getSetCookie ? 
+        response.headers.getSetCookie() : 
+        [response.headers.get('set-cookie')].filter(Boolean);
+    
+    if (setCookieHeaders && setCookieHeaders.length > 0) {
+      setCookieHeaders.forEach((cookie: string) => {
+        if (cookie) {
+          nextResponse.headers.append('set-cookie', cookie);
+        }
+      });
     }
     
     return nextResponse;
