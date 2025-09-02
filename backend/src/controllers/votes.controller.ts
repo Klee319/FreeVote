@@ -192,4 +192,51 @@ export class VotesController {
       next(error);
     }
   }
+
+  /**
+   * 投票可能かチェック
+   */
+  static canVoteValidation = [
+    param('wordId').isInt({ min: 1 }).withMessage('有効な語IDを指定してください'),
+  ];
+
+  static async canVote(req: Request, res: Response, next: NextFunction) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        throw new AppError('入力データが無効です', 400, errors.array());
+      }
+
+      const wordId = parseInt(req.params.wordId);
+      const deviceId = req.headers['x-device-id'] as string;
+      const userId = (req as any).user?.id || null;
+
+      // 語が存在するかチェック
+      const word = await prisma.word.findUnique({
+        where: { id: wordId },
+      });
+
+      if (!word) {
+        throw new AppError('指定された語が見つかりません', 404);
+      }
+
+      if (word.status !== 'approved') {
+        throw new AppError('この語はまだ投票を受け付けていません', 403);
+      }
+
+      // すでに投票済みかチェック
+      const existingVote = await voteService.getUserVoteForWord(wordId, deviceId || '');
+
+      res.status(200).json({
+        success: true,
+        data: {
+          canVote: !existingVote,
+          hasVoted: !!existingVote,
+          existingVote: existingVote || null,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }

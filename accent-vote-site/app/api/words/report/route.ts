@@ -41,17 +41,24 @@ export async function POST(request: NextRequest) {
     }
 
     // バックエンドAPIへの転送
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    const backendUrl = process.env.BACKEND_API_URL || 'http://localhost:3003';
+    
+    // Cookieヘッダーを取得
+    const cookieHeader = request.headers.get('cookie');
+    
     const response = await fetch(`${backendUrl}/api/words/${body.wordId}/report`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        // Cookieを転送
+        ...(cookieHeader ? { 'Cookie': cookieHeader } : {})
       },
       body: JSON.stringify({
         reason: body.reason,
         details: body.details || '',
         deviceId: body.deviceId,
       }),
+      credentials: 'include'
     });
 
     if (!response.ok) {
@@ -67,12 +74,22 @@ export async function POST(request: NextRequest) {
 
     const result = await response.json();
 
+    // レスポンスヘッダーからSet-Cookieを取得
+    const setCookieHeader = response.headers.get('set-cookie');
+    
     // 成功レスポンス
-    return NextResponse.json({
+    const nextResponse = NextResponse.json({
       success: true,
       message: '報告を受け付けました。ご協力ありがとうございます。',
       reportId: result.id,
     });
+    
+    // Set-Cookieヘッダーがあれば転送
+    if (setCookieHeader) {
+      nextResponse.headers.set('set-cookie', setCookieHeader);
+    }
+    
+    return nextResponse;
   } catch (error) {
     console.error('Report submission error:', error);
     

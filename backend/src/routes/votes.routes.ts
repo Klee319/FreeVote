@@ -26,6 +26,17 @@ router.get(
 );
 
 /**
+ * @route GET /api/votes/can-vote/:wordId
+ * @desc 投票可能かチェック
+ * @access Public
+ */
+router.get(
+  '/can-vote/:wordId',
+  VotesController.canVoteValidation,
+  VotesController.canVote
+);
+
+/**
  * @route GET /api/votes/word/:wordId
  * @desc 特定の語に対するユーザーの投票を取得
  * @access Public

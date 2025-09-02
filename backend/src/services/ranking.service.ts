@@ -311,7 +311,7 @@ export class RankingService {
 
     const whereClause = whereConditions.join(' AND ');
 
-    // メインクエリ
+    // メインクエリ（SQLite対応版 - シンプル化）
     const query = `
       WITH word_vote_stats AS (
         SELECT 
@@ -320,11 +320,19 @@ export class RankingService {
           w.reading,
           COUNT(v.id) as total_votes,
           COUNT(DISTINCT v.device_id) as unique_voters,
-          MODE() WITHIN GROUP (ORDER BY v.accent_type_id) as most_voted_accent_type_id
+          (
+            SELECT accent_type_id
+            FROM votes v2
+            WHERE v2.word_id = w.id
+            GROUP BY accent_type_id
+            ORDER BY COUNT(*) DESC
+            LIMIT 1
+          ) as most_voted_accent_type_id
         FROM words w
         LEFT JOIN votes v ON w.id = v.word_id
         LEFT JOIN users u ON v.user_id = u.id
         WHERE ${whereClause}
+          AND w.status = 'approved'
         GROUP BY w.id, w.headword, w.reading
         HAVING COUNT(v.id) >= 10
       ),
@@ -339,7 +347,7 @@ export class RankingService {
         at.code as accent_type_code,
         at.name as accent_type_name,
         ROUND(
-          (rw.total_votes::numeric / NULLIF(SUM(rw.total_votes) OVER(), 0)) * 100,
+          (CAST(rw.total_votes AS REAL) / NULLIF(SUM(rw.total_votes) OVER(), 0)) * 100,
           2
         ) as vote_percentage
       FROM ranked_words rw
@@ -359,6 +367,7 @@ export class RankingService {
       LEFT JOIN votes v ON w.id = v.word_id
       LEFT JOIN users u ON v.user_id = u.id
       WHERE ${whereClause}
+        AND w.status = 'approved'
         AND w.id IN (
           SELECT word_id 
           FROM votes 

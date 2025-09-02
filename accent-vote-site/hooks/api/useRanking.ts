@@ -68,10 +68,19 @@ export const exportRankingCSV = async (params: RankingParams): Promise<void> => 
   if (params.ageGroup) queryParams.append('ageGroup', params.ageGroup);
   if (params.gender) queryParams.append('gender', params.gender);
   
-  const response = await api.get(`/api/ranking/export?${queryParams.toString()}`);
+  const response = await fetch(`/api/ranking/export?${queryParams.toString()}`, {
+    method: 'GET',
+    credentials: 'include'
+  });
+  
+  if (!response.ok) {
+    throw new Error('CSVエクスポートに失敗しました');
+  }
+  
+  const csvData = await response.text();
   
   // ダウンロード処理
-  const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' });
+  const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
   const url = window.URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
