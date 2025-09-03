@@ -141,6 +141,7 @@ export class WordService {
       },
       accentOptions: accentOptions.map(option => ({
         id: option.id,
+        accentTypeId: option.accentTypeId,
         accentType: {
           code: option.accentType.code,
           name: option.accentType.name

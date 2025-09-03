@@ -155,23 +155,27 @@ export const mockWordDetails: Record<string, WordDetail> = {
     accentOptions: [
       {
         id: 1,
+        accentTypeId: 1, // 頭高型のID
         accentType: { code: 'atamadaka', name: '頭高型' },
         pattern: generateAccentPattern(3, 'atamadaka'),
         dropPosition: 1,
       },
       {
         id: 2,
+        accentTypeId: 2, // 平板型のID
         accentType: { code: 'heiban', name: '平板型' },
         pattern: generateAccentPattern(3, 'heiban'),
       },
       {
         id: 3,
+        accentTypeId: 3, // 中高型のID
         accentType: { code: 'nakadaka', name: '中高型' },
         pattern: generateAccentPattern(3, 'nakadaka', 2),
         dropPosition: 2,
       },
       {
         id: 4,
+        accentTypeId: 4, // 尾高型のID
         accentType: { code: 'odaka', name: '尾高型' },
         pattern: generateAccentPattern(3, 'odaka'),
         dropPosition: 3,
@@ -200,23 +204,27 @@ export const mockWordDetails: Record<string, WordDetail> = {
     accentOptions: [
       {
         id: 5,
+        accentTypeId: 1, // 頭高型のID
         accentType: { code: 'atamadaka', name: '頭高型' },
         pattern: generateAccentPattern(4, 'atamadaka'),
         dropPosition: 1,
       },
       {
         id: 6,
+        accentTypeId: 2, // 平板型のID
         accentType: { code: 'heiban', name: '平板型' },
         pattern: generateAccentPattern(4, 'heiban'),
       },
       {
         id: 7,
+        accentTypeId: 3, // 中高型のID
         accentType: { code: 'nakadaka', name: '中高型' },
         pattern: generateAccentPattern(4, 'nakadaka', 3),
         dropPosition: 3,
       },
       {
         id: 8,
+        accentTypeId: 4, // 尾高型のID
         accentType: { code: 'odaka', name: '尾高型' },
         pattern: generateAccentPattern(4, 'odaka'),
         dropPosition: 4,
@@ -245,22 +253,26 @@ export const mockWordDetails: Record<string, WordDetail> = {
     accentOptions: [
       {
         id: 9,
+        accentTypeId: 1, // 頭高型のID
         accentType: { code: 'atamadaka', name: '頭高型' },
         pattern: generateAccentPattern(2, 'atamadaka'),
         dropPosition: 1,
       },
       {
         id: 10,
+        accentTypeId: 2, // 平板型のID
         accentType: { code: 'heiban', name: '平板型' },
         pattern: generateAccentPattern(2, 'heiban'),
       },
       {
         id: 11,
+        accentTypeId: 3, // 中高型のID
         accentType: { code: 'nakadaka', name: '中高型' },
         pattern: [0, 1], // 2モーラでは中高型と尾高型は同じ
       },
       {
         id: 12,
+        accentTypeId: 4, // 尾高型のID
         accentType: { code: 'odaka', name: '尾高型' },
         pattern: generateAccentPattern(2, 'odaka'),
         dropPosition: 2,
@@ -287,23 +299,27 @@ export const mockWordDetails: Record<string, WordDetail> = {
       accentOptions: [
         {
           id: parseInt(id) * 4 - 3,
+          accentTypeId: 1, // 頭高型のID
           accentType: { code: 'atamadaka', name: '頭高型' },
           pattern: generateAccentPattern(word.moraCount, 'atamadaka'),
           dropPosition: 1,
         },
         {
           id: parseInt(id) * 4 - 2,
+          accentTypeId: 2, // 平板型のID
           accentType: { code: 'heiban', name: '平板型' },
           pattern: generateAccentPattern(word.moraCount, 'heiban'),
         },
         {
           id: parseInt(id) * 4 - 1,
+          accentTypeId: 3, // 中高型のID
           accentType: { code: 'nakadaka', name: '中高型' },
           pattern: generateAccentPattern(word.moraCount, 'nakadaka', Math.floor(word.moraCount / 2) + 1),
           dropPosition: Math.floor(word.moraCount / 2) + 1,
         },
         {
           id: parseInt(id) * 4,
+          accentTypeId: 4, // 尾高型のID
           accentType: { code: 'odaka', name: '尾高型' },
           pattern: generateAccentPattern(word.moraCount, 'odaka'),
           dropPosition: word.moraCount,

@@ -29,19 +29,16 @@ export function AccentVotingSection({
   // 統計データをアクセントオプションにマッピング
   const getVoteStats = (accentType: string) => {
     const stat = nationalStats?.find(s => {
-      // APIから返されるデータの形式に対応
-      if (typeof s.accentType === 'object' && s.accentType?.code) {
-        return s.accentType.code === accentType;
-      }
+      // APIから返されるデータの形式に対応 - AccentStatのaccentTypeはAccentType型
       return s.accentType === accentType;
     });
     
     if (!stat) return { count: 0, percentage: 0 };
     
-    // voteCountまたはcount、votePercentageまたはpercentageに対応
+    // AccentStatの型定義に合わせてcountとpercentageを使用
     return { 
-      count: stat.voteCount || stat.count || 0, 
-      percentage: stat.votePercentage || stat.percentage || 0 
+      count: stat.count || 0, 
+      percentage: stat.percentage || 0 
     };
   };
 
@@ -93,7 +90,7 @@ export function AccentVotingSection({
               voteStats={voteStats}
               isSelected={word.userVote?.accentType === option.accentType.code}
               canVote={canVote}
-              onVote={() => onVote(option.id)}
+              onVote={() => onVote(option.accentTypeId!)}
               disabled={!canVote || isVoting}
               showPattern={true}
               size="md"

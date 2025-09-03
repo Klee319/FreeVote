@@ -28,6 +28,7 @@ export interface Word {
 
 export interface AccentOption {
   id: number;
+  accentTypeId: number; // accent_typeテーブルの実際のID
   accentType: {
     code: AccentType;
     name: string;
