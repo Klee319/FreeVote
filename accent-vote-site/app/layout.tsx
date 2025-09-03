@@ -51,6 +51,12 @@ export const metadata: Metadata = {
   verification: {
     google: 'google-site-verification-code',
   },
+  other: {
+    'preconnect': [
+      'https://fonts.googleapis.com',
+      'https://fonts.gstatic.com',
+    ],
+  },
 };
 
 // Viewport設定を独立したexportとして定義
@@ -90,17 +96,15 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <head>
-        {/* Structured Data */}
+        {/* Structured Data - Placed in head for better SEO */}
         <Script
           id="structured-data"
           type="application/ld+json"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify(structuredData),
           }}
         />
-        {/* Preconnect to improve performance */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body className={`${inter.className} font-japanese`}>
         {/* Skip to main content link for accessibility */}
