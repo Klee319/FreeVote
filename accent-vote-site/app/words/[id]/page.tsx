@@ -61,14 +61,41 @@ export default function WordDetailPage() {
         deviceId: user.deviceId,
       });
     },
-    onSuccess: () => {
+    onSuccess: async (response) => {
       toast.success('投票が完了しました！');
-      // キャッシュを更新
-      queryClient.invalidateQueries({ queryKey: ['wordDetail', wordId] });
-      queryClient.invalidateQueries({ queryKey: ['canVote', wordId] });
+      console.log('[WordDetailPage] Vote successful, response:', response);
+      
+      // レスポンスから統計データを取得
+      if (response?.stats) {
+        console.log('[WordDetailPage] New stats from response:', response.stats);
+        
+        // wordDetailクエリのデータを直接更新
+        queryClient.setQueryData(['wordDetail', wordId], (oldData: any) => {
+          if (!oldData) return oldData;
+          return {
+            ...oldData,
+            nationalStats: response.stats.national || oldData.nationalStats,
+            totalVotes: response.stats.national?.reduce(
+              (sum: number, stat: any) => sum + (stat.voteCount || 0), 
+              0
+            ) || oldData.totalVotes
+          };
+        });
+      }
+      
+      // キャッシュを無効化して再フェッチ
+      await queryClient.invalidateQueries({ queryKey: ['wordDetail', wordId] });
+      await queryClient.invalidateQueries({ queryKey: ['canVote', wordId] });
+      
+      // 確実に最新データを取得
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: ['wordDetail', wordId] });
+        queryClient.refetchQueries({ queryKey: ['canVote', wordId] });
+      }, 100);
     },
-    onError: () => {
-      toast.error('投票に失敗しました。もう一度お試しください。');
+    onError: (error: any) => {
+      console.error('[WordDetailPage] Vote error:', error);
+      toast.error(error?.message || '投票に失敗しました。もう一度お試しください。');
     },
   });
 

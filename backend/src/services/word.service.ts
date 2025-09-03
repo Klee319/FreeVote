@@ -101,29 +101,21 @@ export class WordService {
    * 語の詳細を取得
    */
   async getWordDetail(wordId: number, deviceId?: string): Promise<WordDetail | null> {
-    // キャッシュキー生成
-    const cacheKey = `word:detail:${wordId}`;
+    // データベースから直接取得（キャッシュを使わない）
+    const word = await this.wordRepository.getWordById(wordId);
     
-    // キャッシュ確認（デバイス依存しない基本情報）
-    let word = await CacheHelper.get<any>(cacheKey);
-    
-    if (!word) {
-      // データベースから取得
-      word = await this.wordRepository.getWordById(wordId);
-      
-      if (!word || word.status !== 'approved') {
-        return null;
-      }
-      
-      // キャッシュ保存（5分）
-      await CacheHelper.set(cacheKey, word, 300);
+    if (!word || word.status !== 'approved') {
+      return null;
     }
     
     // アクセントオプション取得
     const accentOptions = await this.wordRepository.getAccentOptions(wordId);
     
-    // 全国統計取得
+    // 全国統計取得（キャッシュを使わない）
     const nationalStats = await this.wordRepository.getNationalStats(wordId);
+    
+    // 総投票数を再計算
+    const totalVotes = await this.wordRepository.getTotalVotes(wordId);
     
     // 投票可否判定
     let canVote = true;
@@ -143,7 +135,7 @@ export class WordService {
         category: word.category?.name || '',
         moraCount: word.moraCount,
         moraSegments: word.moraSegments,
-        totalVotes: word._count?.votes || 0,
+        totalVotes: totalVotes || word._count?.votes || 0, // 最新の総投票数を使用
         prefectureCount: word.prefectureCount || 0,
         createdAt: word.createdAt.toISOString()
       },
@@ -173,6 +165,15 @@ export class WordService {
         votedAt: userVote.createdAt.toISOString()
       } : undefined
     };
+  }
+  
+  /**
+   * 語のキャッシュをクリア
+   */
+  async clearWordCache(wordId: number): Promise<void> {
+    const cacheKey = `word:detail:${wordId}`;
+    await CacheHelper.delete(cacheKey);
+    logger.debug(`Cleared cache for word ${wordId}`);
   }
   
   /**

@@ -46,8 +46,11 @@ export class VoteRepository {
           },
         });
 
+        console.log(`[VoteRepository] Created vote for word ${data.wordId}, accent ${data.accentTypeId}`);
+
         // 全国統計を更新
         await this.updateNationalStats(tx, data.wordId, data.accentTypeId);
+        console.log(`[VoteRepository] Updated national stats for word ${data.wordId}`);
 
         // 都道府県統計を更新（都道府県コードがある場合）
         if (data.prefectureCode) {
@@ -201,16 +204,17 @@ export class VoteRepository {
 
     if (existingStats) {
       // 更新
-      await tx.wordNationalStats.update({
+      const updated = await tx.wordNationalStats.update({
         where: { id: existingStats.id },
         data: {
           voteCount: { increment },
           totalVotes: { increment },
         },
       });
+      console.log(`[VoteRepository] Updated national stats: voteCount=${updated.voteCount}, totalVotes=${updated.totalVotes}`);
     } else if (increment > 0) {
       // 新規作成（削除時は作成しない）
-      await tx.wordNationalStats.create({
+      const created = await tx.wordNationalStats.create({
         data: {
           wordId,
           accentTypeId,
@@ -218,6 +222,7 @@ export class VoteRepository {
           totalVotes: increment,
         },
       });
+      console.log(`[VoteRepository] Created national stats: voteCount=${created.voteCount}, totalVotes=${created.totalVotes}`);
     }
 
     // パーセンテージを再計算

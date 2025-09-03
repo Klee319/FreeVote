@@ -161,7 +161,14 @@ export class VoteService {
       userAgent: data.userAgent,
     });
 
-    return vote;
+    // 最新の統計データを取得して返す
+    console.log(`[VoteService] Getting updated stats for word ${wordId}`);
+    const updatedStats = await this.getVoteStats(wordId);
+    
+    return {
+      ...vote,
+      stats: updatedStats
+    };
   }
 
   /**

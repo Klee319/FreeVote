@@ -54,9 +54,18 @@ export class VotesController {
         userAgent,
       });
 
+      // デバッグ：投票後の統計を取得
+      const updatedStats = await voteService.getVoteStats(wordId);
+      console.log('[VotesController] Updated stats after vote:', {
+        wordId,
+        nationalStats: updatedStats.national,
+        totalVotes: updatedStats.national.reduce((sum, stat) => sum + stat.voteCount, 0),
+      });
+
       res.status(201).json({
         success: true,
         data: vote,
+        stats: updatedStats,
         message: '投票が完了しました',
       });
     } catch (error) {

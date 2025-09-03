@@ -28,9 +28,21 @@ export function AccentVotingSection({
 }: AccentVotingSectionProps) {
   // 統計データをアクセントオプションにマッピング
   const getVoteStats = (accentType: string) => {
-    const stat = nationalStats.find(s => s.accentType === accentType);
+    const stat = nationalStats?.find(s => {
+      // APIから返されるデータの形式に対応
+      if (typeof s.accentType === 'object' && s.accentType?.code) {
+        return s.accentType.code === accentType;
+      }
+      return s.accentType === accentType;
+    });
+    
     if (!stat) return { count: 0, percentage: 0 };
-    return { count: stat.count, percentage: stat.percentage };
+    
+    // voteCountまたはcount、votePercentageまたはpercentageに対応
+    return { 
+      count: stat.voteCount || stat.count || 0, 
+      percentage: stat.votePercentage || stat.percentage || 0 
+    };
   };
 
   return (

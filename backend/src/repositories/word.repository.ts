@@ -276,4 +276,53 @@ export class WordRepository {
       });
     }
   }
+
+  /**
+   * アクセントオプションを取得
+   */
+  async getAccentOptions(wordId: number) {
+    return await this.prisma.accentOption.findMany({
+      where: { wordId },
+      include: { accentType: true },
+      orderBy: { accentTypeId: 'asc' },
+    });
+  }
+
+  /**
+   * 全国統計を取得
+   */
+  async getNationalStats(wordId: number) {
+    return await this.prisma.wordNationalStats.findMany({
+      where: { wordId },
+      include: { accentType: true },
+      orderBy: { voteCount: 'desc' },
+    });
+  }
+
+  /**
+   * 都道府県統計を取得
+   */
+  async getPrefectureStats(wordId: number, prefectureCode?: string) {
+    return await this.prisma.wordPrefStats.findMany({
+      where: {
+        wordId,
+        ...(prefectureCode && { prefectureCode }),
+      },
+      include: {
+        accentType: true,
+        prefecture: true,
+      },
+      orderBy: { voteCount: 'desc' },
+    });
+  }
+
+  /**
+   * 語の総投票数を取得（リアルタイムで計算）
+   */
+  async getTotalVotes(wordId: number): Promise<number> {
+    const result = await this.prisma.vote.count({
+      where: { wordId },
+    });
+    return result;
+  }
 }
