@@ -6,11 +6,14 @@
   "scripts": {
     "dev": "next dev",
     "dev:clean": "rm -rf .next && next dev",
-    "dev:win": "set NEXT_TELEMETRY_DISABLED=1 && next dev",
+    "dev:win": "set NEXT_TELEMETRY_DISABLED=1 && set NEXT_TRACE_DISABLED=1 && next dev",
+    "dev:win:clean": "scripts\\clean-windows.bat && npm run dev:win",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "clean": "rm -rf .next node_modules/.cache"
+    "clean": "rm -rf .next node_modules/.cache",
+    "clean:win": "powershell -ExecutionPolicy Bypass -File scripts\\clean-windows.ps1",
+    "clean:win:bat": "scripts\\clean-windows.bat"
   },
   "keywords": [],
   "author": "",

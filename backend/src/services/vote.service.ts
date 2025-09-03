@@ -25,15 +25,41 @@ export class VoteService {
    * 投票を処理
    */
   async submitVote(data: VoteData) {
-    // デバイスIDが無い場合は、フィンガープリントから生成
+    // デバイスIDの処理（既存IDまたは新規生成）
     let deviceId = data.deviceId;
-    if (!deviceId && data.userAgent && data.ipAddress) {
+    
+    if (deviceId) {
+      // 既存のデバイスIDが提供された場合、存在確認または作成
+      let device = await this.prisma.device.findUnique({
+        where: { id: deviceId },
+      });
+      
+      if (!device) {
+        // デバイスが存在しない場合は作成（フィンガープリントにdeviceIdを含める）
+        const fingerprint = this.generateFingerprint(
+          deviceId + '-' + (data.userAgent || 'unknown-agent'),
+          data.ipAddress || 'unknown-ip'
+        );
+        device = await this.prisma.device.create({
+          data: {
+            id: deviceId,
+            fingerprintHash: fingerprint,
+            lastSeenAt: new Date(),
+          },
+        });
+      } else {
+        // 最終閲覧日時を更新
+        await this.prisma.device.update({
+          where: { id: deviceId },
+          data: { lastSeenAt: new Date() },
+        });
+      }
+    } else if (data.userAgent && data.ipAddress) {
+      // デバイスIDが無い場合は、フィンガープリントから生成
       const fingerprint = this.generateFingerprint(data.userAgent, data.ipAddress);
       const device = await this.getOrCreateDevice(fingerprint);
       deviceId = device.id;
-    }
-
-    if (!deviceId) {
+    } else {
       throw new AppError('デバイスIDが必要です', 400);
     }
 
@@ -51,12 +77,49 @@ export class VoteService {
       }
     }
 
+    // AccentOptionIDとAccentTypeIDを自動判別する機能
+    let actualAccentTypeId = data.accentTypeId;
+    let wordId = data.wordId;
+    
+    // まず、AccentTypeとして有効な値か確認（通常1-4）
+    const validAccentType = await this.prisma.accentType.findUnique({
+      where: { id: data.accentTypeId },
+    });
+    
+    if (!validAccentType) {
+      // AccentTypeとして無効な場合、AccentOption IDとして処理を試みる
+      const accentOption = await this.prisma.accentOption.findUnique({
+        where: { id: data.accentTypeId },
+        include: {
+          word: true,
+          accentType: true,
+        },
+      });
+      
+      if (accentOption) {
+        // AccentOption IDとして処理
+        wordId = accentOption.wordId;
+        actualAccentTypeId = accentOption.accentTypeId;
+        
+        // wordIdの整合性チェック（指定されている場合のみ）
+        if (data.wordId && data.wordId !== wordId) {
+          throw new AppError(`指定されたアクセントオプション(ID:${data.accentTypeId})は、この語(ID:${data.wordId})には使用できません`, 400);
+        }
+        
+      } else {
+        // AccentTypeでもAccentOptionでもない場合はエラー
+        throw new AppError(`無効なアクセント型ID: ${data.accentTypeId}`, 400);
+      }
+    } else {
+      // AccentTypeとして処理
+    }
+
     // 語の存在確認
     const word = await this.prisma.word.findUnique({
-      where: { id: data.wordId },
+      where: { id: wordId },
       include: {
         accentOptions: {
-          where: { accentTypeId: data.accentTypeId },
+          where: { accentTypeId: actualAccentTypeId },
         },
       },
     });
@@ -66,13 +129,13 @@ export class VoteService {
     }
 
     if (!word.accentOptions.length) {
-      throw new AppError('指定されたアクセント型は選択できません', 400);
+      throw new AppError(`指定されたアクセント型は選択できません (wordId: ${wordId}, accentTypeId: ${actualAccentTypeId}, 元のリクエスト: ${data.accentTypeId})`, 400);
     }
 
     // 投票を作成
     const vote = await this.voteRepository.createVote({
-      wordId: data.wordId,
-      accentTypeId: data.accentTypeId,
+      wordId: wordId,
+      accentTypeId: actualAccentTypeId,
       deviceId,
       userId: data.userId,
       prefectureCode: data.prefectureCode,
@@ -88,7 +151,12 @@ export class VoteService {
       action: 'vote',
       resourceType: 'vote',
       resourceId: vote.id,
-      newData: vote,
+      newData: JSON.stringify({
+        wordId: vote.wordId,
+        accentTypeId: vote.accentTypeId,
+        prefectureCode: vote.prefectureCode,
+        ageGroup: vote.ageGroup
+      }),
       ipAddress: data.ipAddress,
       userAgent: data.userAgent,
     });

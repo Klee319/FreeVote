@@ -13,9 +13,18 @@ const nextConfig = {
       },
     ];
   },
-  // Windows環境でのEPERMエラー対策（強化版）
+  // Windows環境でのEPERMエラー対策（完全版）
   experimental: {
     disableOptimizedLoading: true,
+    // トレース機能を完全に無効化
+    turbotrace: {
+      logLevel: 'error',
+      logAll: false,
+    },
+  },
+  // テレメトリーを無効化
+  telemetry: {
+    disabled: true,
   },
   // Windowsでのファイルロック問題を回避
   webpack: (config, { isServer }) => {
@@ -26,7 +35,7 @@ const nextConfig = {
     config.watchOptions = {
       poll: 1000,
       aggregateTimeout: 300,
-      ignored: ['**/node_modules', '**/.next'],
+      ignored: ['**/node_modules', '**/.next', '**/trace'],
     };
     
     // Windows環境の特別な設定
@@ -36,6 +45,12 @@ const nextConfig = {
         managedPaths: [],
         immutablePaths: [],
       };
+      // トレース出力を無効化
+      config.optimization = {
+        ...config.optimization,
+        moduleIds: 'deterministic',
+        removeEmptyChunks: true,
+      };
     }
     
     return config;
@@ -44,6 +59,10 @@ const nextConfig = {
   distDir: '.next',
   // スタンドアロン出力を無効化（開発環境）
   output: undefined,
+  // トレース生成を無効化
+  generateBuildId: async () => {
+    return 'build-' + Date.now();
+  },
 }
 
 module.exports = nextConfig

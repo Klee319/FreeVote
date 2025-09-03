@@ -14,7 +14,6 @@ export class VotesController {
   static createVoteValidation = [
     body('wordId').isInt({ min: 1 }).withMessage('有効な語IDを指定してください'),
     body('accentTypeId').isInt({ min: 1 }).withMessage('有効なアクセント型IDを指定してください'),
-    body('deviceId').optional().isUUID().withMessage('有効なデバイスIDを指定してください'),
     body('prefectureCode')
       .optional()
       .isLength({ min: 2, max: 2 })
@@ -32,7 +31,10 @@ export class VotesController {
         throw new AppError('入力データが無効です', 400, errors.array());
       }
 
-      const { wordId, accentTypeId, deviceId, prefectureCode, ageGroup } = req.body;
+      const { wordId, accentTypeId, prefectureCode, ageGroup } = req.body;
+
+      // デバイスIDをヘッダーから取得
+      const deviceId = req.headers['x-device-id'] as string || undefined;
 
       // IPアドレスとユーザーエージェントを取得
       const ipAddress = req.ip || req.socket.remoteAddress || undefined;

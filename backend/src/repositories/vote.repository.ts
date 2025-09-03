@@ -67,7 +67,8 @@ export class VoteRepository {
       if (error instanceof AppError) {
         throw error;
       }
-      throw new AppError('投票の作成に失敗しました', 500);
+      console.error('VoteRepository.createVote error:', error);
+      throw new AppError(`投票の作成に失敗しました: ${error instanceof Error ? error.message : '不明なエラー'}`, 500);
     }
   }
 

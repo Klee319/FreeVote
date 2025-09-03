@@ -52,7 +52,11 @@
       "Bash(dir:*)",
       "mcp__playwright__browser_type",
       "mcp__playwright__browser_snapshot",
-      "mcp__playwright__browser_click"
+      "mcp__playwright__browser_click",
+      "Bash(chmod:*)",
+      "Bash(netstat:*)",
+      "Bash(cmd /c:*)",
+      "Bash(kill:*)"
     ],
     "deny": [],
     "additionalDirectories": [

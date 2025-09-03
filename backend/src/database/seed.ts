@@ -59,6 +59,14 @@ const categories = [
   { name: 'カタカナ語', description: '外来語や外国語由来の語' },
 ];
 
+// アクセント型マスターデータ
+const accentTypes = [
+  { code: 'heiban', name: '平板型', description: '2音目以降が平坦に高い', sortOrder: 1 },
+  { code: 'atamadaka', name: '頭高型', description: '最初が高く、後は低い', sortOrder: 2 },
+  { code: 'nakadaka', name: '中高型', description: '途中に高い部分がある', sortOrder: 3 },
+  { code: 'odaka', name: '尾高型', description: '語末が高く、助詞で下がる', sortOrder: 4 },
+];
+
 const words = [
   {
     headword: '桜',
@@ -67,6 +75,11 @@ const words = [
     moraCount: 3,
     moraSegments: 'サ|ク|ラ',
     status: 'approved',
+    accentOptions: [
+      { accentTypeCode: 'heiban', accentPattern: 'LHH', dropPosition: null },
+      { accentTypeCode: 'atamadaka', accentPattern: 'HLL', dropPosition: 1 },
+      { accentTypeCode: 'odaka', accentPattern: 'LHH', dropPosition: 3 },
+    ]
   },
   {
     headword: '富士山',
@@ -75,6 +88,10 @@ const words = [
     moraCount: 4,
     moraSegments: 'フ|ジ|サ|ン',
     status: 'approved',
+    accentOptions: [
+      { accentTypeCode: 'heiban', accentPattern: 'LHHH', dropPosition: null },
+      { accentTypeCode: 'atamadaka', accentPattern: 'HLLL', dropPosition: 1 },
+    ]
   },
   {
     headword: '寿司',
@@ -83,6 +100,11 @@ const words = [
     moraCount: 2,
     moraSegments: 'ス|シ',
     status: 'approved',
+    accentOptions: [
+      { accentTypeCode: 'heiban', accentPattern: 'LH', dropPosition: null },
+      { accentTypeCode: 'atamadaka', accentPattern: 'HL', dropPosition: 1 },
+      { accentTypeCode: 'odaka', accentPattern: 'LH', dropPosition: 2 },
+    ]
   },
   {
     headword: '東京',
@@ -91,6 +113,10 @@ const words = [
     moraCount: 4,
     moraSegments: 'ト|ウ|キョ|ウ',
     status: 'approved',
+    accentOptions: [
+      { accentTypeCode: 'heiban', accentPattern: 'LHHH', dropPosition: null },
+      { accentTypeCode: 'atamadaka', accentPattern: 'HLLL', dropPosition: 1 },
+    ]
   },
   {
     headword: '紅葉',
@@ -99,6 +125,11 @@ const words = [
     moraCount: 4,
     moraSegments: 'コ|ウ|ヨ|ウ',
     status: 'approved',
+    accentOptions: [
+      { accentTypeCode: 'heiban', accentPattern: 'LHHH', dropPosition: null },
+      { accentTypeCode: 'atamadaka', accentPattern: 'HLLL', dropPosition: 1 },
+      { accentTypeCode: 'nakadaka', accentPattern: 'LHLL', dropPosition: 2 },
+    ]
   },
   {
     headword: '雪景色',
@@ -107,6 +138,10 @@ const words = [
     moraCount: 5,
     moraSegments: 'ユ|キ|ゲ|シ|キ',
     status: 'approved',
+    accentOptions: [
+      { accentTypeCode: 'heiban', accentPattern: 'LHHHH', dropPosition: null },
+      { accentTypeCode: 'nakadaka', accentPattern: 'LHHLL', dropPosition: 3 },
+    ]
   },
   {
     headword: 'コンピューター',
@@ -115,6 +150,10 @@ const words = [
     moraCount: 7,
     moraSegments: 'コ|ン|ピ|ュ|ー|タ|ー',
     status: 'approved',
+    accentOptions: [
+      { accentTypeCode: 'heiban', accentPattern: 'LHHHHHH', dropPosition: null },
+      { accentTypeCode: 'nakadaka', accentPattern: 'LHHHLLL', dropPosition: 4 },
+    ]
   },
   {
     headword: '花見',
@@ -123,6 +162,10 @@ const words = [
     moraCount: 3,
     moraSegments: 'ハ|ナ|ミ',
     status: 'approved',
+    accentOptions: [
+      { accentTypeCode: 'heiban', accentPattern: 'LHH', dropPosition: null },
+      { accentTypeCode: 'nakadaka', accentPattern: 'LHL', dropPosition: 2 },
+    ]
   },
 ];
 
@@ -149,33 +192,76 @@ async function main() {
   }
   console.log('Categories seeded');
 
-  // 単語データを挿入
-  for (const word of words) {
+  // アクセント型データを挿入
+  for (const accentType of accentTypes) {
+    await prisma.accentType.upsert({
+      where: { code: accentType.code },
+      update: {
+        name: accentType.name,
+        description: accentType.description,
+        sortOrder: accentType.sortOrder,
+      },
+      create: accentType,
+    });
+  }
+  console.log('Accent types seeded');
+
+  // 単語データとアクセントオプションを挿入
+  for (const wordData of words) {
     const category = await prisma.wordCategory.findUnique({
-      where: { name: word.categoryName },
+      where: { name: wordData.categoryName },
     });
 
     if (category) {
-      await prisma.word.upsert({
+      // 単語を作成または更新
+      const word = await prisma.word.upsert({
         where: { 
           headword_reading: {
-            headword: word.headword,
-            reading: word.reading,
+            headword: wordData.headword,
+            reading: wordData.reading,
           }
         },
         update: {},
         create: {
-          headword: word.headword,
-          reading: word.reading,
+          headword: wordData.headword,
+          reading: wordData.reading,
           categoryId: category.id,
-          moraCount: word.moraCount,
-          moraSegments: word.moraSegments,
-          status: word.status,
+          moraCount: wordData.moraCount,
+          moraSegments: wordData.moraSegments,
+          status: wordData.status,
         },
       });
+
+      // アクセントオプションを作成
+      for (const optionData of wordData.accentOptions) {
+        const accentType = await prisma.accentType.findUnique({
+          where: { code: optionData.accentTypeCode },
+        });
+
+        if (accentType) {
+          await prisma.accentOption.upsert({
+            where: {
+              wordId_accentTypeId: {
+                wordId: word.id,
+                accentTypeId: accentType.id,
+              }
+            },
+            update: {
+              accentPattern: optionData.accentPattern,
+              dropPosition: optionData.dropPosition,
+            },
+            create: {
+              wordId: word.id,
+              accentTypeId: accentType.id,
+              accentPattern: optionData.accentPattern,
+              dropPosition: optionData.dropPosition,
+            },
+          });
+        }
+      }
     }
   }
-  console.log('Words seeded');
+  console.log('Words and accent options seeded');
 
   console.log('Seeding finished.');
 }
