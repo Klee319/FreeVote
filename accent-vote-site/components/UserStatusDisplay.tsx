@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { User, ChevronDown, Edit3, LogOut } from 'lucide-react';
+import { User, ChevronDown, Edit3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -119,31 +119,6 @@ export default function UserStatusDisplay() {
     await verifyCookie();
   };
 
-  const handleClearData = () => {
-    if (confirm('本当にユーザーデータをクリアしますか？投票履歴も削除されます。')) {
-      // すべてのCookieをクリア（ドメインとパスを考慮）
-      document.cookie.split(';').forEach((c) => {
-        const eqPos = c.indexOf('=');
-        const name = eqPos > -1 ? c.substr(0, eqPos).trim() : c.trim();
-        // 複数のパスとドメインでCookieを削除
-        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
-        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname}`;
-        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.${window.location.hostname}`;
-      });
-      
-      // localStorageをクリア
-      localStorage.clear();
-      
-      // sessionStorageをクリア（ただし、初回登録モーダルのフラグもクリア）
-      sessionStorage.clear();
-      // 初回登録モーダルを再表示するためのフラグを削除
-      sessionStorage.removeItem('hasShownRegistrationModal');
-      sessionStorage.removeItem('registration-skipped');
-      
-      // ページをリロード
-      window.location.reload();
-    }
-  };
 
   // ローディング中または未登録の場合
   if (isLoading) {
@@ -234,14 +209,6 @@ export default function UserStatusDisplay() {
           <DropdownMenuItem onClick={handleEditAttributes}>
             <Edit3 className="h-4 w-4 mr-2" />
             属性を編集
-          </DropdownMenuItem>
-          
-          <DropdownMenuItem 
-            onClick={handleClearData}
-            className="text-red-600 focus:text-red-600"
-          >
-            <LogOut className="h-4 w-4 mr-2" />
-            データをクリア
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
