@@ -90,22 +90,30 @@ interface AnonymousRegistrationFormProps {
   onSuccess?: () => void;
   onSkip?: () => void;
   disabled?: boolean;
+  initialData?: {
+    age?: string;
+    gender?: string;
+    prefecture?: string;
+  };
+  isEditMode?: boolean;
 }
 
 export default function AnonymousRegistrationForm({ 
   onSuccess, 
   onSkip,
-  disabled = false 
+  disabled = false,
+  initialData,
+  isEditMode = false
 }: AnonymousRegistrationFormProps) {
   const router = useRouter();
   const { register } = useCookieAuth(); // useCookieAuthから register 関数を取得
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // フォーム状態
-  const [age, setAge] = useState<string>('');
-  const [gender, setGender] = useState<string>('');
-  const [prefecture, setPrefecture] = useState<string>('');
+  // フォーム状態（initialDataがある場合はその値を初期値として使用）
+  const [age, setAge] = useState<string>(initialData?.age || '');
+  const [gender, setGender] = useState<string>(initialData?.gender || '');
+  const [prefecture, setPrefecture] = useState<string>(initialData?.prefecture || '');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -151,10 +159,11 @@ export default function AnonymousRegistrationForm({
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle>はじめての方へ</CardTitle>
+        <CardTitle>{isEditMode ? '属性を編集' : 'はじめての方へ'}</CardTitle>
         <CardDescription>
-          日本語アクセント投票サイトへようこそ！
-          より正確な統計データを収集するため、簡単な属性情報を教えてください。
+          {isEditMode 
+            ? '属性情報を編集できます。変更内容は自動的に保存されます。'
+            : '日本語アクセント投票サイトへようこそ！より正確な統計データを収集するため、簡単な属性情報を教えてください。'}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -226,17 +235,19 @@ export default function AnonymousRegistrationForm({
                   登録中...
                 </>
               ) : (
-                '登録して始める'
+                isEditMode ? '更新する' : '登録して始める'
               )}
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleSkip}
-              disabled={isLoading || disabled}
-            >
-              スキップ
-            </Button>
+            {!isEditMode && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleSkip}
+                disabled={isLoading || disabled}
+              >
+                スキップ
+              </Button>
+            )}
           </div>
 
           <p className="text-sm text-muted-foreground text-center pt-2">

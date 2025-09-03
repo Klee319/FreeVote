@@ -252,6 +252,12 @@ export default function UserStatusDisplay() {
           key={modalKey}
           isForceOpen={true}
           onForceClose={handleModalClose}
+          initialData={{
+            age: user?.ageGroup,
+            gender: user?.gender,
+            prefecture: user?.prefectureCode
+          }}
+          isEditMode={true}
         />
       )}
     </>

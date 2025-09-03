@@ -8,11 +8,19 @@ import { useCookieAuth } from '@/hooks/useCookieAuth';
 interface AnonymousRegistrationModalProps {
   isForceOpen?: boolean;
   onForceClose?: () => void;
+  initialData?: {
+    age?: string;
+    gender?: string;
+    prefecture?: string;
+  };
+  isEditMode?: boolean;
 }
 
 export default function AnonymousRegistrationModal({ 
   isForceOpen = false, 
-  onForceClose 
+  onForceClose,
+  initialData,
+  isEditMode = false
 }: AnonymousRegistrationModalProps) {
   const { isRegistered, isLoading, verifyCookie } = useCookieAuth();
   const [isOpen, setIsOpen] = useState(false);
@@ -92,15 +100,19 @@ export default function AnonymousRegistrationModal({
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[500px]" onPointerDownOutside={(e) => isProcessing && e.preventDefault()}>
         <DialogHeader>
-          <DialogTitle>ようこそ！</DialogTitle>
+          <DialogTitle>{isEditMode ? '属性情報の編集' : 'ようこそ！'}</DialogTitle>
           <DialogDescription>
-            より良いサービスを提供するため、簡単なアンケートにご協力ください。
+            {isEditMode 
+              ? '登録された属性情報を編集できます。' 
+              : 'より良いサービスを提供するため、簡単なアンケートにご協力ください。'}
           </DialogDescription>
         </DialogHeader>
         <AnonymousRegistrationForm 
           onSuccess={handleSuccess}
           onSkip={handleSkip}
           disabled={isProcessing}
+          initialData={initialData}
+          isEditMode={isEditMode}
         />
       </DialogContent>
     </Dialog>
