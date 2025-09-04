@@ -3,6 +3,7 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
+import { PrismaClient } from '../generated/prisma';
 import { WordService } from '../services/word.service';
 import { StatsService } from '../services/stats.service';
 import { logger } from '../utils/logger';
@@ -12,9 +13,11 @@ import { validationResult } from 'express-validator';
 export class WordsController {
   private wordService: WordService;
   private statsService: StatsService;
+  private prisma: PrismaClient;
   
   constructor() {
-    this.wordService = new WordService();
+    this.prisma = new PrismaClient();
+    this.wordService = new WordService(this.prisma);
     this.statsService = new StatsService();
   }
   

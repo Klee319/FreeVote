@@ -65,7 +65,12 @@ export const api = {
   // 投票
   submitVote: async (voteData: VoteData): Promise<{ success: boolean; message: string; stats?: any }> => {
     if (DEBUG_MODE) {
-      console.log('[API] Submitting vote:', voteData);
+      console.log('[API] Submitting vote:', {
+        wordId: voteData.wordId,
+        accentTypeId: voteData.accentTypeId,
+        prefecture: voteData.prefecture,
+        deviceId: voteData.deviceId ? 'provided' : 'not provided'
+      });
     }
     
     try {
@@ -73,28 +78,96 @@ export const api = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          // DeviceIDをヘッダーにも含める
+          ...(voteData.deviceId && { 'X-Device-ID': voteData.deviceId }),
         },
         body: JSON.stringify(voteData),
         credentials: 'include', // Cookie送信を確実に行う
       });
       
-      const result = await response.json();
+      // レスポンスのテキストを先に取得
+      const responseText = await response.text();
+      let result;
       
-      if (DEBUG_MODE) {
-        console.log('[API] Vote response:', result);
+      try {
+        result = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('[API] Failed to parse response:', responseText);
+        result = { success: false, message: 'サーバーからの応答が不正です' };
       }
       
+      if (DEBUG_MODE) {
+        console.log('[API] Vote response:', {
+          status: response.status,
+          success: result.success,
+          hasStats: !!result.stats || !!result.statistics,
+          message: result.message
+        });
+      }
+      
+      // HTTPステータスコード別のエラーハンドリング
       if (!response.ok) {
-        throw new Error(result.message || '投票に失敗しました');
+        // ステータスコードに応じたエラーメッセージ
+        let errorMessage = result.message || '投票に失敗しました';
+        
+        switch (response.status) {
+          case 400:
+            // バリデーションエラー
+            errorMessage = result.message || '入力データが無効です。もう一度お試しください。';
+            break;
+          case 403:
+            // 権限エラー
+            errorMessage = result.message || 'この操作を実行する権限がありません。';
+            break;
+          case 404:
+            // 語が見つからない
+            errorMessage = result.message || '指定された語が見つかりません。';
+            break;
+          case 409:
+            // 重複投票
+            errorMessage = 'この語には既に投票済みです。他の語への投票をお願いします。';
+            console.log('[API] Duplicate vote detected (409 Conflict)');
+            break;
+          case 429:
+            // レート制限
+            errorMessage = '投票の制限に達しました。しばらく待ってから再度お試しください。';
+            break;
+          case 500:
+          case 502:
+          case 503:
+          case 504:
+            // サーバーエラー
+            errorMessage = 'サーバーエラーが発生しました。しばらくしてから再度お試しください。';
+            console.error(`[API] Server error (${response.status}):`, result);
+            break;
+          default:
+            errorMessage = result.message || `エラーが発生しました（ステータス: ${response.status}）`;
+        }
+        
+        const error = new Error(errorMessage);
+        (error as any).statusCode = response.status;
+        (error as any).responseData = result;
+        throw error;
       }
       
       return {
-        success: result.success,
+        success: result.success !== false,
         message: result.message || '投票が完了しました',
-        stats: result.statistics || result.stats, // 統計データを含める
+        stats: result.stats || result.statistics, // 統計データを含める
       };
     } catch (error) {
-      console.error('[API] Vote error:', error);
+      // エラーの詳細なログ出力
+      if (error instanceof Error) {
+        console.error('[API] Vote error:', {
+          message: error.message,
+          statusCode: (error as any).statusCode,
+          responseData: (error as any).responseData,
+          stack: DEBUG_MODE ? error.stack : undefined
+        });
+      } else {
+        console.error('[API] Vote error:', error);
+      }
+      
       // モックにフォールバック（開発環境用）
       if (DEBUG_MODE && error instanceof TypeError && error.message.includes('fetch')) {
         console.warn('[API] Falling back to mock data for vote');
@@ -142,7 +215,7 @@ export const api = {
   },
   
   // 投票可能かチェック
-  canVote: async (wordId: number): Promise<{ canVote: boolean; reason?: string }> => {
+  canVote: async (wordId: number): Promise<{ canVote: boolean; reason?: string; hasVoted?: boolean }> => {
     if (DEBUG_MODE) {
       console.log('[API] Checking if can vote for word:', wordId);
     }
@@ -151,31 +224,90 @@ export const api = {
       const response = await fetch(`${API_BASE_URL}/api/votes/can-vote/${wordId}`, {
         method: 'GET',
         credentials: 'include', // Cookie送信を確実に行う
+        headers: {
+          // ローカルストレージからdeviceIdを取得して送信
+          ...(typeof window !== 'undefined' && localStorage.getItem('deviceId') && {
+            'X-Device-ID': localStorage.getItem('deviceId') || ''
+          }),
+        },
       });
       
-      const result = await response.json();
+      // レスポンスのテキストを先に取得
+      const responseText = await response.text();
+      let result;
+      
+      try {
+        result = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('[API] Failed to parse can vote response:', responseText);
+        // パースエラーの場合はデフォルトで投票可能にする
+        return { canVote: true, reason: 'サーバー応答の解析に失敗しました' };
+      }
       
       if (DEBUG_MODE) {
-        console.log('[API] Can vote response:', result);
+        console.log('[API] Can vote response:', {
+          status: response.status,
+          canVote: result.data?.canVote,
+          hasVoted: result.data?.hasVoted,
+          reason: result.data?.existingVote ? '既に投票済み' : result.reason
+        });
       }
       
+      // ステータスコードに応じた処理
       if (!response.ok) {
-        throw new Error(result.message || '投票可能状態の確認に失敗しました');
+        switch (response.status) {
+          case 400:
+            // バリデーションエラー
+            console.warn('[API] Invalid request for can vote check');
+            return { canVote: false, reason: 'リクエストが無効です' };
+          case 403:
+            // 権限エラー（語が未承認など）
+            return { canVote: false, reason: result.message || 'この語はまだ投票を受け付けていません' };
+          case 404:
+            // 語が見つからない
+            return { canVote: false, reason: '指定された語が見つかりません' };
+          case 500:
+          case 502:
+          case 503:
+          case 504:
+            // サーバーエラーの場合はデフォルトで投票可能にする
+            console.error(`[API] Server error in can vote check (${response.status})`);
+            return { canVote: true, reason: 'サーバーエラーが発生しました' };
+          default:
+            // その他のエラー
+            console.warn(`[API] Unexpected status in can vote check: ${response.status}`);
+            return { canVote: true };
+        }
       }
       
+      // 正常なレスポンスの処理
+      // dataプロパティがある場合とない場合の両方に対応
+      const data = result.data || result;
       return {
-        canVote: result.canVote,
-        reason: result.reason,
+        canVote: data.canVote !== false, // 明示的にfalseでない限りtrue
+        reason: data.existingVote ? '既にこの語に投票済みです' : data.reason,
+        hasVoted: !!data.hasVoted || !!data.existingVote,
       };
     } catch (error) {
-      console.error('[API] Can vote check error:', error);
+      // エラーの詳細なログ出力
+      if (error instanceof Error) {
+        console.error('[API] Can vote check error:', {
+          message: error.message,
+          wordId,
+          stack: DEBUG_MODE ? error.stack : undefined
+        });
+      } else {
+        console.error('[API] Can vote check error:', error);
+      }
+      
       // モックにフォールバック（開発環境用）
       if (DEBUG_MODE && error instanceof TypeError && error.message.includes('fetch')) {
         console.warn('[API] Falling back to mock data for can vote check');
         return { canVote: true };
       }
-      // エラー時はデフォルトで投票可能にする
-      return { canVote: true };
+      
+      // エラー時はデフォルトで投票可能にする（ユーザビリティのため）
+      return { canVote: true, reason: 'ステータス確認できませんでした' };
     }
   },
   

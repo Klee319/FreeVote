@@ -53,7 +53,12 @@ export default function WordDetailPage() {
         throw new Error('認証情報が見つかりません。ページを再読み込みしてください。');
       }
       
-      console.log('[WordDetailPage] Submitting vote with deviceId:', user.deviceId);
+      console.log('[WordDetailPage] Submitting vote:', {
+        wordId: parseInt(wordId),
+        accentTypeId,
+        prefecture: selectedPrefecture,
+        hasDeviceId: !!user.deviceId
+      });
 
       return api.submitVote({
         wordId: parseInt(wordId),
@@ -63,12 +68,17 @@ export default function WordDetailPage() {
       });
     },
     onSuccess: async (response) => {
-      toast.success('投票が完了しました！');
-      console.log('[WordDetailPage] Vote successful, response:', response);
+      // 成功メッセージをカスタマイズ
+      const successMessage = response.message || '投票が完了しました！';
+      toast.success(successMessage);
+      console.log('[WordDetailPage] Vote successful:', {
+        message: successMessage,
+        hasStats: !!(response?.stats || response?.statistics)
+      });
       
       // レスポンスから統計データを取得して正規化
       if (response?.stats || response?.statistics) {
-        console.log('[WordDetailPage] New stats from response:', response.stats || response.statistics);
+        console.log('[WordDetailPage] Updating stats from response');
         
         // データを正規化
         const normalizedStats = normalizeVoteResponseStats(response);
@@ -101,16 +111,65 @@ export default function WordDetailPage() {
       }, 100);
     },
     onError: (error: any) => {
-      console.error('[WordDetailPage] Vote error:', error);
-      toast.error(error?.message || '投票に失敗しました。もう一度お試しください。');
+      // エラーの詳細なログ出力
+      console.error('[WordDetailPage] Vote error:', {
+        message: error?.message,
+        statusCode: error?.statusCode,
+        responseData: error?.responseData
+      });
+      
+      // ステータスコードに応じたエラーメッセージ
+      let errorMessage = error?.message || '投票に失敗しました。';
+      
+      // 特定のエラーに対してカスタムアクション
+      if (error?.statusCode === 409 || error?.message?.includes('既に投票済み')) {
+        // 重複投票の場合は、canVoteを再フェッチ
+        queryClient.invalidateQueries({ queryKey: ['canVote', wordId] });
+        errorMessage = 'この語には既に投票済みです。';
+      } else if (error?.statusCode === 429) {
+        // レート制限
+        errorMessage = '投票の制限に達しました。しばらく待ってからお試しください。';
+      } else if (error?.statusCode >= 500) {
+        // サーバーエラー
+        errorMessage = 'サーバーエラーが発生しました。しばらくしてから再度お試しください。';
+      } else if (!error?.message) {
+        // メッセージがない場合
+        errorMessage = '予期しないエラーが発生しました。もう一度お試しください。';
+      }
+      
+      toast.error(errorMessage);
     },
   });
 
   const handleVote = (accentTypeId: number) => {
+    // 投票可否チェック
     if (canVoteData?.canVote === false) {
-      toast.error(canVoteData.reason || '現在投票できません');
+      // 理由をより具体的に表示
+      const errorReason = canVoteData.hasVoted 
+        ? 'この語には既に投票済みです。他の語への投票をお願いします。'
+        : canVoteData.reason || '現在投票できません';
+      toast.error(errorReason);
+      console.log('[WordDetailPage] Vote blocked:', {
+        canVote: canVoteData.canVote,
+        hasVoted: canVoteData.hasVoted,
+        reason: canVoteData.reason
+      });
       return;
     }
+    
+    // デバイスIDがない場合のチェック
+    if (!user?.deviceId) {
+      toast.error('認証情報が見つかりません。ページを再読み込みしてください。');
+      console.error('[WordDetailPage] No deviceId available for voting');
+      return;
+    }
+    
+    // 投票実行
+    console.log('[WordDetailPage] Initiating vote:', {
+      wordId,
+      accentTypeId,
+      prefecture: selectedPrefecture
+    });
     voteMutation.mutate(accentTypeId);
   };
 

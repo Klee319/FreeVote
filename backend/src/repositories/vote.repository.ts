@@ -63,15 +63,47 @@ export class VoteRepository {
         }
 
         return vote;
+      }, {
+        // トランザクションのタイムアウトとリトライ設定
+        maxWait: 5000, // 5秒
+        timeout: 10000, // 10秒
+        // SQLiteでは分離レベルの設定は不要
       });
 
       return result;
     } catch (error) {
+      // Prismaエラーのハンドリング
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        // P2002: 一意制約違反（重複投票）
+        if (error.code === 'P2002') {
+          console.log('[VoteRepository] Duplicate vote attempt detected:', {
+            deviceId: data.deviceId,
+            wordId: data.wordId,
+            error: error.message
+          });
+          throw new AppError('既にこの語に投票済みです', 409);
+        }
+        // P2003: 外部キー制約違反
+        if (error.code === 'P2003') {
+          console.error('[VoteRepository] Foreign key constraint failed:', error);
+          throw new AppError('無効なデータが指定されました', 400);
+        }
+      }
+      
       if (error instanceof AppError) {
         throw error;
       }
-      console.error('VoteRepository.createVote error:', error);
-      throw new AppError(`投票の作成に失敗しました: ${error instanceof Error ? error.message : '不明なエラー'}`, 500);
+      
+      console.error('[VoteRepository.createVote] Unexpected error:', {
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+        data
+      });
+      
+      throw new AppError(
+        `投票の作成に失敗しました: ${error instanceof Error ? error.message : '不明なエラー'}`, 
+        500
+      );
     }
   }
 
@@ -192,41 +224,76 @@ export class VoteRepository {
     accentTypeId: number,
     increment: number = 1
   ): Promise<void> {
-    // 既存の統計を取得または作成
-    const existingStats = await tx.wordNationalStats.findUnique({
-      where: {
-        wordId_accentTypeId: {
-          wordId,
-          accentTypeId,
-        },
-      },
-    });
+    try {
+      // AccentTypeの存在確認（初回投票時のエラーを防ぐため）
+      const accentType = await tx.accentType.findUnique({
+        where: { id: accentTypeId }
+      });
+      
+      if (!accentType) {
+        console.error(`[VoteRepository] AccentType not found: ${accentTypeId}`);
+        throw new AppError(`無効なアクセント型ID: ${accentTypeId}`, 400);
+      }
 
-    if (existingStats) {
-      // 更新
-      const updated = await tx.wordNationalStats.update({
-        where: { id: existingStats.id },
-        data: {
-          voteCount: { increment },
-          totalVotes: { increment },
+      // 既存の統計を取得または作成（AccentTypeリレーションを含める）
+      const existingStats = await tx.wordNationalStats.findUnique({
+        where: {
+          wordId_accentTypeId: {
+            wordId,
+            accentTypeId,
+          },
+        },
+        include: {
+          accentType: true,
         },
       });
-      console.log(`[VoteRepository] Updated national stats: voteCount=${updated.voteCount}, totalVotes=${updated.totalVotes}`);
-    } else if (increment > 0) {
-      // 新規作成（削除時は作成しない）
-      const created = await tx.wordNationalStats.create({
-        data: {
-          wordId,
-          accentTypeId,
-          voteCount: increment,
-          totalVotes: increment,
-        },
+
+      if (existingStats) {
+        // 更新（AccentTypeリレーションを含めて返す）
+        const updated = await tx.wordNationalStats.update({
+          where: { id: existingStats.id },
+          data: {
+            voteCount: Math.max(0, existingStats.voteCount + increment), // 負の値を防ぐ
+            totalVotes: Math.max(0, existingStats.totalVotes + increment),
+          },
+          include: {
+            accentType: true,
+          },
+        });
+        console.log(`[VoteRepository] Updated national stats: wordId=${wordId}, accentTypeId=${accentTypeId}, voteCount=${updated.voteCount}, totalVotes=${updated.totalVotes}, accentType=${updated.accentType?.code}`);
+      } else if (increment > 0) {
+        // 新規作成（削除時は作成しない）- AccentTypeリレーションを確実に含める
+        const created = await tx.wordNationalStats.create({
+          data: {
+            word: { connect: { id: wordId } },
+            accentType: { connect: { id: accentTypeId } },
+            voteCount: increment,
+            totalVotes: increment,
+            votePercentage: 100, // 初回は100%
+          },
+          include: {
+            accentType: true,
+          },
+        });
+        console.log(`[VoteRepository] Created national stats: wordId=${wordId}, accentTypeId=${accentTypeId}, voteCount=${created.voteCount}, totalVotes=${created.totalVotes}, accentType=${created.accentType?.code}`);
+        
+        // 作成後の確認
+        if (!created.accentType) {
+          console.error('[VoteRepository] Warning: AccentType relation not loaded after creation');
+        }
+      }
+
+      // パーセンテージを再計算
+      await this.recalculateNationalPercentages(tx, wordId);
+    } catch (error) {
+      console.error('[VoteRepository.updateNationalStats] Error:', {
+        wordId,
+        accentTypeId,
+        increment,
+        error: error instanceof Error ? error.message : error
       });
-      console.log(`[VoteRepository] Created national stats: voteCount=${created.voteCount}, totalVotes=${created.totalVotes}`);
+      throw error;
     }
-
-    // パーセンテージを再計算
-    await this.recalculateNationalPercentages(tx, wordId);
   }
 
   /**
@@ -239,41 +306,79 @@ export class VoteRepository {
     prefectureCode: string,
     increment: number = 1
   ): Promise<void> {
-    // 既存の統計を取得または作成
-    const existingStats = await tx.wordPrefStats.findUnique({
-      where: {
-        wordId_prefectureCode_accentTypeId: {
-          wordId,
-          prefectureCode,
-          accentTypeId,
-        },
-      },
-    });
+    try {
+      // Prefectureの存在確認
+      const prefecture = await tx.prefecture.findUnique({
+        where: { code: prefectureCode }
+      });
+      
+      if (!prefecture) {
+        console.error(`[VoteRepository] Prefecture not found: ${prefectureCode}`);
+        // 都道府県が見つからない場合はスキップ（エラーにしない）
+        return;
+      }
 
-    if (existingStats) {
-      // 更新
-      await tx.wordPrefStats.update({
-        where: { id: existingStats.id },
-        data: {
-          voteCount: { increment },
-          totalVotesInPref: { increment },
+      // 既存の統計を取得または作成（AccentTypeリレーションを含める）
+      const existingStats = await tx.wordPrefStats.findUnique({
+        where: {
+          wordId_prefectureCode_accentTypeId: {
+            wordId,
+            prefectureCode,
+            accentTypeId,
+          },
+        },
+        include: {
+          accentType: true,
+          prefecture: true,
         },
       });
-    } else if (increment > 0) {
-      // 新規作成（削除時は作成しない）
-      await tx.wordPrefStats.create({
-        data: {
-          wordId,
-          prefectureCode,
-          accentTypeId,
-          voteCount: increment,
-          totalVotesInPref: increment,
-        },
+
+      if (existingStats) {
+        // 更新（AccentTypeとPrefectureリレーションを含めて返す）
+        const updated = await tx.wordPrefStats.update({
+          where: { id: existingStats.id },
+          data: {
+            voteCount: Math.max(0, existingStats.voteCount + increment),
+            totalVotesInPref: Math.max(0, existingStats.totalVotesInPref + increment),
+          },
+          include: {
+            accentType: true,
+            prefecture: true,
+          },
+        });
+        console.log(`[VoteRepository] Updated prefecture stats: wordId=${wordId}, prefecture=${prefectureCode}, accentTypeId=${accentTypeId}, voteCount=${updated.voteCount}`);
+      } else if (increment > 0) {
+        // 新規作成（削除時は作成しない）- AccentTypeとPrefectureリレーションを確実に含める
+        const created = await tx.wordPrefStats.create({
+          data: {
+            word: { connect: { id: wordId } },
+            prefecture: { connect: { code: prefectureCode } },
+            accentType: { connect: { id: accentTypeId } },
+            voteCount: increment,
+            totalVotesInPref: increment,
+            votePercentage: 100, // 初回は100%
+          },
+          include: {
+            accentType: true,
+            prefecture: true,
+          },
+        });
+        console.log(`[VoteRepository] Created prefecture stats: wordId=${wordId}, prefecture=${prefectureCode}, accentTypeId=${accentTypeId}, voteCount=${created.voteCount}`);
+      }
+
+      // パーセンテージを再計算
+      await this.recalculatePrefecturePercentages(tx, wordId, prefectureCode);
+    } catch (error) {
+      console.error('[VoteRepository.updatePrefectureStats] Error:', {
+        wordId,
+        accentTypeId,
+        prefectureCode,
+        increment,
+        error: error instanceof Error ? error.message : error
       });
+      // 都道府県統計の更新エラーは投票自体を失敗させない
+      // ログを出力して処理を続行
     }
-
-    // パーセンテージを再計算
-    await this.recalculatePrefecturePercentages(tx, wordId, prefectureCode);
   }
 
   /**

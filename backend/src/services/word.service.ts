@@ -2,6 +2,7 @@
  * 語関連サービス
  */
 
+import { PrismaClient } from '../generated/prisma';
 import { WordRepository } from '../repositories/word.repository';
 import { VoteRepository } from '../repositories/vote.repository';
 import { CacheHelper } from '../config/redis';
@@ -40,9 +41,11 @@ export class WordService {
   private wordRepository: WordRepository;
   private voteRepository: VoteRepository;
   
-  constructor() {
-    this.wordRepository = new WordRepository();
-    this.voteRepository = new VoteRepository();
+  constructor(private prisma?: PrismaClient) {
+    // PrismaClientが渡されなかった場合は新しいインスタンスを作成
+    const prismaInstance = this.prisma || new PrismaClient();
+    this.wordRepository = new WordRepository(prismaInstance);
+    this.voteRepository = new VoteRepository(prismaInstance);
   }
   
   /**
@@ -151,10 +154,7 @@ export class WordService {
       })),
       aliases: word.aliases?.map((a: any) => a.alias) || [],
       nationalStats: nationalStats.map(stat => ({
-        accentType: {
-          code: stat.accentType.code,
-          name: stat.accentType.name
-        },
+        accentType: stat.accentType.code, // フロントエンドは文字列を期待
         voteCount: stat.voteCount,
         percentage: stat.votePercentage
       })),

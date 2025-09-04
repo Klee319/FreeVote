@@ -76,7 +76,16 @@ export function AccentVotingSection({
           <div className="mt-4 p-3 bg-yellow-50 rounded-lg flex items-start">
             <InformationCircleIcon className="w-5 h-5 text-yellow-600 mt-0.5 mr-2 flex-shrink-0" />
             <p className="text-sm text-yellow-800">
-              この語には既に投票済みです。24時間後に再度投票できます。
+              この語には既に投票済みです。他の語への投票をお願いします。
+            </p>
+          </div>
+        )}
+        
+        {isVoting && (
+          <div className="mt-4 p-3 bg-blue-50 rounded-lg flex items-center">
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent mr-2"></div>
+            <p className="text-sm text-blue-800">
+              投票を処理中です...
             </p>
           </div>
         )}

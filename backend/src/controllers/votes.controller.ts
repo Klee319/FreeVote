@@ -28,7 +28,12 @@ export class VotesController {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        throw new AppError('入力データが無効です', 400, errors.array());
+        console.log('[VotesController] Validation errors:', errors.array());
+        return res.status(400).json({
+          success: false,
+          message: '入力データが無効です',
+          errors: errors.array()
+        });
       }
 
       const { wordId, accentTypeId, prefectureCode, ageGroup } = req.body;
@@ -43,6 +48,14 @@ export class VotesController {
       // ユーザーIDを取得（認証済みの場合）
       const userId = (req as any).user?.id || undefined;
 
+      console.log('[VotesController] Creating vote:', {
+        wordId,
+        accentTypeId,
+        deviceId: deviceId ? 'provided' : 'not provided',
+        prefectureCode,
+        ageGroup
+      });
+
       const vote = await voteService.submitVote({
         wordId,
         accentTypeId,
@@ -54,11 +67,14 @@ export class VotesController {
         userAgent,
       });
 
-      // デバッグ：投票後の統計を取得
-      const updatedStats = await voteService.getVoteStats(wordId);
-      console.log('[VotesController] Updated stats after vote:', {
+      // デバッグ：投票後の統計を取得（voteオブジェクトにstatsが含まれている場合はそれを使用）
+      const updatedStats = vote.stats || await voteService.getVoteStats(wordId);
+      
+      console.log('[VotesController] Vote created successfully:', {
+        voteId: vote.id,
         wordId,
-        nationalStats: updatedStats.national,
+        accentTypeId: vote.accentTypeId,
+        nationalStatsCount: updatedStats.national.length,
         totalVotes: updatedStats.national.reduce((sum, stat) => sum + stat.voteCount, 0),
       });
 
@@ -69,7 +85,32 @@ export class VotesController {
         message: '投票が完了しました',
       });
     } catch (error) {
-      next(error);
+      // エラーログを詳細に出力
+      console.error('[VotesController.createVote] Error:', {
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+        body: req.body,
+        headers: {
+          deviceId: req.headers['x-device-id'],
+          userAgent: req.get('user-agent')
+        }
+      });
+
+      // AppErrorの場合は適切なステータスコードで返す
+      if (error instanceof AppError) {
+        return res.status(error.statusCode || 500).json({
+          success: false,
+          message: error.message,
+          errors: error.errors || []
+        });
+      }
+
+      // 予期しないエラーの場合
+      res.status(500).json({
+        success: false,
+        message: '投票処理中にエラーが発生しました',
+        error: process.env.NODE_ENV === 'development' ? error : undefined
+      });
     }
   }
 
@@ -157,14 +198,21 @@ export class VotesController {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        throw new AppError('入力データが無効です', 400, errors.array());
+        return res.status(400).json({
+          success: false,
+          message: '入力データが無効です',
+          errors: errors.array()
+        });
       }
 
       const wordId = parseInt(req.params.wordId);
       const deviceId = req.headers['x-device-id'] as string;
 
       if (!deviceId) {
-        throw new AppError('デバイスIDが必要です', 400);
+        return res.status(400).json({
+          success: false,
+          message: 'デバイスIDが必要です'
+        });
       }
 
       const vote = await voteService.getUserVoteForWord(wordId, deviceId);
@@ -174,7 +222,19 @@ export class VotesController {
         data: vote,
       });
     } catch (error) {
-      next(error);
+      console.error('[VotesController.getUserVoteForWord] Error:', error);
+      
+      if (error instanceof AppError) {
+        return res.status(error.statusCode || 500).json({
+          success: false,
+          message: error.message
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        message: '投票情報の取得に失敗しました'
+      });
     }
   }
 
@@ -215,7 +275,11 @@ export class VotesController {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        throw new AppError('入力データが無効です', 400, errors.array());
+        return res.status(400).json({
+          success: false,
+          message: '入力データが無効です',
+          errors: errors.array()
+        });
       }
 
       const wordId = parseInt(req.params.wordId);
@@ -228,15 +292,21 @@ export class VotesController {
       });
 
       if (!word) {
-        throw new AppError('指定された語が見つかりません', 404);
+        return res.status(404).json({
+          success: false,
+          message: '指定された語が見つかりません'
+        });
       }
 
       if (word.status !== 'approved') {
-        throw new AppError('この語はまだ投票を受け付けていません', 403);
+        return res.status(403).json({
+          success: false,
+          message: 'この語はまだ投票を受け付けていません'
+        });
       }
 
       // すでに投票済みかチェック
-      const existingVote = await voteService.getUserVoteForWord(wordId, deviceId || '');
+      const existingVote = deviceId ? await voteService.getUserVoteForWord(wordId, deviceId) : null;
 
       res.status(200).json({
         success: true,
@@ -247,7 +317,19 @@ export class VotesController {
         },
       });
     } catch (error) {
-      next(error);
+      console.error('[VotesController.canVote] Error:', error);
+      
+      if (error instanceof AppError) {
+        return res.status(error.statusCode || 500).json({
+          success: false,
+          message: error.message
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        message: '投票可否の確認に失敗しました'
+      });
     }
   }
 }

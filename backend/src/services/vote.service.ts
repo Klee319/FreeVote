@@ -25,43 +25,44 @@ export class VoteService {
    * 投票を処理
    */
   async submitVote(data: VoteData) {
-    // デバイスIDの処理（既存IDまたは新規生成）
-    let deviceId = data.deviceId;
-    
-    if (deviceId) {
-      // 既存のデバイスIDが提供された場合、存在確認または作成
-      let device = await this.prisma.device.findUnique({
-        where: { id: deviceId },
-      });
+    try {
+      // デバイスIDの処理（既存IDまたは新規生成）
+      let deviceId = data.deviceId;
       
-      if (!device) {
-        // デバイスが存在しない場合は作成（フィンガープリントにdeviceIdを含める）
-        const fingerprint = this.generateFingerprint(
-          deviceId + '-' + (data.userAgent || 'unknown-agent'),
-          data.ipAddress || 'unknown-ip'
-        );
-        device = await this.prisma.device.create({
-          data: {
-            id: deviceId,
-            fingerprintHash: fingerprint,
-            lastSeenAt: new Date(),
-          },
-        });
-      } else {
-        // 最終閲覧日時を更新
-        await this.prisma.device.update({
+      if (deviceId) {
+        // 既存のデバイスIDが提供された場合、存在確認または作成
+        let device = await this.prisma.device.findUnique({
           where: { id: deviceId },
-          data: { lastSeenAt: new Date() },
         });
+        
+        if (!device) {
+          // デバイスが存在しない場合は作成（フィンガープリントにdeviceIdを含める）
+          const fingerprint = this.generateFingerprint(
+            deviceId + '-' + (data.userAgent || 'unknown-agent'),
+            data.ipAddress || 'unknown-ip'
+          );
+          device = await this.prisma.device.create({
+            data: {
+              id: deviceId,
+              fingerprintHash: fingerprint,
+              lastSeenAt: new Date(),
+            },
+          });
+        } else {
+          // 最終閲覧日時を更新
+          await this.prisma.device.update({
+            where: { id: deviceId },
+            data: { lastSeenAt: new Date() },
+          });
+        }
+      } else if (data.userAgent && data.ipAddress) {
+        // デバイスIDが無い場合は、フィンガープリントから生成
+        const fingerprint = this.generateFingerprint(data.userAgent, data.ipAddress);
+        const device = await this.getOrCreateDevice(fingerprint);
+        deviceId = device.id;
+      } else {
+        throw new AppError('デバイスIDが必要です', 400);
       }
-    } else if (data.userAgent && data.ipAddress) {
-      // デバイスIDが無い場合は、フィンガープリントから生成
-      const fingerprint = this.generateFingerprint(data.userAgent, data.ipAddress);
-      const device = await this.getOrCreateDevice(fingerprint);
-      deviceId = device.id;
-    } else {
-      throw new AppError('デバイスIDが必要です', 400);
-    }
 
     // レート制限チェック
     if (data.ipAddress) {
@@ -77,98 +78,122 @@ export class VoteService {
       }
     }
 
-    // AccentOptionIDとAccentTypeIDを自動判別する機能
-    let actualAccentTypeId = data.accentTypeId;
-    let wordId = data.wordId;
-    
-    // まず、AccentTypeとして有効な値か確認（通常1-4）
-    const validAccentType = await this.prisma.accentType.findUnique({
-      where: { id: data.accentTypeId },
-    });
-    
-    if (!validAccentType) {
-      // AccentTypeとして無効な場合、AccentOption IDとして処理を試みる
-      const accentOption = await this.prisma.accentOption.findUnique({
+      // AccentOptionIDとAccentTypeIDを自動判別する機能
+      let actualAccentTypeId = data.accentTypeId;
+      let wordId = data.wordId;
+      
+      // まず、AccentTypeとして有効な値か確認（通常1-4）
+      const validAccentType = await this.prisma.accentType.findUnique({
         where: { id: data.accentTypeId },
-        include: {
-          word: true,
-          accentType: true,
-        },
       });
       
-      if (accentOption) {
-        // AccentOption IDとして処理
-        wordId = accentOption.wordId;
-        actualAccentTypeId = accentOption.accentTypeId;
+      if (!validAccentType) {
+        // AccentTypeとして無効な場合、AccentOption IDとして処理を試みる
+        const accentOption = await this.prisma.accentOption.findUnique({
+          where: { id: data.accentTypeId },
+          include: {
+            word: true,
+            accentType: true,
+          },
+        });
         
-        // wordIdの整合性チェック（指定されている場合のみ）
-        if (data.wordId && data.wordId !== wordId) {
-          throw new AppError(`指定されたアクセントオプション(ID:${data.accentTypeId})は、この語(ID:${data.wordId})には使用できません`, 400);
+        if (accentOption) {
+          // AccentOption IDとして処理
+          wordId = accentOption.wordId;
+          actualAccentTypeId = accentOption.accentTypeId;
+          
+          // wordIdの整合性チェック（指定されている場合のみ）
+          if (data.wordId && data.wordId !== wordId) {
+            throw new AppError(`指定されたアクセントオプション(ID:${data.accentTypeId})は、この語(ID:${data.wordId})には使用できません`, 400);
+          }
+          
+        } else {
+          // AccentTypeでもAccentOptionでもない場合はエラー
+          throw new AppError(`無効なアクセント型ID: ${data.accentTypeId}`, 400);
         }
-        
       } else {
-        // AccentTypeでもAccentOptionでもない場合はエラー
-        throw new AppError(`無効なアクセント型ID: ${data.accentTypeId}`, 400);
+        // AccentTypeとして処理
+        console.log(`[VoteService] Valid AccentType found: id=${data.accentTypeId}, code=${validAccentType.code}`);
       }
-    } else {
-      // AccentTypeとして処理
-    }
 
-    // 語の存在確認
-    const word = await this.prisma.word.findUnique({
-      where: { id: wordId },
-      include: {
-        accentOptions: {
-          where: { accentTypeId: actualAccentTypeId },
+      // 語の存在確認
+      const word = await this.prisma.word.findUnique({
+        where: { id: wordId },
+        include: {
+          accentOptions: {
+            where: { accentTypeId: actualAccentTypeId },
+          },
         },
-      },
-    });
+      });
 
-    if (!word) {
-      throw new AppError('指定された語が見つかりません', 404);
+      if (!word) {
+        throw new AppError('指定された語が見つかりません', 404);
+      }
+
+      if (!word.accentOptions.length) {
+        throw new AppError(`指定されたアクセント型は選択できません (wordId: ${wordId}, accentTypeId: ${actualAccentTypeId}, 元のリクエスト: ${data.accentTypeId})`, 400);
+      }
+
+      // 投票を作成
+      const vote = await this.voteRepository.createVote({
+        wordId: wordId,
+        accentTypeId: actualAccentTypeId,
+        deviceId,
+        userId: data.userId,
+        prefectureCode: data.prefectureCode,
+        ageGroup: data.ageGroup,
+        ipAddress: data.ipAddress,
+        userAgent: data.userAgent,
+      });
+
+      // 監査ログを記録
+      await this.recordAuditLog({
+        userId: data.userId,
+        deviceId,
+        action: 'vote',
+        resourceType: 'vote',
+        resourceId: vote.id,
+        newData: JSON.stringify({
+          wordId: vote.wordId,
+          accentTypeId: vote.accentTypeId,
+          prefectureCode: vote.prefectureCode,
+          ageGroup: vote.ageGroup
+        }),
+        ipAddress: data.ipAddress,
+        userAgent: data.userAgent,
+      });
+
+      // 最新の統計データを取得して返す
+      console.log(`[VoteService] Getting updated stats for word ${wordId}`);
+      const updatedStats = await this.getVoteStats(wordId);
+      
+      return {
+        ...vote,
+        stats: updatedStats
+      };
+    } catch (error) {
+      // エラーログを出力
+      console.error('[VoteService.submitVote] Error:', {
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+        data: {
+          wordId: data.wordId,
+          accentTypeId: data.accentTypeId,
+          deviceId: data.deviceId,
+        }
+      });
+      
+      // AppErrorはそのまま再スロー
+      if (error instanceof AppError) {
+        throw error;
+      }
+      
+      // その他のエラーは500エラーとして処理
+      throw new AppError(
+        `投票処理中にエラーが発生しました: ${error instanceof Error ? error.message : '不明なエラー'}`,
+        500
+      );
     }
-
-    if (!word.accentOptions.length) {
-      throw new AppError(`指定されたアクセント型は選択できません (wordId: ${wordId}, accentTypeId: ${actualAccentTypeId}, 元のリクエスト: ${data.accentTypeId})`, 400);
-    }
-
-    // 投票を作成
-    const vote = await this.voteRepository.createVote({
-      wordId: wordId,
-      accentTypeId: actualAccentTypeId,
-      deviceId,
-      userId: data.userId,
-      prefectureCode: data.prefectureCode,
-      ageGroup: data.ageGroup,
-      ipAddress: data.ipAddress,
-      userAgent: data.userAgent,
-    });
-
-    // 監査ログを記録
-    await this.recordAuditLog({
-      userId: data.userId,
-      deviceId,
-      action: 'vote',
-      resourceType: 'vote',
-      resourceId: vote.id,
-      newData: JSON.stringify({
-        wordId: vote.wordId,
-        accentTypeId: vote.accentTypeId,
-        prefectureCode: vote.prefectureCode,
-        ageGroup: vote.ageGroup
-      }),
-      ipAddress: data.ipAddress,
-      userAgent: data.userAgent,
-    });
-
-    // 最新の統計データを取得して返す
-    console.log(`[VoteService] Getting updated stats for word ${wordId}`);
-    const updatedStats = await this.getVoteStats(wordId);
-    
-    return {
-      ...vote,
-      stats: updatedStats
-    };
   }
 
   /**
@@ -241,27 +266,99 @@ export class VoteService {
    * 投票統計を取得
    */
   async getVoteStats(wordId: number) {
-    const nationalStats = await this.prisma.wordNationalStats.findMany({
-      where: { wordId },
-      include: {
-        accentType: true,
-      },
-      orderBy: { voteCount: 'desc' },
-    });
+    try {
+      // 全国統計を取得（AccentTypeリレーションを確実に含める）
+      const nationalStats = await this.prisma.wordNationalStats.findMany({
+        where: { wordId },
+        include: {
+          accentType: true,
+        },
+        orderBy: { voteCount: 'desc' },
+      });
 
-    const prefectureStats = await this.prisma.wordPrefStats.findMany({
-      where: { wordId },
-      include: {
-        accentType: true,
-        prefecture: true,
-      },
-      orderBy: { voteCount: 'desc' },
-    });
+      // 都道府県統計を取得（AccentTypeとPrefectureリレーションを確実に含める）
+      const prefectureStats = await this.prisma.wordPrefStats.findMany({
+        where: { wordId },
+        include: {
+          accentType: true,
+          prefecture: true,
+        },
+        orderBy: { voteCount: 'desc' },
+      });
 
-    return {
-      national: nationalStats,
-      byPrefecture: prefectureStats,
-    };
+      // デバッグログ
+      console.log(`[VoteService.getVoteStats] National stats count: ${nationalStats.length}`);
+      if (nationalStats.length > 0) {
+        console.log(`[VoteService.getVoteStats] Sample national stat:`, {
+          id: nationalStats[0].id,
+          wordId: nationalStats[0].wordId,
+          accentTypeId: nationalStats[0].accentTypeId,
+          voteCount: nationalStats[0].voteCount,
+          hasAccentType: !!nationalStats[0].accentType,
+          accentTypeCode: nationalStats[0].accentType?.code,
+        });
+      }
+
+      // フロントエンドが期待する形式に変換
+      // accentTypeオブジェクトの存在を確認してからcodeを抽出
+      const formattedNationalStats = nationalStats.map(stat => {
+        // AccentTypeが確実に存在することを確認
+        if (!stat.accentType) {
+          console.error(`[VoteService.getVoteStats] Missing accentType for national stat:`, {
+            statId: stat.id,
+            wordId: stat.wordId,
+            accentTypeId: stat.accentTypeId,
+          });
+          // フォールバック: accentTypeIdから直接AccentTypeを取得
+          return {
+            ...stat,
+            accentType: `type_${stat.accentTypeId}`, // 一時的なフォールバック値
+          };
+        }
+        return {
+          ...stat,
+          accentType: stat.accentType.code, // オブジェクトからcodeのみを抽出
+        };
+      });
+
+      const formattedPrefectureStats = prefectureStats.map(stat => {
+        // AccentTypeとPrefectureが確実に存在することを確認
+        if (!stat.accentType || !stat.prefecture) {
+          console.error(`[VoteService.getVoteStats] Missing relations for prefecture stat:`, {
+            statId: stat.id,
+            wordId: stat.wordId,
+            accentTypeId: stat.accentTypeId,
+            prefectureCode: stat.prefectureCode,
+            hasAccentType: !!stat.accentType,
+            hasPrefecture: !!stat.prefecture,
+          });
+          // フォールバック値を返す
+          return {
+            ...stat,
+            accentType: stat.accentType?.code || `type_${stat.accentTypeId}`,
+            prefectureCode: stat.prefectureCode,
+            prefectureName: stat.prefecture?.name || stat.prefectureCode,
+          };
+        }
+        return {
+          ...stat,
+          accentType: stat.accentType.code, // オブジェクトからcodeのみを抽出
+          prefectureCode: stat.prefectureCode,
+          prefectureName: stat.prefecture.name,
+        };
+      });
+
+      return {
+        national: formattedNationalStats,
+        byPrefecture: formattedPrefectureStats,
+      };
+    } catch (error) {
+      console.error('[VoteService.getVoteStats] Error getting vote stats:', error);
+      throw new AppError(
+        `投票統計の取得に失敗しました: ${error instanceof Error ? error.message : '不明なエラー'}`,
+        500
+      );
+    }
   }
 
   /**

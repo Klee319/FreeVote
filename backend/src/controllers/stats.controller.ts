@@ -77,7 +77,7 @@ export class StatsController {
         national: {
           totalVotes: nationalStats.reduce((sum, s) => sum + s.totalVotes, 0) / nationalStats.length || 0,
           distribution: nationalStats.map((s) => ({
-            accentType: s.accentType,
+            accentType: s.accentType.code, // オブジェクトからcodeのみを抽出
             voteCount: s.voteCount,
             percentage: parseFloat(s.votePercentage.toString()),
           })),
