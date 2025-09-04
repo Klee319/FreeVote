@@ -100,7 +100,7 @@ export function StatisticsVisualization({
                   <span className="font-medium">{getAccentTypeName(stat.accentType)}</span>
                 </div>
                 <div className="text-sm text-gray-600">
-                  {stat.count}票 ({stat.percentage.toFixed(1)}%)
+                  {stat.count}票 ({(stat.percentage || 0).toFixed(1)}%)
                 </div>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-6">
@@ -112,7 +112,7 @@ export function StatisticsVisualization({
                   }}
                 >
                   <span className="text-xs text-white font-medium">
-                    {stat.percentage.toFixed(1)}%
+                    {(stat.percentage || 0).toFixed(1)}%
                   </span>
                 </div>
               </div>
@@ -169,7 +169,7 @@ export function StatisticsVisualization({
                         <span className="font-medium">{getAccentTypeName(accentType)}</span>
                       </div>
                       <div className="text-sm text-gray-600">
-                        {voteStat.count}票 ({voteStat.percentage.toFixed(1)}%)
+                        {voteStat.count}票 ({(voteStat.percentage || 0).toFixed(1)}%)
                       </div>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-6">
@@ -181,7 +181,7 @@ export function StatisticsVisualization({
                         }}
                       >
                         <span className="text-xs text-white font-medium">
-                          {voteStat.percentage.toFixed(1)}%
+                          {(voteStat.percentage || 0).toFixed(1)}%
                         </span>
                       </div>
                     </div>
@@ -239,7 +239,7 @@ export function StatisticsVisualization({
                             <span className="text-sm">{getAccentTypeName(accentType)}</span>
                           </div>
                           <span className="text-sm text-gray-600">
-                            {voteStat.count}票 ({voteStat.percentage.toFixed(1)}%)
+                            {voteStat.count}票 ({(voteStat.percentage || 0).toFixed(1)}%)
                           </span>
                         </div>
                       ))}

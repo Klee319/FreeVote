@@ -11,6 +11,7 @@ import { StatisticsVisualization } from '@/components/features/stats/StatisticsV
 import { RelatedWords } from '@/components/features/accent/RelatedWords';
 import toast from 'react-hot-toast';
 import { useCookieAuth } from '@/hooks/useCookieAuth';
+import { normalizeVoteResponseStats } from '@/lib/dataTransformers';
 
 export default function WordDetailPage() {
   const params = useParams();
@@ -65,18 +66,24 @@ export default function WordDetailPage() {
       toast.success('投票が完了しました！');
       console.log('[WordDetailPage] Vote successful, response:', response);
       
-      // レスポンスから統計データを取得
-      if (response?.stats) {
-        console.log('[WordDetailPage] New stats from response:', response.stats);
+      // レスポンスから統計データを取得して正規化
+      if (response?.stats || response?.statistics) {
+        console.log('[WordDetailPage] New stats from response:', response.stats || response.statistics);
+        
+        // データを正規化
+        const normalizedStats = normalizeVoteResponseStats(response);
         
         // wordDetailクエリのデータを直接更新
         queryClient.setQueryData(['wordDetail', wordId], (oldData: any) => {
           if (!oldData) return oldData;
           return {
             ...oldData,
-            nationalStats: response.stats.national || oldData.nationalStats,
-            totalVotes: response.stats.national?.reduce(
-              (sum: number, stat: any) => sum + (stat.voteCount || 0), 
+            nationalStats: normalizedStats.national.length > 0 
+              ? normalizedStats.national 
+              : oldData.nationalStats,
+            prefectureStats: normalizedStats.prefecture || oldData.prefectureStats,
+            totalVotes: normalizedStats.national.reduce(
+              (sum: number, stat: any) => sum + stat.count, 
               0
             ) || oldData.totalVotes
           };
