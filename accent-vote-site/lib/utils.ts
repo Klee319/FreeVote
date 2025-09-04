@@ -68,8 +68,12 @@ export const ACCENT_TYPE_NAMES: Record<string, string> = {
   odaka: '尾高型',
 };
 
-export function getAccentTypeName(type: string): string {
-  return ACCENT_TYPE_NAMES[type] || type;
+export function getAccentTypeName(type: string | any): string {
+  // typeがオブジェクトの場合はcodeプロパティを使用
+  const typeCode = typeof type === 'object' && type !== null && 'code' in type
+    ? type.code
+    : type;
+  return ACCENT_TYPE_NAMES[typeCode] || typeCode;
 }
 
 // アクセント型の色
@@ -80,8 +84,12 @@ export const ACCENT_TYPE_COLORS: Record<string, string> = {
   odaka: '#f59e0b',
 };
 
-export function getAccentTypeColor(type: string): string {
-  return ACCENT_TYPE_COLORS[type] || '#6b7280';
+export function getAccentTypeColor(type: string | any): string {
+  // typeがオブジェクトの場合はcodeプロパティを使用
+  const typeCode = typeof type === 'object' && type !== null && 'code' in type
+    ? type.code
+    : type;
+  return ACCENT_TYPE_COLORS[typeCode] || '#6b7280';
 }
 
 // デバイスIDの生成

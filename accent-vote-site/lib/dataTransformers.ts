@@ -11,7 +11,10 @@ export function normalizeAccentStats(stats: any[]): AccentStat[] {
   );
   
   return stats.map(stat => ({
-    accentType: stat.accentType,
+    // accentTypeがオブジェクトの場合はcodeプロパティを抽出
+    accentType: typeof stat.accentType === 'object' && stat.accentType !== null
+      ? stat.accentType.code 
+      : stat.accentType,
     count: stat.voteCount || stat.count || 0,
     percentage: totalVotes > 0 
       ? ((stat.voteCount || stat.count || 0) / totalVotes) * 100 

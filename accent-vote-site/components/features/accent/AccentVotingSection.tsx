@@ -29,8 +29,12 @@ export function AccentVotingSection({
   // 統計データをアクセントオプションにマッピング
   const getVoteStats = (accentType: string) => {
     const stat = nationalStats?.find(s => {
-      // APIから返されるデータの形式に対応 - AccentStatのaccentTypeはAccentType型
-      return s.accentType === accentType;
+      // APIから返されるデータの形式に対応
+      // accentTypeがオブジェクトの場合はcodeプロパティと比較
+      const statAccentType = typeof s.accentType === 'object' && s.accentType !== null
+        ? (s.accentType as any).code
+        : s.accentType;
+      return statAccentType === accentType;
     });
     
     if (!stat) return { count: 0, percentage: 0 };

@@ -63,7 +63,7 @@ export const api = {
   },
   
   // 投票
-  submitVote: async (voteData: VoteData): Promise<{ success: boolean; message: string }> => {
+  submitVote: async (voteData: VoteData): Promise<{ success: boolean; message: string; stats?: any }> => {
     if (DEBUG_MODE) {
       console.log('[API] Submitting vote:', voteData);
     }
@@ -91,6 +91,7 @@ export const api = {
       return {
         success: result.success,
         message: result.message || '投票が完了しました',
+        stats: result.statistics || result.stats, // 統計データを含める
       };
     } catch (error) {
       console.error('[API] Vote error:', error);
@@ -98,9 +99,21 @@ export const api = {
       if (DEBUG_MODE && error instanceof TypeError && error.message.includes('fetch')) {
         console.warn('[API] Falling back to mock data for vote');
         await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // モック用の統計データを生成
+        const mockStats = {
+          national: [
+            { accentType: 'heiban', voteCount: 678 + Math.floor(Math.random() * 10), percentage: 55 },
+            { accentType: 'atamadaka', voteCount: 345 + Math.floor(Math.random() * 10), percentage: 28 },
+            { accentType: 'nakadaka', voteCount: 123 + Math.floor(Math.random() * 10), percentage: 10 },
+            { accentType: 'odaka', voteCount: 88 + Math.floor(Math.random() * 10), percentage: 7 },
+          ]
+        };
+        
         return {
           success: true,
           message: '投票が完了しました（モック）',
+          stats: mockStats,
         };
       }
       throw error;

@@ -56,7 +56,9 @@
       "Bash(chmod:*)",
       "Bash(netstat:*)",
       "Bash(cmd /c:*)",
-      "Bash(kill:*)"
+      "Bash(kill:*)",
+      "WebSearch",
+      "Read(*)"
     ],
     "deny": [],
     "additionalDirectories": [
