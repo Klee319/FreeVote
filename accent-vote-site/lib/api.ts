@@ -1,4 +1,5 @@
 import { SearchWordsQuery, SearchWordsResponse, WordDetail, VoteData, RankingWord, Word, SubmitTermData, SubmitTermResponse } from '@/types';
+import { AppSettings, DEFAULT_APP_SETTINGS } from '@/types/settings';
 import { mockWords, mockWordDetails, mockRankingWords } from '@/data/mockData';
 
 // APIエンドポイントのベースURL
@@ -452,6 +453,58 @@ export const api = {
         };
       }
       throw error;
+    }
+  },
+
+  // アプリケーション設定取得
+  getAppSettings: async (): Promise<AppSettings> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/settings`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch settings: ${response.statusText}`);
+      }
+      
+      const settings = await response.json();
+      
+      // 設定値の検証とデフォルト値の補完
+      return {
+        ...DEFAULT_APP_SETTINGS,
+        ...settings,
+        display: {
+          ...DEFAULT_APP_SETTINGS.display,
+          ...(settings.display || {}),
+        },
+        chart: {
+          ...DEFAULT_APP_SETTINGS.chart,
+          ...(settings.chart || {}),
+        },
+        map: {
+          ...DEFAULT_APP_SETTINGS.map,
+          ...(settings.map || {}),
+        },
+        vote: {
+          ...DEFAULT_APP_SETTINGS.vote,
+          ...(settings.vote || {}),
+        },
+        features: {
+          ...DEFAULT_APP_SETTINGS.features,
+          ...(settings.features || {}),
+        },
+      };
+    } catch (error) {
+      console.error('[API] Settings fetch error:', error);
+      
+      // エラー時はデフォルト設定を返す
+      if (DEBUG_MODE) {
+        console.warn('[API] Using default settings');
+      }
+      return DEFAULT_APP_SETTINGS;
     }
   },
 };

@@ -179,3 +179,8 @@ export const requireModerator = authorize('moderator', 'admin');
  * ログインユーザー権限チェックミドルウェア
  */
 export const requireAuth = authorize('user', 'moderator', 'admin');
+
+/**
+ * 特定ロール権限チェックミドルウェア
+ */
+export const requireRole = (role: string) => authorize(role);

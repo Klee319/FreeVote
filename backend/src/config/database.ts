@@ -83,3 +83,6 @@ export async function transaction<T>(
 // 型エクスポート
 export { PrismaClient };
 export type { Prisma } from '../generated/prisma';
+
+// デフォルトエクスポート（互換性のため）
+export default getPrismaClient();

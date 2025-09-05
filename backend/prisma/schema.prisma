@@ -255,3 +255,16 @@ model AnonymousUser {
   @@index([registeredAt])
   @@map("anonymous_users")
 }
+
+model AppSettings {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique
+  value       String
+  type        String   @default("string") // string, number, boolean, json
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([key])
+  @@map("app_settings")
+}

@@ -7,9 +7,11 @@ import wordsRoutes from './words.routes';
 import votesRoutes from './votes.routes';
 import rankingRoutes from './ranking.routes';
 import authRoutes from './auth.routes';
-import adminRoutes from './admin.routes';
+// import adminRoutes from './admin.routes'; // TODO: 一時的に無効化
 import statsRoutes from './stats.routes';
 import masterRoutes from './master.routes';
+import mapRoutes from './map.routes';
+import settingsRoutes from './settings.routes';
 
 const router = Router();
 
@@ -32,10 +34,17 @@ router.use('/ranking', rankingRoutes);
 // 統計関連
 router.use('/stats', statsRoutes);
 
+// 地図統計関連
+router.use('/stats/map', mapRoutes);
+
 // マスタデータ関連
 router.use('/', masterRoutes);
 
 // 管理者関連（認証必須）
-router.use('/admin', adminRoutes);
+// TODO: AdminController修正まで一時的に無効化
+// router.use('/admin', adminRoutes);
+
+// 設定値管理
+router.use('/settings', settingsRoutes);
 
 export default router;

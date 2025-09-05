@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { useState } from 'react';
 import { CookieAuthProvider } from '@/hooks/useCookieAuth';
+import { AppSettingsProvider } from '@/contexts/AppSettingsContext';
 import AnonymousRegistrationModal from '@/components/features/auth/AnonymousRegistrationModal';
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -26,10 +27,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <CookieAuthProvider>
-        {children}
-        <AnonymousRegistrationModal />
-      </CookieAuthProvider>
+      <AppSettingsProvider>
+        <CookieAuthProvider>
+          {children}
+          <AnonymousRegistrationModal />
+        </CookieAuthProvider>
+      </AppSettingsProvider>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );

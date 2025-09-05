@@ -45,6 +45,10 @@ async function startServer() {
       logger.info('Redis connected successfully');
     }
     
+    // 設定値の初期化
+    // NOTE: initializeDefaults メソッドは現在未実装
+    // 必要に応じて後で実装予定
+    
     // Expressアプリケーションの作成
     const app = createApp();
     

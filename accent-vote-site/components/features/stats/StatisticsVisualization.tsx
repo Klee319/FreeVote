@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { AccentStat, PrefectureStat } from '@/types';
 import { getAccentTypeName, getAccentTypeColor, getPrefectureName } from '@/lib/utils';
 import { cn } from '@/lib/utils';
+import { useMapSettings, useChartSettings } from '@/contexts/AppSettingsContext';
 import { ChartBarIcon, MapIcon } from '@heroicons/react/24/outline';
 import { JapanMapVisualization } from './JapanMapVisualization';
 
@@ -19,11 +20,14 @@ export function StatisticsVisualization({
   wordId,
   nationalStats,
   prefectureStats,
-  selectedPrefecture = '13',
+  selectedPrefecture,
   onPrefectureSelect,
 }: StatisticsVisualizationProps) {
+  const mapSettings = useMapSettings();
+  const chartSettings = useChartSettings();
+  
   const [activeTab, setActiveTab] = useState<'national' | 'prefecture' | 'map'>('national');
-  const [selectedPref, setSelectedPref] = useState(selectedPrefecture);
+  const [selectedPref, setSelectedPref] = useState(selectedPrefecture || mapSettings.defaultSelectedPrefecture);
 
   const handlePrefectureSelect = (prefecture: string) => {
     setSelectedPref(prefecture);
@@ -103,17 +107,20 @@ export function StatisticsVisualization({
                   {stat.count}票 ({(stat.percentage || 0).toFixed(1)}%)
                 </div>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-6">
+              <div className="w-full bg-gray-200 rounded-full" style={{ height: `${chartSettings.defaultBarHeight}px` }}>
                 <div
-                  className="h-6 rounded-full flex items-center justify-end pr-2 transition-all"
+                  className="rounded-full flex items-center justify-end pr-2 transition-all"
                   style={{
-                    width: `${(stat.count / maxVotes) * 100}%`,
+                    width: `${Math.min((stat.count / maxVotes) * 100, chartSettings.maxBarWidth)}%`,
+                    height: `${chartSettings.defaultBarHeight}px`,
                     backgroundColor: getAccentTypeColor(stat.accentType),
                   }}
                 >
-                  <span className="text-xs text-white font-medium">
-                    {(stat.percentage || 0).toFixed(1)}%
-                  </span>
+                  {(stat.percentage || 0) >= chartSettings.showPercentageThreshold && (
+                    <span className="text-xs text-white font-medium">
+                      {(stat.percentage || 0).toFixed(1)}%
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -172,17 +179,20 @@ export function StatisticsVisualization({
                         {voteStat.count}票 ({(voteStat.percentage || 0).toFixed(1)}%)
                       </div>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-6">
+                    <div className="w-full bg-gray-200 rounded-full" style={{ height: `${chartSettings.defaultBarHeight}px` }}>
                       <div
-                        className="h-6 rounded-full flex items-center justify-end pr-2 transition-all"
+                        className="rounded-full flex items-center justify-end pr-2 transition-all"
                         style={{
-                          width: `${(voteStat.count / maxPrefVotes) * 100}%`,
+                          width: `${Math.min((voteStat.count / maxPrefVotes) * 100, chartSettings.maxBarWidth)}%`,
+                          height: `${chartSettings.defaultBarHeight}px`,
                           backgroundColor: getAccentTypeColor(accentType),
                         }}
                       >
-                        <span className="text-xs text-white font-medium">
-                          {(voteStat.percentage || 0).toFixed(1)}%
-                        </span>
+                        {(voteStat.percentage || 0) >= chartSettings.showPercentageThreshold && (
+                          <span className="text-xs text-white font-medium">
+                            {(voteStat.percentage || 0).toFixed(1)}%
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>

@@ -2,8 +2,10 @@ import { Request, Response, NextFunction } from 'express';
 import { param, query, validationResult } from 'express-validator';
 import { PrismaClient } from '../generated/prisma';
 import { AppError } from '../utils/errors';
+import { StatsService } from '../services/stats.service';
 
 const prisma = new PrismaClient();
+const statsService = new StatsService();
 
 export class StatsController {
   /**
@@ -17,7 +19,7 @@ export class StatsController {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        throw new AppError('入力データが無効です', 400, errors.array());
+        throw new AppError('入力データが無効です', 400, 'VALIDATION_ERROR', errors.array());
       }
 
       const wordId = parseInt(req.params.wordId);
@@ -211,7 +213,7 @@ export class StatsController {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        throw new AppError('入力データが無効です', 400, errors.array());
+        throw new AppError('入力データが無効です', 400, 'VALIDATION_ERROR', errors.array());
       }
 
       const days = parseInt(req.query.days as string) || 30;
@@ -284,6 +286,122 @@ export class StatsController {
       res.status(200).json({
         success: true,
         data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * 語の地図統計取得
+   */
+  static async getWordMapStats(req: Request, res: Response, next: NextFunction) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        throw new AppError('入力データが無効です', 400, 'VALIDATION_ERROR', errors.array());
+      }
+
+      const wordId = parseInt(req.params.wordId);
+      const stats = await statsService.getWordMapStats(wordId);
+
+      if (!stats) {
+        throw new AppError('指定された語が見つかりません', 404);
+      }
+
+      res.status(200).json({
+        success: true,
+        data: stats,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * 都道府県別全語統計取得
+   */
+  static async getPrefectureAllWordsStats(req: Request, res: Response, next: NextFunction) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        throw new AppError('入力データが無効です', 400, 'VALIDATION_ERROR', errors.array());
+      }
+
+      const prefectureCode = req.params.code;
+      const stats = await statsService.getPrefectureAllWordsStats(prefectureCode);
+
+      if (!stats) {
+        throw new AppError('指定された都道府県が見つかりません', 404);
+      }
+
+      res.status(200).json({
+        success: true,
+        data: stats,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * 全国概要統計取得
+   */
+  static async getMapOverview(req: Request, res: Response, next: NextFunction) {
+    try {
+      const stats = await statsService.getMapOverviewStats();
+
+      res.status(200).json({
+        success: true,
+        data: stats,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * アクセントクラスター分析取得
+   */
+  static async getAccentClusters(req: Request, res: Response, next: NextFunction) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        throw new AppError('入力データが無効です', 400, 'VALIDATION_ERROR', errors.array());
+      }
+
+      const wordId = parseInt(req.params.wordId);
+      const analysis = await statsService.getAccentClusterAnalysis(wordId);
+
+      if (!analysis) {
+        throw new AppError('指定された語が見つかりません', 404);
+      }
+
+      res.status(200).json({
+        success: true,
+        data: analysis,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * 地域別傾向取得
+   */
+  static async getRegionalTrends(req: Request, res: Response, next: NextFunction) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        throw new AppError('入力データが無効です', 400, 'VALIDATION_ERROR', errors.array());
+      }
+
+      const region = req.query.region as string | undefined;
+      const trends = await statsService.getRegionalTrends(region);
+
+      res.status(200).json({
+        success: true,
+        data: trends,
       });
     } catch (error) {
       next(error);

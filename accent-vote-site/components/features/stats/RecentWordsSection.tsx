@@ -4,12 +4,15 @@ import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
+import { useDisplaySettings } from '@/contexts/AppSettingsContext';
 import { ClockIcon, UserIcon } from '@heroicons/react/24/outline';
 
 export function RecentWordsSection() {
+  const displaySettings = useDisplaySettings();
+  
   const { data: recentWords, isLoading } = useQuery({
     queryKey: ['recentWords'],
-    queryFn: () => api.getRecentWords(10),
+    queryFn: () => api.getRecentWords(displaySettings.maxRecentWords),
   });
 
   return (

@@ -23,6 +23,7 @@ export function Header() {
   const navLinks = [
     { href: '/', label: 'トップ' },
     { href: '/ranking', label: 'ランキング' },
+    { href: '/map', label: '地図' },
     { href: '/search', label: '検索' },
     { href: '/submit', label: '新語投稿' },
   ];
