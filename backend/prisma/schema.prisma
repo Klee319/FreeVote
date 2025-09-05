@@ -69,6 +69,7 @@ model Word {
   aliases       WordAlias[]
   nationalStats WordNationalStats[]
   prefStats     WordPrefStats[]
+  polls         Poll[]              // 汎用投票との関連
   approver      User?               @relation("ApprovedWords", fields: [approvedBy], references: [id])
   submitter     User?               @relation("SubmittedWords", fields: [submittedBy], references: [id])
   category      WordCategory?       @relation(fields: [categoryId], references: [id])
@@ -267,4 +268,60 @@ model AppSettings {
 
   @@index([key])
   @@map("app_settings")
+}
+
+// 汎用投票システムのモデル
+model Poll {
+  id               Int        @id @default(autoincrement())
+  title            String
+  description      String?
+  isAccentMode     Boolean    @default(false) @map("is_accent_mode")
+  options          String     // JSON: 選択肢の配列（最大4件）
+  wordId           Int?       @map("word_id") // アクセントモード時のみ
+  deadline         DateTime?
+  shareHashtags    String?    @map("share_hashtags")
+  thumbnailUrl     String?    @map("thumbnail_url")
+  optionThumbnails String?    @map("option_thumbnails") // JSON: 各選択肢のサムネイル画像URL
+  status           String     @default("active") // active, closed, draft
+  createdAt        DateTime   @default(now()) @map("created_at")
+  createdBy        String     @map("created_by") // 管理者のユーザーID
+  updatedAt        DateTime   @updatedAt @map("updated_at")
+  votes            PollVote[]
+  word             Word?      @relation(fields: [wordId], references: [id])
+
+  @@index([status, deadline])
+  @@map("polls")
+}
+
+model PollVote {
+  id            Int         @id @default(autoincrement())
+  pollId        Int         @map("poll_id")
+  poll          Poll        @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  optionIndex   Int         @map("option_index") // 選択肢インデックス（0〜3）
+  userId        String?     @map("user_id") // ログインユーザーID（匿名投票の場合null）
+  deviceId      String?     @map("device_id") // デバイスID
+  prefecture    String      // 投票者の都道府県コード
+  ipAddress     String?     @map("ip_address")
+  userAgent     String?     @map("user_agent")
+  votedAt       DateTime    @default(now()) @map("voted_at")
+
+  @@unique([pollId, deviceId]) // 1つの投票に対して1デバイス1票
+  @@index([pollId, optionIndex])
+  @@map("poll_votes")
+}
+
+model UserVoteRequest {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  options     String?  // JSON: ユーザー提案の選択肢（オプショナル）
+  count       Int      @default(1) // 同一リクエストのカウント
+  status      String   @default("pending") // pending, approved, rejected
+  deviceId    String?  @map("device_id")
+  userId      String?  @map("user_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@map("user_vote_requests")
 }

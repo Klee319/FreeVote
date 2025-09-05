@@ -19,7 +19,12 @@ export async function POST(request: NextRequest) {
       url: `${BACKEND_API_URL}/api/votes`,
       hasBody: !!body,
       hasCookie: !!cookieHeader,
-      bodyContent: body
+      hasUserId: !!body?.userId,
+      hasDeviceId: !!body?.deviceId,
+      bodyContent: {
+        ...body,
+        userId: body?.userId ? 'provided' : 'not provided'
+      }
     });
     
     // バックエンドAPIにリクエストを転送
@@ -33,11 +38,18 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(body),
     });
     
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (error) {
+      console.error('[API Proxy] Failed to parse response as JSON:', error);
+      data = { success: false, message: 'サーバーエラーが発生しました' };
+    }
     
     console.log('[API Proxy] Backend response:', {
       status: response.status,
-      data
+      hasStats: !!(data?.stats || data?.statistics),
+      success: data?.success
     });
     
     // レスポンスヘッダーからSet-Cookieを取得
@@ -54,8 +66,19 @@ export async function POST(request: NextRequest) {
     return nextResponse;
   } catch (error) {
     console.error('[API Proxy] Error forwarding vote request:', error);
+    
+    // エラーメッセージをより詳細に
+    let message = '投票処理中にエラーが発生しました';
+    if (error instanceof Error) {
+      if (error.message.includes('ECONNREFUSED')) {
+        message = 'サーバーに接続できません。しばらくお待ちください。';
+      } else if (error.message.includes('timeout')) {
+        message = 'サーバーの応答がありません。もう一度お試しください。';
+      }
+    }
+    
     return NextResponse.json(
-      { success: false, message: '投票処理中にエラーが発生しました' },
+      { success: false, message },
       { status: 500 }
     );
   }

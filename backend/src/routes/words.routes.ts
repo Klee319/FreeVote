@@ -65,6 +65,18 @@ router.get('/:id/stats',
 );
 
 /**
+ * GET /api/words/:id/top-by-prefecture
+ * 都道府県別トップ票獲得アクセント取得
+ */
+router.get('/:id/top-by-prefecture',
+  [
+    param('id').isInt({ min: 1 })
+  ],
+  validateRequest,
+  (req, res, next) => wordsController.getTopVotesByPrefecture(req, res, next)
+);
+
+/**
  * POST /api/words
  * 新語投稿（認証必須）
  */

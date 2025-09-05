@@ -38,20 +38,21 @@ export class VotesController {
 
       const { wordId, accentTypeId, prefectureCode, ageGroup } = req.body;
 
-      // デバイスIDをヘッダーから取得
-      const deviceId = req.headers['x-device-id'] as string || undefined;
+      // デバイスIDをヘッダーから取得（リクエストボディからも取得可能）
+      const deviceId = req.body.deviceId || req.headers['x-device-id'] as string || undefined;
 
       // IPアドレスとユーザーエージェントを取得
       const ipAddress = req.ip || req.socket.remoteAddress || undefined;
       const userAgent = req.get('user-agent') || undefined;
 
-      // ユーザーIDを取得（認証済みの場合）
-      const userId = (req as any).user?.id || undefined;
+      // ユーザーIDを取得（認証済みの場合またはCookieから）
+      const userId = (req as any).user?.id || req.body.userId || undefined;
 
       console.log('[VotesController] Creating vote:', {
         wordId,
         accentTypeId,
         deviceId: deviceId ? 'provided' : 'not provided',
+        userId: userId ? 'provided' : 'not provided',
         prefectureCode,
         ageGroup
       });
@@ -74,6 +75,7 @@ export class VotesController {
         voteId: vote.id,
         wordId,
         accentTypeId: vote.accentTypeId,
+        userId: vote.userId || 'anonymous',
         nationalStatsCount: updatedStats.national.length,
         totalVotes: updatedStats.national.reduce((sum, stat) => sum + stat.voteCount, 0),
       });
@@ -98,17 +100,26 @@ export class VotesController {
 
       // AppErrorの場合は適切なステータスコードで返す
       if (error instanceof AppError) {
+        // より詳細なエラーメッセージを提供
+        let message = error.message;
+        if (error.statusCode === 429) {
+          message = '投票の制限に達しました。しばらく待ってからお試しください。';
+        } else if (error.statusCode === 400 && message.includes('既に投票済み')) {
+          message = 'この語には既に投票済みです。他の語への投票をお願いします。';
+        }
+        
         return res.status(error.statusCode || 500).json({
           success: false,
-          message: error.message,
-          errors: error.errors || []
+          message,
+          errors: error.errors || [],
+          statusCode: error.statusCode
         });
       }
 
       // 予期しないエラーの場合
       res.status(500).json({
         success: false,
-        message: '投票処理中にエラーが発生しました',
+        message: '投票処理中にエラーが発生しました。もう一度お試しください。',
         error: process.env.NODE_ENV === 'development' ? error : undefined
       });
     }

@@ -83,4 +83,46 @@ router.put('/users/:id/role', requireAdmin, AdminController.updateUserRole.bind(
  */
 router.get('/audit-logs', requireAdmin, AdminController.getAuditLogs.bind(AdminController));
 
+/**
+ * @route GET /api/admin/words
+ * @desc 単語一覧取得（管理者用）
+ * @access Admin
+ */
+router.get('/words', requireAdmin, AdminController.getWords.bind(AdminController));
+
+/**
+ * @route POST /api/admin/words
+ * @desc 単語作成
+ * @access Admin
+ */
+router.post('/words', requireAdmin, AdminController.createWord.bind(AdminController));
+
+/**
+ * @route PUT /api/admin/words/:id
+ * @desc 単語更新
+ * @access Admin
+ */
+router.put('/words/:id', requireAdmin, AdminController.updateWord.bind(AdminController));
+
+/**
+ * @route DELETE /api/admin/words/:id
+ * @desc 単語削除
+ * @access Admin
+ */
+router.delete('/words/:id', requireAdmin, AdminController.deleteWord.bind(AdminController));
+
+/**
+ * @route POST /api/admin/words/import
+ * @desc JSON一括インポート
+ * @access Admin
+ */
+router.post('/words/import', requireAdmin, AdminController.importWords.bind(AdminController));
+
+/**
+ * @route GET /api/admin/stats/overview
+ * @desc 投票統計概要取得
+ * @access Admin
+ */
+router.get('/stats/overview', requireAdmin, AdminController.getVoteStats.bind(AdminController));
+
 export default router;

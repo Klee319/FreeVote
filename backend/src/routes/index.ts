@@ -12,6 +12,7 @@ import statsRoutes from './stats.routes';
 import masterRoutes from './master.routes';
 import mapRoutes from './map.routes';
 import settingsRoutes from './settings.routes';
+import pollsRoutes from './polls.routes';
 
 const router = Router();
 
@@ -46,5 +47,8 @@ router.use('/', masterRoutes);
 
 // 設定値管理
 router.use('/settings', settingsRoutes);
+
+// 汎用投票関連
+router.use('/polls', pollsRoutes);
 
 export default router;

@@ -4,29 +4,36 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { AccentOption, VoteStat } from '@/types';
 import { AccentPattern } from './AccentPattern';
+import { SpeechPlayer } from '@/components/features/speech/SpeechPlayer';
 import { getAccentTypeName, formatNumber } from '@/lib/utils';
 
 interface AccentCardProps {
   accentOption: AccentOption;
   moraSegments: string[];
+  word?: string;
+  reading?: string;
   voteStats?: VoteStat;
   isSelected?: boolean;
   canVote?: boolean;
   onVote?: () => void;
   disabled?: boolean;
   showPattern?: boolean;
+  showSpeechPlayer?: boolean;
   size?: 'sm' | 'md' | 'lg';
 }
 
 export function AccentCard({
   accentOption,
   moraSegments,
+  word = '',
+  reading = '',
   voteStats,
   isSelected = false,
   canVote = true,
   onVote,
   disabled = false,
   showPattern = true,
+  showSpeechPlayer = true,
   size = 'md',
 }: AccentCardProps) {
   const handleClick = () => {
@@ -60,16 +67,29 @@ export function AccentCard({
       aria-disabled={disabled}
       aria-label={`${getAccentTypeName(accentOption.accentType.code)}に投票`}
     >
-      {/* アクセント型名 */}
+      {/* アクセント型名と音声再生ボタン */}
       <div className="text-center mb-3">
-        <h3 className={cn(
-          'font-bold',
-          size === 'sm' && 'text-base',
-          size === 'md' && 'text-lg',
-          size === 'lg' && 'text-xl'
-        )}>
-          {getAccentTypeName(accentOption.accentType.code)}
-        </h3>
+        <div className="flex items-center justify-center gap-2">
+          <h3 className={cn(
+            'font-bold',
+            size === 'sm' && 'text-base',
+            size === 'md' && 'text-lg',
+            size === 'lg' && 'text-xl'
+          )}>
+            {getAccentTypeName(accentOption.accentType.code)}
+          </h3>
+          {showSpeechPlayer && word && (
+            <SpeechPlayer
+              word={word}
+              reading={reading}
+              accentType={accentOption.accentType.code}
+              pattern={accentOption.pattern}
+              dropPosition={accentOption.dropPosition}
+              disabled={disabled}
+              size="sm"
+            />
+          )}
+        </div>
         
         {voteStats && (
           <div className="mt-1 space-y-1">

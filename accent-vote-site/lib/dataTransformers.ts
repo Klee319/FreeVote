@@ -70,14 +70,30 @@ export function normalizeVoteResponseStats(response: any): {
     result.national = normalizeAccentStats(response.stats.national);
   } else if (response?.statistics?.national) {
     result.national = normalizeAccentStats(response.statistics.national);
+  } else if (response?.data?.stats?.national) {
+    // ネストされたレスポンスに対応
+    result.national = normalizeAccentStats(response.data.stats.national);
   }
 
   // prefectureデータの正規化（存在する場合）
-  if (response?.stats?.prefecture) {
+  if (response?.stats?.byPrefecture) {
+    // byPrefectureプロパティもチェック
+    result.prefecture = normalizePrefectureStats(response.stats.byPrefecture);
+  } else if (response?.stats?.prefecture) {
     result.prefecture = normalizePrefectureStats(response.stats.prefecture);
   } else if (response?.statistics?.prefecture) {
     result.prefecture = normalizePrefectureStats(response.statistics.prefecture);
+  } else if (response?.data?.stats?.byPrefecture) {
+    // ネストされたレスポンスに対応
+    result.prefecture = normalizePrefectureStats(response.data.stats.byPrefecture);
   }
+
+  console.log('[dataTransformers] Normalized stats:', {
+    hasNational: result.national.length > 0,
+    nationalCount: result.national.length,
+    hasPrefecture: !!result.prefecture,
+    prefectureCount: result.prefecture?.length || 0
+  });
 
   return result;
 }

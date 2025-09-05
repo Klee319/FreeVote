@@ -64,19 +64,25 @@ export class VoteService {
         throw new AppError('デバイスIDが必要です', 400);
       }
 
-    // レート制限チェック
-    if (data.ipAddress) {
-      const canVote = await this.voteRepository.checkRateLimit(
-        data.ipAddress,
-        'vote',
-        60, // 1時間に60票まで
-        60  // 60分のウィンドウ
-      );
-
-      if (!canVote) {
-        throw new AppError('投票の制限に達しました。しばらく待ってからお試しください。', 429);
+      // 重複投票チェック
+      const existingVote = await this.voteRepository.getRecentVote(data.wordId, deviceId);
+      if (existingVote) {
+        throw new AppError(`この語には既に投票済みです（wordId: ${data.wordId}, deviceId: ${deviceId}）`, 400);
       }
-    }
+
+      // レート制限チェック
+      if (data.ipAddress) {
+        const canVote = await this.voteRepository.checkRateLimit(
+          data.ipAddress,
+          'vote',
+          60, // 1時間に60票まで
+          60  // 60分のウィンドウ
+        );
+
+        if (!canVote) {
+          throw new AppError('投票の制限に達しました。しばらく待ってからお試しください。', 429);
+        }
+      }
 
       // AccentOptionIDとAccentTypeIDを自動判別する機能
       let actualAccentTypeId = data.accentTypeId;
@@ -134,12 +140,12 @@ export class VoteService {
         throw new AppError(`指定されたアクセント型は選択できません (wordId: ${wordId}, accentTypeId: ${actualAccentTypeId}, 元のリクエスト: ${data.accentTypeId})`, 400);
       }
 
-      // 投票を作成
+      // 投票を作成（userIdを確実に保存）
       const vote = await this.voteRepository.createVote({
         wordId: wordId,
         accentTypeId: actualAccentTypeId,
         deviceId,
-        userId: data.userId,
+        userId: data.userId || null, // undefinedではなくnullを使用
         prefectureCode: data.prefectureCode,
         ageGroup: data.ageGroup,
         ipAddress: data.ipAddress,
@@ -166,6 +172,8 @@ export class VoteService {
       // 最新の統計データを取得して返す
       console.log(`[VoteService] Getting updated stats for word ${wordId}`);
       const updatedStats = await this.getVoteStats(wordId);
+      
+      console.log(`[VoteService] Vote created with userId: ${vote.userId || 'anonymous'}`);
       
       return {
         ...vote,

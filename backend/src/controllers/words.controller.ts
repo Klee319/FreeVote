@@ -147,6 +147,30 @@ export class WordsController {
   }
   
   /**
+   * 都道府県別のトップ票獲得アクセント取得
+   * GET /api/words/:id/top-by-prefecture
+   */
+  async getTopVotesByPrefecture(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const wordId = Number(id);
+      
+      if (isNaN(wordId) || wordId <= 0) {
+        throw new AppError('不正な語IDです', 400, 'INVALID_WORD_ID');
+      }
+      
+      const topVotes = await this.statsService.getTopVotesByPrefecture(wordId);
+      
+      res.json({
+        success: true,
+        data: topVotes
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+  
+  /**
    * 新語投稿（認証必須）
    * POST /api/words
    */

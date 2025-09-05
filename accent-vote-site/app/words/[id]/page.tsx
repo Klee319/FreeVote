@@ -9,6 +9,8 @@ import { AccentVotingSection } from '@/components/features/accent/AccentVotingSe
 import { WordHeader } from '@/components/features/accent/WordHeader';
 import { StatisticsVisualization } from '@/components/features/stats/StatisticsVisualization';
 import { RelatedWords } from '@/components/features/accent/RelatedWords';
+import WordAccentMapContainer from '@/components/features/map/WordAccentMapContainer';
+import ShareModal from '@/components/features/share/ShareModal';
 import toast from 'react-hot-toast';
 import { useCookieAuth } from '@/hooks/useCookieAuth';
 import { normalizeVoteResponseStats } from '@/lib/dataTransformers';
@@ -19,6 +21,8 @@ export default function WordDetailPage() {
   const queryClient = useQueryClient();
   const { user, isRegistered } = useCookieAuth();
   const [selectedPrefecture, setSelectedPrefecture] = useState<string>('13'); // 東京都をデフォルト
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [showMap, setShowMap] = useState(false);
   
   // デバッグログ
   useEffect(() => {
@@ -73,11 +77,11 @@ export default function WordDetailPage() {
       toast.success(successMessage);
       console.log('[WordDetailPage] Vote successful:', {
         message: successMessage,
-        hasStats: !!(response?.stats || response?.statistics)
+        hasStats: !!(response?.stats || (response as any)?.statistics)
       });
       
       // レスポンスから統計データを取得して正規化
-      if (response?.stats || response?.statistics) {
+      if (response?.stats || (response as any)?.statistics) {
         console.log('[WordDetailPage] Updating stats from response');
         
         // データを正規化
@@ -240,6 +244,34 @@ export default function WordDetailPage() {
             selectedPrefecture={selectedPrefecture}
             onPrefectureSelect={setSelectedPrefecture}
           />
+
+          {/* 地図表示トグル */}
+          <div className="bg-white rounded-lg shadow p-4">
+            <button
+              onClick={() => setShowMap(!showMap)}
+              className="flex items-center justify-between w-full text-left"
+            >
+              <h3 className="font-bold text-lg">全国アクセント分布地図</h3>
+              <svg 
+                className={`w-5 h-5 transition-transform ${showMap ? 'rotate-180' : ''}`}
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+
+          {/* アクセント分布地図 */}
+          {showMap && wordDetail && (
+            <WordAccentMapContainer
+              wordId={parseInt(wordId)}
+              headword={wordDetail.headword}
+              reading={wordDetail.reading}
+              className="mt-4"
+            />
+          )}
         </div>
 
         {/* サイドバー */}
@@ -277,20 +309,33 @@ export default function WordDetailPage() {
           {/* シェアボタン */}
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="font-bold text-lg mb-4">この語をシェア</h3>
-            <div className="flex space-x-2">
-              <button className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm">
-                Twitter
-              </button>
-              <button className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm">
-                LINE
-              </button>
-              <button className="flex-1 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm">
-                リンクをコピー
-              </button>
-            </div>
+            <button
+              onClick={() => setIsShareModalOpen(true)}
+              className="w-full px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium flex items-center justify-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m9.032 4.026a9.001 9.001 0 01-8.716 0m8.716 0A9.004 9.004 0 0112 3c2.53 0 4.82 1.044 6.456 2.726m-8.772 8.616a9.004 9.004 0 01-6.456-2.726 8.99 8.99 0 010-7.89m6.456 10.616L3.228 4.726" />
+              </svg>
+              SNSでシェアする
+            </button>
           </div>
         </div>
       </div>
+
+      {/* シェアモーダル */}
+      {wordDetail && (
+        <ShareModal
+          isOpen={isShareModalOpen}
+          onClose={() => setIsShareModalOpen(false)}
+          word={wordDetail}
+          userVoteResult={
+            canVoteData?.hasVoted ? {
+              accentType: wordDetail.nationalStats[0]?.accentType || 'heiban',
+              prefecture: selectedPrefecture
+            } : undefined
+          }
+        />
+      )}
     </div>
   );
 }

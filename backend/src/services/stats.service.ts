@@ -840,6 +840,117 @@ export class StatsService {
   }
 
   /**
+   * 語の都道府県別トップ票獲得アクセント取得
+   */
+  async getTopVotesByPrefecture(wordId: number) {
+    try {
+      // 語の存在確認
+      const word = await this.prisma.word.findUnique({
+        where: { id: wordId },
+        include: { category: true }
+      });
+      
+      if (!word) {
+        return null;
+      }
+
+      // 都道府県別の投票を集計
+      const votes = await this.prisma.vote.findMany({
+        where: { wordId },
+        include: {
+          accentType: true,
+        }
+      });
+
+      // 都道府県ごとに集計
+      const prefectureMap = new Map<string, {
+        votes: Array<{ accentTypeId: number; accentTypeName: string }>;
+      }>();
+
+      // 全都道府県を初期化
+      Prefecture.getAll().forEach(pref => {
+        prefectureMap.set(pref.getCode(), {
+          votes: [],
+        });
+      });
+
+      // 投票データを集計
+      votes.forEach(vote => {
+        if (vote.prefectureCode && prefectureMap.has(vote.prefectureCode)) {
+          prefectureMap.get(vote.prefectureCode)!.votes.push({
+            accentTypeId: vote.accentTypeId,
+            accentTypeName: vote.accentType.name,
+          });
+        }
+      });
+
+      // 都道府県別の最頻投票結果を作成
+      const topVotesByPrefecture: Array<{
+        prefecture: string;
+        prefectureName: string;
+        topAccentType: string | null;
+        voteCount: number;
+        percentage: number;
+        totalVotes: number;
+      }> = [];
+      
+      Prefecture.getAll().forEach(pref => {
+        const prefData = prefectureMap.get(pref.getCode())!;
+        const totalVotes = prefData.votes.length;
+        
+        if (totalVotes === 0) {
+          // 投票データがない場合
+          topVotesByPrefecture.push({
+            prefecture: pref.getCode(),
+            prefectureName: pref.getName(),
+            topAccentType: null,
+            voteCount: 0,
+            percentage: 0,
+            totalVotes: 0,
+          });
+        } else {
+          // アクセントタイプ別に集計
+          const accentCounts = new Map<string, number>();
+          prefData.votes.forEach(vote => {
+            const count = accentCounts.get(vote.accentTypeName) || 0;
+            accentCounts.set(vote.accentTypeName, count + 1);
+          });
+
+          // 最多投票のアクセントタイプを特定
+          let topAccentType = '';
+          let maxCount = 0;
+          
+          accentCounts.forEach((count, typeName) => {
+            if (count > maxCount) {
+              maxCount = count;
+              topAccentType = typeName;
+            }
+          });
+
+          topVotesByPrefecture.push({
+            prefecture: pref.getCode(),
+            prefectureName: pref.getName(),
+            topAccentType,
+            voteCount: maxCount,
+            percentage: (maxCount / totalVotes) * 100,
+            totalVotes,
+          });
+        }
+      });
+
+      return {
+        wordId: word.id,
+        headword: word.headword,
+        reading: word.reading,
+        data: topVotesByPrefecture,
+      };
+    } catch (error) {
+      logger.error('Error getting top votes by prefecture:', error);
+      throw new AppError('都道府県別トップ票の取得に失敗しました', 500, 'TOP_VOTES_ERROR');
+    }
+  }
+
+  /**
    * 地域別傾向を取得
    */
   async getRegionalTrends(region?: string) {

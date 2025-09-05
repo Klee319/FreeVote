@@ -194,6 +194,43 @@ export const api = {
     }
   },
   
+  // 都道府県別トップ票取得
+  getTopVotesByPrefecture: async (wordId: number): Promise<any> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/words/${wordId}/top-by-prefecture`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch top votes: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      return result.data || result;
+    } catch (error) {
+      console.error('[API] Error fetching top votes by prefecture:', error);
+      
+      // モックデータにフォールバック（開発環境用）
+      if (DEBUG_MODE) {
+        return {
+          wordId,
+          headword: 'テスト語',
+          reading: 'テストゴ',
+          data: [
+            { prefecture: '01', prefectureName: '北海道', topAccentType: 'heiban', voteCount: 10, percentage: 60, totalVotes: 17 },
+            { prefecture: '02', prefectureName: '青森県', topAccentType: 'atamadaka', voteCount: 5, percentage: 50, totalVotes: 10 },
+            // 他の都道府県のモックデータを省略
+          ]
+        };
+      }
+      throw error;
+    }
+  },
+  
   // ランキング取得
   getRanking: async (period: 'daily' | 'weekly' | 'monthly' = 'weekly'): Promise<RankingWord[]> => {
     await new Promise(resolve => setTimeout(resolve, 300));

@@ -100,12 +100,15 @@ export function AccentVotingSection({
               key={option.id}
               accentOption={option}
               moraSegments={word.moraSegments}
+              word={word.headword}
+              reading={word.reading}
               voteStats={voteStats}
               isSelected={word.userVote?.accentType === option.accentType.code}
               canVote={canVote}
               onVote={() => onVote(option.accentTypeId!)}
               disabled={!canVote || isVoting}
               showPattern={true}
+              showSpeechPlayer={true}
               size="md"
             />
           );
