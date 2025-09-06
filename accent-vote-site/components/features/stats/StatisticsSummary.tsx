@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '@/lib/api';
 import { formatNumber } from '@/lib/utils';
 
 interface StatItem {
@@ -11,49 +13,93 @@ interface StatItem {
 }
 
 export function StatisticsSummary() {
-  const [stats, setStats] = useState<StatItem[]>([
+  const [displayStats, setDisplayStats] = useState<StatItem[]>([
     { label: '総語数', value: 0, unit: '語', icon: '📚' },
     { label: '総投票数', value: 0, unit: '票', icon: '🗳️' },
     { label: '参加県数', value: 0, unit: '県', icon: '🗾' },
     { label: '今日の投票', value: 0, unit: '票', icon: '📊' },
   ]);
 
+  // APIからデータを取得
+  const { data: siteStats, isLoading } = useQuery({
+    queryKey: ['siteStats'],
+    queryFn: () => api.getSiteStats(),
+    refetchInterval: 60000, // 1分ごとに更新
+  });
+
   useEffect(() => {
-    // アニメーション効果でカウントアップ
-    const targetStats = [
-      { label: '総語数', value: 1234, unit: '語', icon: '📚' },
-      { label: '総投票数', value: 12345, unit: '票', icon: '🗳️' },
-      { label: '参加県数', value: 47, unit: '県', icon: '🗾' },
-      { label: '今日の投票', value: 123, unit: '票', icon: '📊' },
-    ];
+    if (siteStats) {
+      // APIデータから統計情報を作成
+      const targetStats = [
+        { 
+          label: '総語数', 
+          value: siteStats.overview.totalWords, 
+          unit: '語', 
+          icon: '📚' 
+        },
+        { 
+          label: '総投票数', 
+          value: siteStats.overview.totalVotes, 
+          unit: '票', 
+          icon: '🗳️' 
+        },
+        { 
+          label: '参加県数', 
+          value: 47, // TODO: 実際の参加県数をAPIから取得
+          unit: '県', 
+          icon: '🗾' 
+        },
+        { 
+          label: '今日の投票', 
+          value: siteStats.activity.today, 
+          unit: '票', 
+          icon: '📊' 
+        },
+      ];
 
-    const duration = 1000;
-    const steps = 20;
-    const stepDuration = duration / steps;
+      // アニメーション効果でカウントアップ
+      const duration = 1000;
+      const steps = 20;
+      const stepDuration = duration / steps;
 
-    let currentStep = 0;
-    const interval = setInterval(() => {
-      currentStep++;
-      const progress = currentStep / steps;
+      let currentStep = 0;
+      const interval = setInterval(() => {
+        currentStep++;
+        const progress = currentStep / steps;
 
-      setStats(
-        targetStats.map((target, index) => ({
-          ...target,
-          value: Math.floor(target.value * progress),
-        }))
-      );
+        setDisplayStats(
+          targetStats.map((target) => ({
+            ...target,
+            value: Math.floor(target.value * progress),
+          }))
+        );
 
-      if (currentStep >= steps) {
-        clearInterval(interval);
-      }
-    }, stepDuration);
+        if (currentStep >= steps) {
+          clearInterval(interval);
+        }
+      }, stepDuration);
 
-    return () => clearInterval(interval);
-  }, []);
+      return () => clearInterval(interval);
+    }
+  }, [siteStats]);
+
+  // ローディング中の表示
+  if (isLoading) {
+    return (
+      <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="bg-white rounded-lg p-4 text-center border border-gray-200 animate-pulse">
+            <div className="h-8 bg-gray-200 rounded mb-2"></div>
+            <div className="h-6 bg-gray-200 rounded"></div>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4">
-      {stats.map((stat) => (
+      {displayStats.map((stat) => (
         <div
           key={stat.label}
           className="bg-white rounded-lg p-4 text-center border border-gray-200 hover:shadow-md transition-shadow"

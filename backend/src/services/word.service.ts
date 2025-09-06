@@ -137,7 +137,9 @@ export class WordService {
         reading: word.reading,
         category: word.category?.name || '',
         moraCount: word.moraCount,
-        moraSegments: word.moraSegments,
+        moraSegments: typeof word.moraSegments === 'string' 
+          ? word.moraSegments.split('|') 
+          : word.moraSegments || [],
         totalVotes: totalVotes || word._count?.votes || 0, // 最新の総投票数を使用
         prefectureCount: word.prefectureCount || 0,
         createdAt: word.createdAt.toISOString()

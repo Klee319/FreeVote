@@ -117,7 +117,9 @@ export function AccentCard({
       {/* アクセントパターン表示 */}
       {showPattern && (
         <AccentPattern
-          pattern={accentOption.pattern}
+          pattern={typeof accentOption.pattern === 'string' 
+            ? accentOption.pattern.split('').map(p => p === 'H' ? 1 : 0)
+            : accentOption.pattern}
           moraSegments={moraSegments}
           dropPosition={accentOption.dropPosition}
           size={size}

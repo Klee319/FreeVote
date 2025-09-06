@@ -53,14 +53,86 @@ export const api = {
   
   // 語詳細取得
   getWordDetail: async (id: string): Promise<WordDetail> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    const detail = mockWordDetails[id];
-    if (!detail) {
-      throw new Error('Word not found');
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/words/${id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('Word not found');
+        }
+        throw new Error(`Failed to fetch word detail: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      if (DEBUG_MODE) {
+        console.log('[API] Word detail response:', {
+          wordId: id,
+          hasData: !!result.data,
+          hasNationalStats: !!result.data?.nationalStats,
+          totalVotes: result.data?.word?.totalVotes
+        });
+      }
+      
+      // レスポンスデータを正規化して返す
+      if (result.data) {
+        const wordData = result.data.word || {};
+        const nationalStats = result.data.nationalStats || [];
+        
+        // moraSegmentsがJSON文字列の場合はパース
+        let moraSegments = wordData.moraSegments || [];
+        if (typeof moraSegments === 'string') {
+          try {
+            moraSegments = JSON.parse(moraSegments);
+          } catch (e) {
+            console.warn('[API] Failed to parse moraSegments:', e);
+            moraSegments = [];
+          }
+        }
+        
+        return {
+          id: parseInt(id),
+          headword: wordData.headword || '',
+          reading: wordData.reading || '',
+          category: wordData.category || 'general',
+          moraCount: wordData.moraCount || 0,
+          moraSegments: Array.isArray(moraSegments) ? moraSegments : [],
+          accentOptions: result.data.accentOptions || [],
+          nationalStats: nationalStats.map((stat: any) => ({
+            accentType: stat.accentType,
+            count: stat.voteCount || 0,
+            percentage: parseFloat(stat.percentage) || stat.votePercentage || 0
+          })),
+          prefectureStats: result.data.prefectureStats || [],
+          totalVotes: wordData.totalVotes || 0,
+          prefectureCount: wordData.prefectureCount || 0,
+          createdAt: wordData.createdAt,
+          userVote: result.data.userVote,
+        };
+      }
+      
+      throw new Error('Invalid response format');
+    } catch (error) {
+      // 開発環境でバックエンドに接続できない場合はモックデータにフォールバック
+      if (DEBUG_MODE && error instanceof TypeError && error.message.includes('fetch')) {
+        console.warn('[API] Falling back to mock data for word detail');
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        const detail = mockWordDetails[id];
+        if (!detail) {
+          throw new Error('Word not found');
+        }
+        
+        return detail;
+      }
+      throw error;
     }
-    
-    return detail;
   },
   
   // 投票
@@ -542,6 +614,63 @@ export const api = {
         console.warn('[API] Using default settings');
       }
       return DEFAULT_APP_SETTINGS;
+    }
+  },
+
+  // サイト統計取得
+  getSiteStats: async (): Promise<{
+    overview: {
+      totalWords: number;
+      totalVotes: number;
+      totalUsers: number;
+      activeWords: number;
+      pendingSubmissions: number;
+    };
+    activity: {
+      today: number;
+      thisWeek: number;
+      thisMonth: number;
+    };
+    categories: Array<{ category: string; wordCount: number }>;
+    popularAccents: Array<{ accentType: string; voteCount: number }>;
+  }> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/stats/summary`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch site stats: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      return result.data;
+    } catch (error) {
+      // 開発環境でのフォールバック
+      if (DEBUG_MODE) {
+        console.warn('[API] Falling back to mock data for site stats');
+        return {
+          overview: {
+            totalWords: 0,
+            totalVotes: 0,
+            totalUsers: 0,
+            activeWords: 0,
+            pendingSubmissions: 0,
+          },
+          activity: {
+            today: 0,
+            thisWeek: 0,
+            thisMonth: 0,
+          },
+          categories: [],
+          popularAccents: [],
+        };
+      }
+      throw error;
     }
   },
 };
