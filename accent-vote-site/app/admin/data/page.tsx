@@ -31,11 +31,11 @@ export default function DataManagementPage() {
   });
   const [lastBackup, setLastBackup] = useState<Date | null>(null);
 
-  const handleExport = async (type: 'words' | 'polls' | 'votes' | 'all', format: 'csv' | 'json') => {
+  const handleExport = async (type: 'words' | 'polls' | 'votes' | 'all', fileFormat: 'csv' | 'json') => {
     try {
       setExportStatus({ isExporting: true, type });
       
-      const response = await fetch(`/api/admin/export/${type}?format=${format}`, {
+      const response = await fetch(`/api/admin/export/${type}?format=${fileFormat}`, {
         method: 'GET',
         credentials: 'include',
       });
@@ -46,7 +46,7 @@ export default function DataManagementPage() {
 
       // ファイルのダウンロード処理
       const blob = await response.blob();
-      const filename = `${type}_${format(new Date(), 'yyyyMMdd_HHmmss')}.${format}`;
+      const filename = `${type}_${format(new Date(), 'yyyyMMdd_HHmmss')}.${fileFormat}`;
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

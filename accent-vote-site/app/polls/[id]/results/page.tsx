@@ -1,0 +1,702 @@
+'use client';
+
+import { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import dynamic from 'next/dynamic';
+import { 
+  ArrowLeft, 
+  BarChart2, 
+  PieChart, 
+  Users,
+  TrendingUp,
+  Download,
+  Share2,
+  RefreshCw,
+  Map as MapIcon
+} from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { PollDetail, PollResults, ChartType } from '@/types/polls';
+import { Prefecture, AgeGroup } from '@/types';
+
+// EChartsを動的インポート（サーバーサイドレンダリングを避ける）
+const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false });
+
+// カテゴリに応じたラベルを返す
+function getCategoryLabel(category: string): string {
+  const labels: Record<string, string> = {
+    general: '一般',
+    tech: '技術',
+    culture: '文化',
+    lifestyle: 'ライフスタイル',
+    entertainment: 'エンタメ',
+    education: '教育',
+    business: 'ビジネス',
+    other: 'その他'
+  };
+  return labels[category] || category;
+}
+
+// 都道府県コードから名前を取得
+function getPrefectureName(code: Prefecture): string {
+  const prefectures: Record<Prefecture, string> = {
+    '01': '北海道', '02': '青森県', '03': '岩手県', '04': '宮城県', '05': '秋田県',
+    '06': '山形県', '07': '福島県', '08': '茨城県', '09': '栃木県', '10': '群馬県',
+    '11': '埼玉県', '12': '千葉県', '13': '東京都', '14': '神奈川県', '15': '新潟県',
+    '16': '富山県', '17': '石川県', '18': '福井県', '19': '山梨県', '20': '長野県',
+    '21': '岐阜県', '22': '静岡県', '23': '愛知県', '24': '三重県', '25': '滋賀県',
+    '26': '京都府', '27': '大阪府', '28': '兵庫県', '29': '奈良県', '30': '和歌山県',
+    '31': '鳥取県', '32': '島根県', '33': '岡山県', '34': '広島県', '35': '山口県',
+    '36': '徳島県', '37': '香川県', '38': '愛媛県', '39': '高知県', '40': '福岡県',
+    '41': '佐賀県', '42': '長崎県', '43': '熊本県', '44': '大分県', '45': '宮崎県',
+    '46': '鹿児島県', '47': '沖縄県'
+  };
+  return prefectures[code] || '';
+}
+
+// 年齢グループのラベルを取得
+function getAgeGroupLabel(ageGroup: AgeGroup): string {
+  const labels: Record<AgeGroup, string> = {
+    '10s': '10代',
+    '20s': '20代',
+    '30s': '30代',
+    '40s': '40代',
+    '50s': '50代',
+    '60s': '60代',
+    '70s+': '70代以上'
+  };
+  return labels[ageGroup] || ageGroup;
+}
+
+// チャートの色配列を生成
+function generateChartColors(count: number): string[] {
+  const baseColors = [
+    '#3b82f6', // blue
+    '#ef4444', // red
+    '#10b981', // green
+    '#f59e0b', // yellow
+    '#8b5cf6', // purple
+    '#ec4899', // pink
+    '#14b8a6', // teal
+    '#f97316', // orange
+  ];
+  
+  if (count <= baseColors.length) {
+    return baseColors.slice(0, count);
+  }
+  
+  // 色が足りない場合は自動生成
+  const colors = [...baseColors];
+  for (let i = baseColors.length; i < count; i++) {
+    const hue = (i * 360 / count) % 360;
+    colors.push(`hsl(${hue}, 70%, 50%)`);
+  }
+  return colors;
+}
+
+// 最適なチャートタイプを選択
+function selectOptimalChartType(optionCount: number): ChartType {
+  if (optionCount === 2) return 'bar';
+  if (optionCount <= 5) return 'pie';
+  if (optionCount <= 10) return 'horizontal-bar';
+  return 'bar';
+}
+
+// 結果ページコンポーネント
+export default function PollResultsPage({ params }: { params: Promise<{ id: string }> }) {
+  const router = useRouter();
+  const [poll, setPoll] = useState<PollDetail | null>(null);
+  const [results, setResults] = useState<PollResults | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [viewType, setViewType] = useState<'chart' | 'demographics' | 'trends'>('chart');
+  const [chartType, setChartType] = useState<ChartType>('auto');
+  const [demographicBreakdown, setDemographicBreakdown] = useState<'age' | 'prefecture'>('age');
+  const [pollId, setPollId] = useState<string>('');
+
+  // paramsを解決
+  useEffect(() => {
+    const resolveParams = async () => {
+      const { id } = await params;
+      setPollId(id);
+    };
+    resolveParams();
+  }, [params]);
+
+  // データ取得
+  useEffect(() => {
+    if (!pollId) return;
+    
+    fetchData();
+    // 30秒ごとに自動更新
+    const interval = setInterval(() => {
+      fetchData(true);
+    }, 30000);
+    
+    return () => clearInterval(interval);
+  }, [pollId]);
+
+  const fetchData = async (isRefresh = false) => {
+    if (isRefresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+    
+    try {
+      // 投票詳細と結果を並行して取得
+      const [pollResponse, resultsResponse] = await Promise.all([
+        fetch(`/api/polls/${pollId}`),
+        fetch(`/api/polls/${pollId}/results`)
+      ]);
+      
+      const pollData = await pollResponse.json();
+      const resultsData = await resultsResponse.json();
+      
+      if (pollData.success) {
+        setPoll(pollData.poll);
+      }
+      
+      if (resultsData.success) {
+        setResults(resultsData.results);
+      }
+    } catch (error) {
+      console.error('データ取得エラー:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  // 手動更新
+  const handleRefresh = () => {
+    fetchData(true);
+  };
+
+  // チャート設定を生成
+  const chartOptions = useMemo(() => {
+    if (!results) return null;
+    
+    const colors = generateChartColors(results.options.length);
+    const actualChartType = chartType === 'auto' 
+      ? selectOptimalChartType(results.options.length)
+      : chartType;
+    
+    if (actualChartType === 'pie' || actualChartType === 'donut') {
+      return {
+        title: {
+          text: '投票結果',
+          left: 'center'
+        },
+        tooltip: {
+          trigger: 'item',
+          formatter: '{b}: {c}票 ({d}%)'
+        },
+        legend: {
+          orient: 'vertical',
+          left: 'left',
+          top: 'middle'
+        },
+        series: [
+          {
+            name: '投票結果',
+            type: 'pie',
+            radius: actualChartType === 'donut' ? ['40%', '70%'] : '70%',
+            avoidLabelOverlap: false,
+            itemStyle: {
+              borderRadius: 10,
+              borderColor: '#fff',
+              borderWidth: 2
+            },
+            label: {
+              show: true,
+              position: 'outside',
+              formatter: '{b}: {d}%'
+            },
+            emphasis: {
+              label: {
+                show: true,
+                fontSize: 20,
+                fontWeight: 'bold'
+              }
+            },
+            data: results.options.map((option, index) => ({
+              value: option.voteCount,
+              name: option.text,
+              itemStyle: { color: colors[index] }
+            }))
+          }
+        ]
+      };
+    } else if (actualChartType === 'horizontal-bar') {
+      return {
+        title: {
+          text: '投票結果',
+          left: 'center'
+        },
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: {
+            type: 'shadow'
+          },
+          formatter: (params: any) => {
+            const item = params[0];
+            return `${item.name}: ${item.value}票 (${item.data.percentage}%)`;
+          }
+        },
+        grid: {
+          left: '20%',
+          right: '10%',
+          top: '15%',
+          bottom: '10%'
+        },
+        xAxis: {
+          type: 'value',
+          max: results.totalVotes
+        },
+        yAxis: {
+          type: 'category',
+          data: results.options.map(opt => opt.text),
+          inverse: true,
+          axisLabel: {
+            width: 100,
+            overflow: 'truncate'
+          }
+        },
+        series: [
+          {
+            name: '投票数',
+            type: 'bar',
+            data: results.options.map((option, index) => ({
+              value: option.voteCount,
+              percentage: option.percentage,
+              itemStyle: { color: colors[index] }
+            })),
+            label: {
+              show: true,
+              position: 'right',
+              formatter: '{c}票'
+            }
+          }
+        ]
+      };
+    } else {
+      // 縦棒グラフ
+      return {
+        title: {
+          text: '投票結果',
+          left: 'center'
+        },
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: {
+            type: 'shadow'
+          },
+          formatter: (params: any) => {
+            const item = params[0];
+            return `${item.name}: ${item.value}票 (${item.data.percentage}%)`;
+          }
+        },
+        grid: {
+          left: '10%',
+          right: '10%',
+          top: '15%',
+          bottom: '15%'
+        },
+        xAxis: {
+          type: 'category',
+          data: results.options.map(opt => opt.text),
+          axisLabel: {
+            interval: 0,
+            rotate: results.options.length > 5 ? 45 : 0,
+            width: 80,
+            overflow: 'truncate'
+          }
+        },
+        yAxis: {
+          type: 'value'
+        },
+        series: [
+          {
+            name: '投票数',
+            type: 'bar',
+            data: results.options.map((option, index) => ({
+              value: option.voteCount,
+              percentage: option.percentage,
+              itemStyle: { 
+                color: colors[index],
+                borderRadius: [4, 4, 0, 0]
+              }
+            })),
+            label: {
+              show: true,
+              position: 'top',
+              formatter: (params: any) => `${params.data.percentage}%`
+            }
+          }
+        ]
+      };
+    }
+  }, [results, chartType]);
+
+  // 属性別チャート設定
+  const demographicChartOptions = useMemo(() => {
+    if (!results?.demographics) return null;
+    
+    if (demographicBreakdown === 'age') {
+      const ageData = Object.entries(results.demographics.byAge || {});
+      return {
+        title: {
+          text: '年齢別投票分布',
+          left: 'center'
+        },
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: {
+            type: 'shadow'
+          }
+        },
+        xAxis: {
+          type: 'category',
+          data: ageData.map(([age]) => getAgeGroupLabel(age as AgeGroup))
+        },
+        yAxis: {
+          type: 'value'
+        },
+        series: [
+          {
+            name: '投票数',
+            type: 'bar',
+            data: ageData.map(([_, count]) => count),
+            itemStyle: {
+              color: '#3b82f6',
+              borderRadius: [4, 4, 0, 0]
+            }
+          }
+        ]
+      };
+    } else {
+      // 都道府県別（上位10件）
+      const prefectureData = Object.entries(results.demographics.byPrefecture || {})
+        .map(([code, count]) => ({
+          name: getPrefectureName(code as Prefecture),
+          value: count
+        }))
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 10);
+      
+      return {
+        title: {
+          text: '都道府県別投票数（上位10件）',
+          left: 'center'
+        },
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: {
+            type: 'shadow'
+          }
+        },
+        grid: {
+          left: '15%',
+          right: '10%',
+          top: '15%',
+          bottom: '10%'
+        },
+        xAxis: {
+          type: 'value'
+        },
+        yAxis: {
+          type: 'category',
+          data: prefectureData.map(d => d.name),
+          inverse: true
+        },
+        series: [
+          {
+            name: '投票数',
+            type: 'bar',
+            data: prefectureData.map(d => d.value),
+            itemStyle: {
+              color: '#10b981'
+            }
+          }
+        ]
+      };
+    }
+  }, [results, demographicBreakdown]);
+
+  // データエクスポート
+  const handleExport = () => {
+    if (!results || !poll) return;
+    
+    const csvContent = [
+      ['選択肢', '投票数', '割合(%)'],
+      ...results.options.map(opt => [
+        opt.text,
+        opt.voteCount.toString(),
+        opt.percentage.toFixed(2)
+      ])
+    ].map(row => row.join(',')).join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `${poll.title}_results.csv`;
+    link.click();
+  };
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-8 w-3/4" />
+            <Skeleton className="h-4 w-1/2 mt-2" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-[400px] w-full" />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!poll || !results) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Alert>
+          <AlertDescription>
+            結果データが見つかりませんでした
+          </AlertDescription>
+        </Alert>
+        <Link href="/polls">
+          <Button variant="outline" className="mt-4">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            投票一覧に戻る
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      {/* ヘッダー */}
+      <div className="flex items-center justify-between mb-6">
+        <Link href={`/polls/${pollId}`}>
+          <Button variant="ghost">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            投票詳細に戻る
+          </Button>
+        </Link>
+        
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={refreshing}
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            更新
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExport}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            CSV出力
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (navigator.share) {
+                navigator.share({
+                  title: `${poll.title}の結果`,
+                  text: `投票結果: ${results.totalVotes}票`,
+                  url: window.location.href,
+                });
+              }
+            }}
+          >
+            <Share2 className="mr-2 h-4 w-4" />
+            シェア
+          </Button>
+        </div>
+      </div>
+
+      {/* タイトル */}
+      <Card className="mb-6">
+        <CardHeader>
+          <div className="flex items-center justify-between mb-2">
+            <Badge variant="outline">
+              {getCategoryLabel(poll.category)}
+            </Badge>
+            <Badge variant={poll.status === 'active' ? 'default' : 'secondary'}>
+              {poll.status === 'active' ? '投票受付中' : '投票終了'}
+            </Badge>
+          </div>
+          <CardTitle className="text-2xl">{poll.title}</CardTitle>
+          {poll.description && (
+            <CardDescription>{poll.description}</CardDescription>
+          )}
+        </CardHeader>
+      </Card>
+
+      {/* 統計サマリー */}
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-3 mb-6">
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                総投票数
+              </CardTitle>
+              <BarChart2 className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{results.totalVotes}票</div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                参加者数
+              </CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{results.uniqueVoters}人</div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                最多得票
+              </CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-lg font-bold truncate">
+              {results.options[0]?.text || '-'}
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {results.options[0]?.percentage || 0}%
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* メインコンテンツ */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>投票結果詳細</CardTitle>
+            <div className="flex gap-2">
+              <Tabs value={viewType} onValueChange={(v) => setViewType(v as any)}>
+                <TabsList>
+                  <TabsTrigger value="chart">グラフ</TabsTrigger>
+                  <TabsTrigger value="demographics">属性別</TabsTrigger>
+                  <TabsTrigger value="trends">推移</TabsTrigger>
+                </TabsList>
+              </Tabs>
+              
+              {viewType === 'chart' && (
+                <Select value={chartType} onValueChange={(v) => setChartType(v as ChartType)}>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="auto">自動選択</SelectItem>
+                    <SelectItem value="bar">棒グラフ</SelectItem>
+                    <SelectItem value="pie">円グラフ</SelectItem>
+                    <SelectItem value="donut">ドーナツ</SelectItem>
+                    <SelectItem value="horizontal-bar">横棒グラフ</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+              
+              {viewType === 'demographics' && (
+                <Select value={demographicBreakdown} onValueChange={(v) => setDemographicBreakdown(v as any)}>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="age">年齢別</SelectItem>
+                    <SelectItem value="prefecture">都道府県別</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+        
+        <CardContent>
+          {viewType === 'chart' && chartOptions && (
+            <ReactECharts 
+              option={chartOptions}
+              style={{ height: '400px' }}
+              theme="light"
+            />
+          )}
+          
+          {viewType === 'demographics' && demographicChartOptions && (
+            <ReactECharts 
+              option={demographicChartOptions}
+              style={{ height: '400px' }}
+              theme="light"
+            />
+          )}
+          
+          {viewType === 'trends' && (
+            <div className="text-center py-12 text-muted-foreground">
+              投票推移グラフは準備中です
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* 選択肢ごとの詳細 */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>選択肢別詳細</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {results.options.map((option, index) => (
+              <div key={option.id} className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex-1">
+                  <div className="font-medium">{option.text}</div>
+                  {option.description && (
+                    <div className="text-sm text-muted-foreground mt-1">
+                      {option.description}
+                    </div>
+                  )}
+                </div>
+                <div className="text-right ml-4">
+                  <div className="text-2xl font-bold">{option.percentage}%</div>
+                  <div className="text-sm text-muted-foreground">
+                    {option.voteCount}票
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

@@ -46,7 +46,7 @@ const formSchema = z.object({
     text: z.string().min(1, '選択肢は必須です').max(100, '選択肢は100文字以内で入力してください'),
     thumbnailUrl: z.string().url('有効なURLを入力してください').optional().or(z.literal('')),
   })).min(2, '選択肢は最低2つ必要です').max(4, '選択肢は最大4つまでです'),
-  isAccentMode: z.boolean().default(false),
+  isAccentMode: z.boolean().optional().default(false),
   deadline: z.date().optional().nullable(),
   shareHashtags: z.string().max(100, 'ハッシュタグは100文字以内で入力してください').optional(),
   thumbnailUrl: z.string().url('有効なURLを入力してください').optional().or(z.literal('')),
@@ -60,11 +60,11 @@ interface PollData {
   description?: string;
   options: string[];
   optionThumbnails?: (string | null)[];
-  isAccentMode: boolean;
+  isAccentMode?: boolean;
   deadline?: string;
   shareHashtags?: string;
   thumbnailUrl?: string;
-  totalVotes: number;
+  totalVotes?: number;
   status: string;
 }
 
@@ -79,7 +79,7 @@ export default function EditPollPage() {
   const [pollData, setPollData] = useState<PollData | null>(null);
 
   const form = useForm<FormData>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(formSchema) as any,
     defaultValues: {
       title: '',
       description: '',
@@ -228,7 +228,7 @@ export default function EditPollPage() {
         </Alert>
       )}
 
-      {pollData?.totalVotes > 0 && (
+      {pollData && pollData.totalVotes && pollData.totalVotes > 0 && (
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
@@ -311,7 +311,7 @@ export default function EditPollPage() {
               <CardTitle>選択肢</CardTitle>
               <CardDescription>
                 投票の選択肢を2〜4個設定してください
-                {pollData?.totalVotes > 0 && (
+                {pollData && pollData.totalVotes && pollData.totalVotes > 0 && (
                   <span className="text-amber-600 ml-2">
                     ※既に投票があるため、選択肢の削除は推奨されません
                   </span>
@@ -329,7 +329,7 @@ export default function EditPollPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => removeOption(index)}
-                        disabled={pollData?.totalVotes > 0}
+                        disabled={pollData?.totalVotes ? pollData.totalVotes > 0 : false}
                       >
                         <Trash2 className="h-4 w-4 text-red-600" />
                       </Button>
@@ -421,7 +421,7 @@ export default function EditPollPage() {
                       <PopoverContent className="w-auto p-0" align="start">
                         <Calendar
                           mode="single"
-                          selected={field.value}
+                          selected={field.value || undefined}
                           onSelect={field.onChange}
                           disabled={(date) =>
                             date < new Date() || date < new Date('1900-01-01')

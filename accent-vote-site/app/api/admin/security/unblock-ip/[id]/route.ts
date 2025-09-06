@@ -2,10 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
+    
     // 実際のプロダクションではデータベースから削除
+    console.log(`Unblocking IP with ID: ${id}`);
     
     return NextResponse.json({
       message: 'IPアドレスのブロックを解除しました',

@@ -8,9 +8,10 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:300
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const cookieStore = await cookies();
     const authToken = cookieStore.get('authToken')?.value;
 
@@ -25,7 +26,7 @@ export async function PUT(
 
     // バックエンドAPIを呼び出し
     const response = await fetch(
-      `${BACKEND_URL}/api/admin/polls/${params.id}`,
+      `${BACKEND_URL}/api/admin/polls/${id}`,
       {
         method: 'PUT',
         headers: {
@@ -57,9 +58,10 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const cookieStore = await cookies();
     const authToken = cookieStore.get('authToken')?.value;
 
@@ -72,7 +74,7 @@ export async function DELETE(
 
     // バックエンドAPIを呼び出し
     const response = await fetch(
-      `${BACKEND_URL}/api/admin/polls/${params.id}`,
+      `${BACKEND_URL}/api/admin/polls/${id}`,
       {
         method: 'DELETE',
         headers: {

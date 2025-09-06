@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { action } = await request.json();
 
     if (!['ban', 'unban'].includes(action)) {
@@ -20,7 +21,7 @@ export async function PUT(
 
     return NextResponse.json({
       message: action === 'ban' ? 'ユーザーをBANしました' : 'BANを解除しました',
-      user: { id: params.id },
+      user: { id },
     });
   } catch (error) {
     console.error('Error updating user ban status:', error);

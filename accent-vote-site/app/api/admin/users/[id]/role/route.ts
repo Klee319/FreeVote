@@ -3,9 +3,10 @@ import { prisma } from '@/lib/prisma';
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { role } = await request.json();
 
     if (!['USER', 'ADMIN'].includes(role)) {
@@ -16,7 +17,7 @@ export async function PUT(
     }
 
     const user = await prisma.user.update({
-      where: { id: params.id },
+      where: { id },
       data: { role: role.toLowerCase() }, // PrismaスキーマではroleはlowercaseなのでUSER -> user, ADMIN -> admin
     });
 

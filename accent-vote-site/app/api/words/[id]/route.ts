@@ -9,10 +9,10 @@ const BACKEND_API_URL = process.env.BACKEND_API_URL || 'http://localhost:3003';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const wordId = params.id;
+    const { id: wordId } = await params;
     
     // Cookieヘッダーを取得（認証情報の転送用）
     const cookieHeader = request.headers.get('cookie');
