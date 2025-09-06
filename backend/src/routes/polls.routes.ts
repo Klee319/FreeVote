@@ -45,6 +45,20 @@ router.get(
   PollsController.getPollTopByPrefecture
 );
 
+// 投票を更新（管理者のみ）
+router.put(
+  '/:id',
+  PollsController.updatePollValidation,
+  PollsController.updatePoll
+);
+
+// 投票を削除（管理者のみ）
+router.delete(
+  '/:id',
+  PollsController.deletePollValidation,
+  PollsController.deletePoll
+);
+
 // 投票リクエスト関連
 router.post(
   '/requests',

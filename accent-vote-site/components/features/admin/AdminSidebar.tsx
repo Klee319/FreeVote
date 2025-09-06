@@ -15,7 +15,8 @@ import {
   Shield,
   ChevronLeft,
   ChevronRight,
-  LogOut
+  LogOut,
+  Vote
 } from 'lucide-react';
 
 interface NavItem {
@@ -35,6 +36,11 @@ const navItems: NavItem[] = [
     title: '単語管理',
     href: '/admin/words',
     icon: FileText,
+  },
+  {
+    title: '投票管理',
+    href: '/admin/polls',
+    icon: Vote,
   },
   {
     title: '統計',

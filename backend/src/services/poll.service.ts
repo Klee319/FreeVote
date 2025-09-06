@@ -384,4 +384,73 @@ export class PollService {
       options: req.options ? JSON.parse(req.options) : null,
     }));
   }
+
+  /**
+   * 投票を更新
+   */
+  async updatePoll(pollId: number, data: {
+    title?: string;
+    description?: string;
+    options?: string[];
+    optionThumbnails?: (string | null)[];
+    isAccentMode?: boolean;
+    deadline?: Date;
+    shareHashtags?: string;
+    thumbnailUrl?: string;
+  }) {
+    // 存在確認
+    const existingPoll = await this.prisma.poll.findUnique({
+      where: { id: pollId },
+    });
+
+    if (!existingPoll) {
+      throw new AppError('投票が見つかりません', 404);
+    }
+
+    // 更新
+    const poll = await this.prisma.poll.update({
+      where: { id: pollId },
+      data: {
+        title: data.title,
+        description: data.description,
+        options: data.options ? JSON.stringify(data.options) : undefined,
+        option_thumbnails: data.optionThumbnails ? JSON.stringify(data.optionThumbnails) : undefined,
+        is_accent_mode: data.isAccentMode,
+        deadline: data.deadline,
+        share_hashtags: data.shareHashtags,
+        thumbnail_url: data.thumbnailUrl,
+        updated_at: new Date(),
+      },
+    });
+
+    return poll;
+  }
+
+  /**
+   * 投票を削除
+   */
+  async deletePoll(pollId: number) {
+    // 存在確認
+    const existingPoll = await this.prisma.poll.findUnique({
+      where: { id: pollId },
+    });
+
+    if (!existingPoll) {
+      throw new AppError('投票が見つかりません', 404);
+    }
+
+    // 関連データも含めて削除（トランザクション）
+    await this.prisma.$transaction([
+      // 投票データを削除
+      this.prisma.poll_vote.deleteMany({
+        where: { poll_id: pollId },
+      }),
+      // 投票本体を削除
+      this.prisma.poll.delete({
+        where: { id: pollId },
+      }),
+    ]);
+
+    return true;
+  }
 }

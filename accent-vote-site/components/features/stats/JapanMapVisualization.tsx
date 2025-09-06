@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useMemo } from 'react';
+import { useEffect, useRef, useMemo, useState } from 'react';
 import * as echarts from 'echarts';
 import { PrefectureStat } from '@/types';
 import { japanGeoData, prefectureCodeToName } from '@/lib/japan-map-data';
@@ -19,45 +19,113 @@ export function JapanMapVisualization({
 }: JapanMapVisualizationProps) {
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstance = useRef<echarts.ECharts | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [mapRegistered, setMapRegistered] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // 地図データの準備
   const mapData = useMemo(() => {
-    return prefectureStats.map((stat) => {
-      const prefName = prefectureCodeToName[stat.prefectureCode];
-      const coords = japanGeoData[prefName as keyof typeof japanGeoData];
+    // すべての都道府県のデータを準備（データがない場合はデフォルト値）
+    const allPrefectures = Object.entries(prefectureCodeToName).map(([code, name]) => {
+      const stat = prefectureStats.find(s => s.prefectureCode === code);
+      const coords = japanGeoData[name as keyof typeof japanGeoData];
       
       if (!coords) return null;
 
-      // 最多アクセント型の色を取得
-      const dominantColor = getAccentTypeColor(stat.dominantAccent);
-      
-      // 投票数に応じたサイズ（最小10、最大50）
-      const maxVotes = Math.max(...prefectureStats.map(s => s.totalVotes));
-      const minVotes = Math.min(...prefectureStats.map(s => s.totalVotes));
-      const normalizedSize = minVotes === maxVotes 
-        ? 25 
-        : 10 + ((stat.totalVotes - minVotes) / (maxVotes - minVotes)) * 40;
+      if (stat) {
+        // データがある場合
+        const dominantColor = getAccentTypeColor(stat.dominantAccent);
+        const maxVotes = Math.max(...prefectureStats.map(s => s.totalVotes), 1);
+        const minVotes = Math.min(...prefectureStats.map(s => s.totalVotes), 0);
+        const normalizedSize = minVotes === maxVotes 
+          ? 25 
+          : 10 + ((stat.totalVotes - minVotes) / (maxVotes - minVotes)) * 40;
 
-      return {
-        name: prefName,
-        value: [...coords, stat.totalVotes],
-        prefectureCode: stat.prefectureCode,
-        dominantAccent: stat.dominantAccent,
-        totalVotes: stat.totalVotes,
-        accentDistribution: stat.accentDistribution,
-        itemStyle: {
-          color: dominantColor,
-          opacity: 0.8,
-        },
-        symbolSize: normalizedSize,
-        selected: stat.prefectureCode === selectedPrefecture,
-      };
+        return {
+          name,
+          value: [...coords, stat.totalVotes],
+          prefectureCode: code,
+          dominantAccent: stat.dominantAccent,
+          totalVotes: stat.totalVotes,
+          accentDistribution: stat.accentDistribution,
+          hasData: true,
+          itemStyle: {
+            color: dominantColor,
+            opacity: 0.8,
+          },
+          symbolSize: normalizedSize,
+          selected: code === selectedPrefecture,
+        };
+      } else {
+        // データがない場合のデフォルト
+        return {
+          name,
+          value: [...coords, 0],
+          prefectureCode: code,
+          dominantAccent: null,
+          totalVotes: 0,
+          accentDistribution: {},
+          hasData: false,
+          itemStyle: {
+            color: '#e5e7eb', // グレー色
+            opacity: 0.5,
+          },
+          symbolSize: 15,
+          selected: code === selectedPrefecture,
+        };
+      }
     }).filter(Boolean);
+
+    return allPrefectures;
   }, [prefectureStats, selectedPrefecture]);
+
+  // GeoJSONデータの読み込みと地図の登録
+  useEffect(() => {
+    const loadMapData = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        // GeoJSONデータを読み込む
+        const response = await fetch('/data/japan.json');
+        if (!response.ok) {
+          throw new Error('地図データの読み込みに失敗しました');
+        }
+        
+        const geoJson = await response.json();
+        
+        // EChartsに地図を登録
+        echarts.registerMap('japan', geoJson);
+        setMapRegistered(true);
+      } catch (err) {
+        console.error('地図データの読み込みエラー:', err);
+        setError(err instanceof Error ? err.message : '地図データの読み込みに失敗しました');
+        
+        // フォールバック: 簡易的な地図データを使用
+        const fallbackGeoJson = {
+          type: 'FeatureCollection',
+          features: Object.entries(japanGeoData).map(([name, coords]) => ({
+            type: 'Feature',
+            properties: { name },
+            geometry: {
+              type: 'Point',
+              coordinates: coords,
+            },
+          })),
+        };
+        echarts.registerMap('japan', fallbackGeoJson as any);
+        setMapRegistered(true);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadMapData();
+  }, []);
 
   // チャート初期化と更新
   useEffect(() => {
-    if (!chartRef.current) return;
+    if (!chartRef.current || !mapRegistered) return;
 
     // チャートインスタンスの初期化
     if (!chartInstance.current) {
@@ -81,15 +149,21 @@ export function JapanMapVisualization({
           color: '#1f2937',
         },
       },
-      grid: {
-        containLabel: true,
-      },
       tooltip: {
         trigger: 'item',
         formatter: function(params: any) {
           if (!params.data) return '';
           
           const data = params.data;
+          
+          // データがない場合の表示
+          if (!data.hasData) {
+            return `<div style="padding: 8px;">
+              <div style="font-weight: bold; margin-bottom: 8px;">${data.name}</div>
+              <div style="color: #6b7280;">まだ投票データがありません</div>
+            </div>`;
+          }
+          
           const distribution = data.accentDistribution;
           
           let tooltipContent = `<div style="padding: 8px;">
@@ -120,54 +194,79 @@ export function JapanMapVisualization({
       },
       geo: {
         map: 'japan',
-        roam: false,
-        silent: true,
+        roam: true,
+        zoom: 1.2,
+        center: [137.0, 38.0],
         itemStyle: {
-          areaColor: '#ffffff',
+          areaColor: '#f9fafb',
           borderColor: '#d1d5db',
           borderWidth: 1,
         },
         emphasis: {
-          disabled: true,
-        },
-        left: '10%',
-        right: '10%',
-        top: '15%',
-        bottom: '10%',
-      },
-      series: [
-        {
-          type: 'scatter',
-          coordinateSystem: 'geo',
-          data: mapData,
-          symbolSize: function(val: any[]) {
-            return mapData.find(d => d && d.value[0] === val[0] && d.value[1] === val[1])?.symbolSize || 20;
+          itemStyle: {
+            areaColor: '#e5e7eb',
+            borderColor: '#9ca3af',
+            borderWidth: 2,
           },
           label: {
             show: true,
-            formatter: function(params: any) {
-              const prefCode = params.data?.prefectureCode;
-              if (!prefCode) return '';
-              
-              // 都道府県名を短縮表示（"県"を省略）
-              const name = params.data.name;
-              return name.replace(/県$/, '').replace(/東京都/, '東京').replace(/大阪府/, '大阪').replace(/京都府/, '京都');
-            },
-            position: 'bottom',
-            fontSize: 10,
-            color: '#4b5563',
+            color: '#1f2937',
+            fontSize: 12,
+            fontWeight: 'bold',
+          },
+        },
+        select: {
+          itemStyle: {
+            areaColor: '#dbeafe',
+            borderColor: '#3b82f6',
+            borderWidth: 2,
+          },
+          label: {
+            show: true,
+            color: '#1e40af',
+            fontSize: 12,
+            fontWeight: 'bold',
+          },
+        },
+        regions: mapData.filter(d => d?.hasData).map(d => ({
+          name: d!.name,
+          itemStyle: {
+            areaColor: d!.itemStyle.color,
+            opacity: 0.7,
+          },
+        })),
+      },
+      series: [
+        {
+          name: '投票データ',
+          type: 'scatter',
+          coordinateSystem: 'geo',
+          data: mapData.filter(d => d?.hasData),
+          symbolSize: function(val: any[]) {
+            const data = mapData.find(d => d && d.value[0] === val[0] && d.value[1] === val[1]);
+            return data?.symbolSize || 20;
+          },
+          label: {
+            show: false,
           },
           emphasis: {
-            scale: 1.3,
+            scale: 1.5,
             itemStyle: {
               shadowBlur: 10,
               shadowColor: 'rgba(0, 0, 0, 0.3)',
             },
             label: {
               show: true,
-              fontSize: 12,
+              formatter: function(params: any) {
+                return params.data?.name || '';
+              },
+              position: 'top',
+              fontSize: 11,
               fontWeight: 'bold',
               color: '#1f2937',
+              backgroundColor: 'rgba(255, 255, 255, 0.9)',
+              padding: 2,
+              borderRadius: 2,
             },
           },
           selectedMode: 'single',
@@ -178,58 +277,72 @@ export function JapanMapVisualization({
               shadowBlur: 15,
               shadowColor: 'rgba(59, 130, 246, 0.4)',
             },
-            label: {
-              fontWeight: 'bold',
-              fontSize: 12,
-            },
           },
         },
       ],
       // 凡例を追加
       legend: {
         orient: 'vertical',
-        left: 'left',
-        top: 'middle',
+        left: 10,
+        top: 80,
         data: ['頭高型', '中高型', '尾高型', '平板型'].map(name => ({
           name,
           icon: 'circle',
+          textStyle: {
+            color: '#4b5563',
+          },
         })),
         textStyle: {
           fontSize: 12,
         },
-        formatter: function(name: string) {
-          // アクセント型の説明を追加
-          const descriptions: { [key: string]: string } = {
-            '頭高型': '頭高型 (最初が高い)',
-            '中高型': '中高型 (途中が高い)',
-            '尾高型': '尾高型 (最後が高い)',
-            '平板型': '平板型 (平らに発音)',
-          };
-          return descriptions[name] || name;
+        itemWidth: 20,
+        itemHeight: 12,
+        itemGap: 8,
+        selectedMode: false,
+      },
+      visualMap: {
+        show: false,
+        min: 0,
+        max: Math.max(...mapData.map(d => d?.totalVotes || 0), 100),
+        calculable: true,
+        inRange: {
+          color: ['#e5e7eb', '#3b82f6'],
         },
       },
     };
 
-    // 日本地図の登録（簡易版）
-    echarts.registerMap('japan', {
-      type: 'FeatureCollection',
-      features: Object.entries(japanGeoData).map(([name, coords]) => ({
-        type: 'Feature',
-        properties: { name },
-        geometry: {
-          type: 'Point',
-          coordinates: coords,
-        },
-      })),
-    } as any);
+    // 凡例データの設定
+    const legendData = ['頭高型', '中高型', '尾高型', '平板型'].map(type => ({
+      name: type,
+      icon: 'circle',
+      itemStyle: {
+        color: getAccentTypeColor(type),
+      },
+    }));
+    
+    if (option.legend && typeof option.legend === 'object' && !Array.isArray(option.legend)) {
+      option.legend.data = legendData;
+    }
 
     chart.setOption(option);
 
     // クリックイベントの設定
     chart.off('click');
-    chart.on('click', 'series', function(params: any) {
-      if (params.data && params.data.prefectureCode) {
-        onPrefectureSelect?.(params.data.prefectureCode);
+    chart.on('click', function(params: any) {
+      if (params.componentType === 'geo') {
+        // 地図上の都道府県をクリック
+        const clickedRegion = params.name;
+        const prefCode = Object.entries(prefectureCodeToName).find(
+          ([_, name]) => name === clickedRegion
+        )?.[0];
+        if (prefCode) {
+          onPrefectureSelect?.(prefCode);
+        }
+      } else if (params.componentType === 'series' && params.data) {
+        // 散布図のポイントをクリック
+        if (params.data.prefectureCode) {
+          onPrefectureSelect?.(params.data.prefectureCode);
+        }
       }
     });
 
@@ -242,23 +355,55 @@ export function JapanMapVisualization({
     return () => {
       window.removeEventListener('resize', handleResize);
     };
-  }, [mapData, onPrefectureSelect]);
+  }, [mapData, mapRegistered, onPrefectureSelect]);
 
   // 選択された都道府県のハイライト
   useEffect(() => {
-    if (!chartInstance.current || !selectedPrefecture) return;
+    if (!chartInstance.current || !selectedPrefecture || !mapRegistered) return;
 
     const chart = chartInstance.current;
-    const dataIndex = mapData.findIndex(d => d?.prefectureCode === selectedPrefecture);
     
-    if (dataIndex >= 0) {
+    // 地図上の地域を選択
+    const selectedName = prefectureCodeToName[selectedPrefecture];
+    if (selectedName) {
       chart.dispatchAction({
-        type: 'select',
-        seriesIndex: 0,
-        dataIndex,
+        type: 'geoSelect',
+        name: selectedName,
       });
+      
+      // 散布図のポイントも選択
+      const dataIndex = mapData.findIndex(d => d?.prefectureCode === selectedPrefecture);
+      if (dataIndex >= 0) {
+        chart.dispatchAction({
+          type: 'select',
+          seriesIndex: 0,
+          dataIndex,
+        });
+      }
     }
-  }, [selectedPrefecture, mapData]);
+  }, [selectedPrefecture, mapData, mapRegistered]);
+
+  // ローディング状態の表示
+  if (isLoading) {
+    return (
+      <div className="w-full bg-gray-50 rounded-lg p-4">
+        <div className="w-full h-[400px] sm:h-[500px] md:h-[600px] flex items-center justify-center">
+          <div className="text-gray-500">地図データを読み込んでいます...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // エラー状態の表示
+  if (error) {
+    return (
+      <div className="w-full bg-gray-50 rounded-lg p-4">
+        <div className="w-full h-[400px] sm:h-[500px] md:h-[600px] flex items-center justify-center">
+          <div className="text-red-500">エラー: {error}</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full bg-gray-50 rounded-lg p-4">
@@ -279,8 +424,13 @@ export function JapanMapVisualization({
           ))}
         </div>
         <p className="mt-2 text-xs text-gray-500">
-          ※ 円の大きさは投票数を、色は最多アクセント型を表しています
+          ※ 色の濃さは投票数を、色の種類は最多アクセント型を表しています
         </p>
+        {prefectureStats.length === 0 && (
+          <p className="mt-2 text-xs text-amber-600">
+            まだ投票データがありません。投票が行われると地図上に表示されます。
+          </p>
+        )}
       </div>
     </div>
   );

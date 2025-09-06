@@ -125,4 +125,32 @@ router.post('/words/import', requireAdmin, AdminController.importWords.bind(Admi
  */
 router.get('/stats/overview', requireAdmin, AdminController.getVoteStats.bind(AdminController));
 
+/**
+ * @route GET /api/admin/polls
+ * @desc 投票一覧取得（管理者用）
+ * @access Admin
+ */
+router.get('/polls', requireAdmin, AdminController.getPolls.bind(AdminController));
+
+/**
+ * @route POST /api/admin/polls
+ * @desc 投票作成（管理者用）
+ * @access Admin
+ */
+router.post('/polls', requireAdmin, AdminController.createPoll.bind(AdminController));
+
+/**
+ * @route PUT /api/admin/polls/:id
+ * @desc 投票更新（管理者用）
+ * @access Admin
+ */
+router.put('/polls/:id', requireAdmin, AdminController.updatePoll.bind(AdminController));
+
+/**
+ * @route DELETE /api/admin/polls/:id
+ * @desc 投票削除（管理者用）
+ * @access Admin
+ */
+router.delete('/polls/:id', requireAdmin, AdminController.deletePoll.bind(AdminController));
+
 export default router;

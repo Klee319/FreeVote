@@ -312,6 +312,122 @@ export class PollsController {
   }
 
   /**
+   * 投票を更新（管理者のみ）
+   */
+  static updatePollValidation = [
+    param('id').isInt({ min: 1 }).withMessage('有効な投票IDを指定してください'),
+    body('title').optional().notEmpty().withMessage('タイトルは必須です'),
+    body('description').optional(),
+    body('isAccentMode').optional().isBoolean(),
+    body('options').optional()
+      .isArray({ min: 2, max: 4 })
+      .withMessage('選択肢は2〜4件で設定してください'),
+    body('deadline').optional().isISO8601(),
+    body('shareHashtags').optional(),
+    body('thumbnailUrl').optional().isURL(),
+    body('optionThumbnails').optional().isArray(),
+  ];
+
+  static async updatePoll(req: Request, res: Response, next: NextFunction) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: '入力データが無効です',
+          errors: errors.array(),
+        });
+      }
+
+      const pollId = parseInt(req.params.id);
+      const userId = (req as any).user?.id;
+      
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: '認証が必要です',
+        });
+      }
+
+      const poll = await pollService.updatePoll(pollId, {
+        ...req.body,
+        deadline: req.body.deadline ? new Date(req.body.deadline) : undefined,
+      });
+
+      res.status(200).json({
+        success: true,
+        data: poll,
+        message: '投票を更新しました',
+      });
+    } catch (error) {
+      console.error('[PollsController.updatePoll] Error:', error);
+      
+      if (error instanceof AppError) {
+        return res.status(error.statusCode || 500).json({
+          success: false,
+          message: error.message,
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        message: '投票の更新に失敗しました',
+      });
+    }
+  }
+
+  /**
+   * 投票を削除（管理者のみ）
+   */
+  static deletePollValidation = [
+    param('id').isInt({ min: 1 }).withMessage('有効な投票IDを指定してください'),
+  ];
+
+  static async deletePoll(req: Request, res: Response, next: NextFunction) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: '入力パラメータが無効です',
+          errors: errors.array(),
+        });
+      }
+
+      const pollId = parseInt(req.params.id);
+      const userId = (req as any).user?.id;
+      
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: '認証が必要です',
+        });
+      }
+
+      await pollService.deletePoll(pollId);
+
+      res.status(200).json({
+        success: true,
+        message: '投票を削除しました',
+      });
+    } catch (error) {
+      console.error('[PollsController.deletePoll] Error:', error);
+      
+      if (error instanceof AppError) {
+        return res.status(error.statusCode || 500).json({
+          success: false,
+          message: error.message,
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        message: '投票の削除に失敗しました',
+      });
+    }
+  }
+
+  /**
    * 投票リクエストを作成
    */
   static createVoteRequestValidation = [

@@ -763,6 +763,213 @@ class AdminControllerClass {
       next(error);
     }
   }
+
+  /**
+   * 投票一覧取得（管理者用）
+   * GET /api/admin/polls
+   */
+  async getPolls(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const { page = '1', limit = '20', status } = req.query;
+      
+      const pageNum = parseInt(page as string);
+      const limitNum = parseInt(limit as string);
+      const skip = (pageNum - 1) * limitNum;
+
+      const prisma = getPrismaClient();
+
+      // フィルター条件
+      const where: any = {};
+      const now = new Date();
+      
+      if (status === 'active') {
+        where.OR = [
+          { deadline: null },
+          { deadline: { gt: now } }
+        ];
+      } else if (status === 'ended') {
+        where.deadline = { lte: now };
+      }
+
+      const [polls, totalCount] = await Promise.all([
+        prisma.poll.findMany({
+          where,
+          orderBy: { created_at: 'desc' },
+          skip,
+          take: limitNum,
+          include: {
+            _count: {
+              select: { poll_votes: true }
+            }
+          }
+        }),
+        prisma.poll.count({ where })
+      ]);
+
+      // データ整形
+      const formattedPolls = polls.map(poll => ({
+        id: poll.id,
+        title: poll.title,
+        description: poll.description,
+        options: poll.options as string[],
+        isAccentMode: poll.is_accent_mode,
+        totalVotes: poll._count.poll_votes,
+        status: poll.deadline && poll.deadline < now ? 'ended' : 'active',
+        deadline: poll.deadline?.toISOString(),
+        createdAt: poll.created_at.toISOString(),
+        updatedAt: poll.updated_at.toISOString(),
+        createdBy: poll.created_by
+      }));
+
+      res.json({
+        success: true,
+        polls: formattedPolls,
+        totalPages: Math.ceil(totalCount / limitNum),
+        currentPage: pageNum,
+        totalCount
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * 投票作成（管理者用）
+   * POST /api/admin/polls
+   */
+  async createPoll(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const {
+        title,
+        description,
+        options,
+        optionThumbnails,
+        isAccentMode,
+        deadline,
+        shareHashtags,
+        thumbnailUrl,
+        wordId
+      } = req.body;
+
+      const prisma = getPrismaClient();
+      const userId = req.user!.id;
+
+      const poll = await prisma.poll.create({
+        data: {
+          title,
+          description,
+          options: options as any,
+          option_thumbnails: optionThumbnails as any,
+          is_accent_mode: isAccentMode || false,
+          deadline: deadline ? new Date(deadline) : null,
+          share_hashtags: shareHashtags,
+          thumbnail_url: thumbnailUrl,
+          word_id: wordId,
+          created_by: userId,
+          status: 'active'
+        }
+      });
+
+      res.status(201).json({
+        success: true,
+        data: poll,
+        message: '投票を作成しました'
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * 投票更新（管理者用）
+   * PUT /api/admin/polls/:id
+   */
+  async updatePoll(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const { id } = req.params;
+      const {
+        title,
+        description,
+        options,
+        optionThumbnails,
+        isAccentMode,
+        deadline,
+        shareHashtags,
+        thumbnailUrl
+      } = req.body;
+
+      const prisma = getPrismaClient();
+      const pollId = parseInt(id);
+
+      const poll = await prisma.poll.update({
+        where: { id: pollId },
+        data: {
+          title,
+          description,
+          options: options as any,
+          option_thumbnails: optionThumbnails as any,
+          is_accent_mode: isAccentMode,
+          deadline: deadline ? new Date(deadline) : null,
+          share_hashtags: shareHashtags,
+          thumbnail_url: thumbnailUrl,
+          updated_at: new Date()
+        }
+      });
+
+      res.json({
+        success: true,
+        data: poll,
+        message: '投票を更新しました'
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * 投票削除（管理者用）
+   * DELETE /api/admin/polls/:id
+   */
+  async deletePoll(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const { id } = req.params;
+      const prisma = getPrismaClient();
+      const pollId = parseInt(id);
+
+      // 関連する投票データも削除（カスケード削除）
+      await prisma.$transaction([
+        prisma.poll_vote.deleteMany({
+          where: { poll_id: pollId }
+        }),
+        prisma.poll.delete({
+          where: { id: pollId }
+        })
+      ]);
+
+      res.json({
+        success: true,
+        message: '投票を削除しました'
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 // クラスをエクスポート
