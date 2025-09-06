@@ -7,7 +7,15 @@ export interface RankingItem {
   reading: string;
   totalVotes: number;
   uniqueVoters: number;
-  mostVotedAccentType: {
+  // アクセント固有のフィールド（互換性のためにオプション化）
+  mostVotedAccentType?: {
+    id: number;
+    code: string;
+    name: string;
+    votePercentage: number;
+  };
+  // 汎用的な最多投票タイプ
+  mostVotedType?: {
     id: number;
     code: string;
     name: string;
@@ -49,7 +57,10 @@ export interface ComparisonWord {
     prefectureCode: string;
     rank: number;
     voteCount: number;
-    accentType: string;
+    // アクセント固有（オプション）
+    accentType?: string;
+    // 汎用的な投票タイプ
+    voteType?: string;
   }>;
 }
 

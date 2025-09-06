@@ -11,31 +11,31 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: {
-    default: '日本語アクセント投票サイト | 全国の発音を集めて共有',
-    template: '%s | 日本語アクセント投票サイト',
+    default: '気になる投票所 | みんなで作る投票プラットフォーム',
+    template: '%s | 気になる投票所',
   },
   description: '日本語の単語のアクセントパターンを地域別に調査・共有するプラットフォーム。全国各地の発音の違いを投票で明らかにし、日本語の多様性を可視化します。',
   keywords: ['日本語', 'アクセント', '方言', '投票', '地域差', '発音', '言語学', '日本語教育'],
-  authors: [{ name: '日本語アクセント投票サイト運営チーム' }],
-  creator: '日本語アクセント投票サイト',
-  publisher: '日本語アクセント投票サイト',
+  authors: [{ name: '気になる投票所運営チーム' }],
+  creator: '気になる投票所',
+  publisher: '気になる投票所',
   formatDetection: {
     email: false,
     address: false,
     telephone: false,
   },
   openGraph: {
-    title: '日本語アクセント投票サイト',
-    description: '全国の日本語アクセントパターンを調査・共有するプラットフォーム',
+    title: '気になる投票所',
+    description: 'みんなで作る投票プラットフォーム - 日本語アクセントから様々なテーマまで',
     url: 'https://accent-vote.jp',
-    siteName: '日本語アクセント投票サイト',
+    siteName: '気になる投票所',
     locale: 'ja_JP',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: '日本語アクセント投票サイト',
-    description: '全国の日本語アクセントパターンを調査・共有',
+    title: '気になる投票所',
+    description: 'みんなで作る投票プラットフォーム',
   },
   robots: {
     index: true,
@@ -70,9 +70,9 @@ export const viewport: Viewport = {
 const structuredData = {
   '@context': 'https://schema.org',
   '@type': 'WebSite',
-  name: '日本語アクセント投票サイト',
+  name: '気になる投票所',
   url: 'https://accent-vote.jp',
-  description: '日本語の単語のアクセントパターンを地域別に調査・共有するプラットフォーム',
+  description: 'みんなで作る投票プラットフォーム - 日本語アクセントから様々なテーマまで',
   potentialAction: {
     '@type': 'SearchAction',
     target: {
@@ -83,7 +83,7 @@ const structuredData = {
   },
   publisher: {
     '@type': 'Organization',
-    name: '日本語アクセント投票サイト',
+    name: '気になる投票所',
     url: 'https://accent-vote.jp'
   }
 };

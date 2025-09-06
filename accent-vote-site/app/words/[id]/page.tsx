@@ -23,13 +23,18 @@ export default function WordDetailPage() {
   const [selectedPrefecture, setSelectedPrefecture] = useState<string>('13'); // 東京都をデフォルト
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [showMap, setShowMap] = useState(false);
+  const [hasVoted, setHasVoted] = useState(false);
   
-  // デバッグログ
+  // Cookieから地域情報を取得
   useEffect(() => {
+    if (user?.prefectureCode) {
+      setSelectedPrefecture(user.prefectureCode);
+    }
     console.log('[WordDetailPage] Cookie Auth State:', {
       isRegistered,
       hasUser: !!user,
       deviceId: user?.deviceId,
+      prefecture: user?.prefectureCode,
       userDetails: user
     });
   }, [user, isRegistered]);
@@ -64,10 +69,13 @@ export default function WordDetailPage() {
         hasDeviceId: !!user.deviceId
       });
 
+      // Cookieから取得した地域情報を使用
+      const prefecture = user.prefectureCode || selectedPrefecture;
+      
       return api.submitVote({
         wordId: parseInt(wordId),
         accentTypeId,
-        prefecture: selectedPrefecture as any,
+        prefecture: prefecture as any,
         deviceId: user.deviceId,
       });
     },
@@ -75,6 +83,7 @@ export default function WordDetailPage() {
       // 成功メッセージをカスタマイズ
       const successMessage = response.message || '投票が完了しました！';
       toast.success(successMessage);
+      setHasVoted(true); // 投票完了フラグを設定
       console.log('[WordDetailPage] Vote successful:', {
         message: successMessage,
         hasStats: !!(response?.stats || (response as any)?.statistics)
@@ -232,18 +241,26 @@ export default function WordDetailPage() {
             canVote={canVoteData?.canVote ?? true}
             onVote={handleVote}
             isVoting={voteMutation.isPending}
-            selectedPrefecture={selectedPrefecture}
-            onPrefectureChange={setSelectedPrefecture}
+            hasVoted={hasVoted || !canVoteData?.canVote}
+            onViewStats={() => {
+              // 統計セクションへスクロール
+              const statsElement = document.getElementById('statistics-section');
+              if (statsElement) {
+                statsElement.scrollIntoView({ behavior: 'smooth' });
+              }
+            }}
           />
 
           {/* 統計可視化 */}
-          <StatisticsVisualization
-            wordId={wordDetail.id}
-            nationalStats={wordDetail.nationalStats}
-            prefectureStats={wordDetail.prefectureStats}
-            selectedPrefecture={selectedPrefecture}
-            onPrefectureSelect={setSelectedPrefecture}
-          />
+          <div id="statistics-section">
+            <StatisticsVisualization
+              wordId={wordDetail.id}
+              nationalStats={wordDetail.nationalStats}
+              prefectureStats={wordDetail.prefectureStats}
+              selectedPrefecture={selectedPrefecture}
+              onPrefectureSelect={setSelectedPrefecture}
+            />
+          </div>
 
           {/* 地図表示トグル */}
           <div className="bg-white rounded-lg shadow p-4">

@@ -98,6 +98,9 @@ export interface RankingWord extends Word {
   changeFromLastWeek?: number;
   dominantAccent: AccentType;
   dominantAccentPercentage: number;
+  // 汎用投票対応のフィールド
+  dominantVoteType?: string;
+  dominantVotePercentage?: number;
 }
 
 export interface SubmitTermData {

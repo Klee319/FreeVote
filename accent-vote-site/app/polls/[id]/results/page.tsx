@@ -43,21 +43,23 @@ function getCategoryLabel(category: string): string {
   return labels[category] || category;
 }
 
+// 都道府県データ
+const PREFECTURE_DATA: Record<Prefecture, string> = {
+  '01': '北海道', '02': '青森県', '03': '岩手県', '04': '宮城県', '05': '秋田県',
+  '06': '山形県', '07': '福島県', '08': '茨城県', '09': '栃木県', '10': '群馬県',
+  '11': '埼玉県', '12': '千葉県', '13': '東京都', '14': '神奈川県', '15': '新潟県',
+  '16': '富山県', '17': '石川県', '18': '福井県', '19': '山梨県', '20': '長野県',
+  '21': '岐阜県', '22': '静岡県', '23': '愛知県', '24': '三重県', '25': '滋賀県',
+  '26': '京都府', '27': '大阪府', '28': '兵庫県', '29': '奈良県', '30': '和歌山県',
+  '31': '鳥取県', '32': '島根県', '33': '岡山県', '34': '広島県', '35': '山口県',
+  '36': '徳島県', '37': '香川県', '38': '愛媛県', '39': '高知県', '40': '福岡県',
+  '41': '佐賀県', '42': '長崎県', '43': '熊本県', '44': '大分県', '45': '宮崎県',
+  '46': '鹿児島県', '47': '沖縄県'
+};
+
 // 都道府県コードから名前を取得
 function getPrefectureName(code: Prefecture): string {
-  const prefectures: Record<Prefecture, string> = {
-    '01': '北海道', '02': '青森県', '03': '岩手県', '04': '宮城県', '05': '秋田県',
-    '06': '山形県', '07': '福島県', '08': '茨城県', '09': '栃木県', '10': '群馬県',
-    '11': '埼玉県', '12': '千葉県', '13': '東京都', '14': '神奈川県', '15': '新潟県',
-    '16': '富山県', '17': '石川県', '18': '福井県', '19': '山梨県', '20': '長野県',
-    '21': '岐阜県', '22': '静岡県', '23': '愛知県', '24': '三重県', '25': '滋賀県',
-    '26': '京都府', '27': '大阪府', '28': '兵庫県', '29': '奈良県', '30': '和歌山県',
-    '31': '鳥取県', '32': '島根県', '33': '岡山県', '34': '広島県', '35': '山口県',
-    '36': '徳島県', '37': '香川県', '38': '愛媛県', '39': '高知県', '40': '福岡県',
-    '41': '佐賀県', '42': '長崎県', '43': '熊本県', '44': '大分県', '45': '宮崎県',
-    '46': '鹿児島県', '47': '沖縄県'
-  };
-  return prefectures[code] || '';
+  return PREFECTURE_DATA[code] || '';
 }
 
 // 年齢グループのラベルを取得
@@ -117,7 +119,11 @@ export default function PollResultsPage({ params }: { params: Promise<{ id: stri
   const [refreshing, setRefreshing] = useState(false);
   const [viewType, setViewType] = useState<'chart' | 'demographics' | 'trends'>('chart');
   const [chartType, setChartType] = useState<ChartType>('auto');
-  const [demographicBreakdown, setDemographicBreakdown] = useState<'age' | 'prefecture'>('age');
+  const [demographicBreakdown, setDemographicBreakdown] = useState<'age' | 'prefecture' | 'gender'>('age');
+  const [sortBy, setSortBy] = useState<'default' | 'prefecture' | 'age' | 'gender'>('default');
+  const [filterPrefecture, setFilterPrefecture] = useState<string>('all');
+  const [filterAge, setFilterAge] = useState<string>('all');
+  const [filterGender, setFilterGender] = useState<string>('all');
   const [pollId, setPollId] = useState<string>('');
 
   // paramsを解決
@@ -349,7 +355,42 @@ export default function PollResultsPage({ params }: { params: Promise<{ id: stri
   const demographicChartOptions = useMemo(() => {
     if (!results?.demographics) return null;
     
-    if (demographicBreakdown === 'age') {
+    if (demographicBreakdown === 'gender') {
+      // 性別別データ
+      const genderData = [
+        { name: '男性', value: results.demographics.byGender?.male || 0 },
+        { name: '女性', value: results.demographics.byGender?.female || 0 },
+        { name: 'その他', value: results.demographics.byGender?.other || 0 },
+      ].filter(item => item.value > 0);
+      
+      return {
+        title: {
+          text: '性別投票分布',
+          left: 'center'
+        },
+        tooltip: {
+          trigger: 'item',
+          formatter: '{b}: {c}票 ({d}%)'
+        },
+        series: [
+          {
+            name: '投票数',
+            type: 'pie',
+            radius: '60%',
+            data: genderData,
+            itemStyle: {
+              borderRadius: 10,
+              borderColor: '#fff',
+              borderWidth: 2
+            },
+            label: {
+              show: true,
+              formatter: '{b}: {d}%'
+            }
+          }
+        ]
+      };
+    } else if (demographicBreakdown === 'age') {
       const ageData = Object.entries(results.demographics.byAge || {});
       return {
         title: {
@@ -630,15 +671,30 @@ export default function PollResultsPage({ params }: { params: Promise<{ id: stri
               )}
               
               {viewType === 'demographics' && (
-                <Select value={demographicBreakdown} onValueChange={(v) => setDemographicBreakdown(v as any)}>
-                  <SelectTrigger className="w-[140px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="age">年齢別</SelectItem>
-                    <SelectItem value="prefecture">都道府県別</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2">
+                  <Select value={demographicBreakdown} onValueChange={(v) => setDemographicBreakdown(v as any)}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="age">年齢別</SelectItem>
+                      <SelectItem value="prefecture">都道府県別</SelectItem>
+                      <SelectItem value="gender">性別</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  <Select value={sortBy} onValueChange={(v) => setSortBy(v as any)}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="ソート" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="default">デフォルト</SelectItem>
+                      <SelectItem value="prefecture">県別ソート</SelectItem>
+                      <SelectItem value="age">年代別ソート</SelectItem>
+                      <SelectItem value="gender">性別ソート</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               )}
             </div>
           </div>
@@ -668,6 +724,81 @@ export default function PollResultsPage({ params }: { params: Promise<{ id: stri
           )}
         </CardContent>
       </Card>
+
+      {/* フィルタリングオプション */}
+      {viewType === 'demographics' && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>フィルタリング</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">都道府県</label>
+                <Select value={filterPrefecture} onValueChange={setFilterPrefecture}>
+                  <SelectTrigger className="w-full mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">すべて</SelectItem>
+                    {Object.entries(PREFECTURE_DATA).map(([code, name]) => (
+                      <SelectItem key={code} value={code}>
+                        {name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">年代</label>
+                <Select value={filterAge} onValueChange={setFilterAge}>
+                  <SelectTrigger className="w-full mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">すべて</SelectItem>
+                    <SelectItem value="10s">10代</SelectItem>
+                    <SelectItem value="20s">20代</SelectItem>
+                    <SelectItem value="30s">30代</SelectItem>
+                    <SelectItem value="40s">40代</SelectItem>
+                    <SelectItem value="50s">50代</SelectItem>
+                    <SelectItem value="60s">60代</SelectItem>
+                    <SelectItem value="70s+">70代以上</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">性別</label>
+                <Select value={filterGender} onValueChange={setFilterGender}>
+                  <SelectTrigger className="w-full mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">すべて</SelectItem>
+                    <SelectItem value="male">男性</SelectItem>
+                    <SelectItem value="female">女性</SelectItem>
+                    <SelectItem value="other">その他</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <Button
+              variant="outline"
+              className="mt-4"
+              onClick={() => {
+                setFilterPrefecture('all');
+                setFilterAge('all');
+                setFilterGender('all');
+              }}
+            >
+              フィルターをクリア
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* 選択肢ごとの詳細 */}
       <Card className="mt-6">

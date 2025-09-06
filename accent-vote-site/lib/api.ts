@@ -114,6 +114,7 @@ export const api = {
           prefectureCount: wordData.prefectureCount || 0,
           createdAt: wordData.createdAt,
           userVote: result.data.userVote,
+          canVote: result.data.canVote !== false, // デフォルトはtrue
         };
       }
       

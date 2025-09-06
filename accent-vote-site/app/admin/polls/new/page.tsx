@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,6 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
@@ -45,7 +44,6 @@ const formSchema = z.object({
     text: z.string().min(1, '選択肢は必須です').max(100, '選択肢は100文字以内で入力してください'),
     thumbnailUrl: z.string().url('有効なURLを入力してください').optional().or(z.literal('')),
   })).min(2, '選択肢は最低2つ必要です').max(4, '選択肢は最大4つまでです'),
-  isAccentMode: z.boolean().default(false),
   deadline: z.date().optional(),
   shareHashtags: z.string().max(100, 'ハッシュタグは100文字以内で入力してください').optional(),
   thumbnailUrl: z.string().url('有効なURLを入力してください').optional().or(z.literal('')),
@@ -67,37 +65,25 @@ export default function NewPollPage() {
         { text: '', thumbnailUrl: '' },
         { text: '', thumbnailUrl: '' },
       ],
-      isAccentMode: false,
       shareHashtags: '',
       thumbnailUrl: '',
     },
   });
 
-  const { fields, append, remove } = form.watch('options').map((_, index) => ({
-    index,
-    remove: () => {
-      const currentOptions = form.getValues('options');
-      if (currentOptions.length > 2) {
-        const newOptions = [...currentOptions];
-        newOptions.splice(index, 1);
-        form.setValue('options', newOptions);
-      }
-    },
-  }));
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: 'options',
+  });
 
   const addOption = () => {
-    const currentOptions = form.getValues('options');
-    if (currentOptions.length < 4) {
-      form.setValue('options', [...currentOptions, { text: '', thumbnailUrl: '' }]);
+    if (fields.length < 4) {
+      append({ text: '', thumbnailUrl: '' });
     }
   };
 
   const removeOption = (index: number) => {
-    const currentOptions = form.getValues('options');
-    if (currentOptions.length > 2) {
-      const newOptions = [...currentOptions];
-      newOptions.splice(index, 1);
-      form.setValue('options', newOptions);
+    if (fields.length > 2) {
+      remove(index);
     }
   };
 
@@ -110,12 +96,12 @@ export default function NewPollPage() {
       const requestData = {
         title: data.title,
         description: data.description || undefined,
-        options: data.options.map(opt => opt.text).filter(text => text),
-        optionThumbnails: data.options.map(opt => opt.thumbnailUrl || undefined),
-        isAccentMode: data.isAccentMode,
+        isAccentMode: false, // 常に通常投票として処理
         deadline: data.deadline?.toISOString(),
         shareHashtags: data.shareHashtags || undefined,
         thumbnailUrl: data.thumbnailUrl || undefined,
+        options: data.options.map(opt => opt.text).filter(text => text),
+        optionThumbnails: data.options.map(opt => opt.thumbnailUrl || undefined),
       };
 
       const response = await fetch('/api/polls', {
@@ -129,7 +115,10 @@ export default function NewPollPage() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || '投票の作成に失敗しました');
+        const errorMessage = error.details 
+          ? `投票の作成に失敗しました: ${error.message}\n詳細: ${JSON.stringify(error.details)}`
+          : error.message || '投票の作成に失敗しました';
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
@@ -211,26 +200,6 @@ export default function NewPollPage() {
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="isAccentMode"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <FormLabel className="text-base">アクセントモード</FormLabel>
-                      <FormDescription>
-                        アクセント関連の投票の場合はONにしてください
-                      </FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
             </CardContent>
           </Card>
 
@@ -238,14 +207,16 @@ export default function NewPollPage() {
           <Card>
             <CardHeader>
               <CardTitle>選択肢</CardTitle>
-              <CardDescription>投票の選択肢を2〜4個設定してください</CardDescription>
+              <CardDescription>
+                投票の選択肢を2〜4個設定してください
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {form.watch('options').map((_, index) => (
-                <div key={index} className="space-y-4 p-4 border rounded-lg">
+              {fields.map((field, index) => (
+                <div key={field.id} className="space-y-4 p-4 border rounded-lg">
                   <div className="flex items-center justify-between">
                     <h4 className="font-medium">選択肢 {index + 1}</h4>
-                    {form.watch('options').length > 2 && (
+                    {fields.length > 2 && (
                       <Button
                         type="button"
                         variant="ghost"
@@ -293,7 +264,7 @@ export default function NewPollPage() {
                 </div>
               ))}
 
-              {form.watch('options').length < 4 && (
+              {fields.length < 4 && (
                 <Button
                   type="button"
                   variant="outline"

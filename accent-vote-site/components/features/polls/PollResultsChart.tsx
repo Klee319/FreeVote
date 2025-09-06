@@ -36,7 +36,7 @@ const CHART_COLORS = [
 // 勝者用の特別な色
 const WINNER_COLOR = '#fbbf24'; // amber-400
 const WINNER_GRADIENT = {
-  type: 'linear',
+  type: 'linear' as const,
   x: 0,
   y: 0,
   x2: 0,
@@ -114,7 +114,7 @@ export function PollResultsChart({
     const commonOption = {
       animation: showAnimation && !animationPlayed,
       animationDuration: 1500,
-      animationEasing: 'elasticOut',
+      animationEasing: 'elasticOut' as const,
     };
 
     // チャートタイプごとのオプション設定
@@ -244,7 +244,7 @@ export function PollResultsChart({
               },
             })),
             animationType: 'scale',
-            animationEasing: 'elasticOut',
+            animationEasing: 'elasticOut' as const,
           }],
         };
         break;

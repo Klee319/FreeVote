@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { api } from '@/lib/api';
-import { getAccentTypeName, getAccentTypeColor, formatNumber } from '@/lib/utils';
+import { formatNumber } from '@/lib/utils';
 import { ChevronUpIcon, ChevronDownIcon, MinusIcon } from '@heroicons/react/24/outline';
 
 export function RankingSection() {
@@ -49,7 +49,7 @@ export function RankingSection() {
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-bold text-gray-900">人気ランキング</h2>
+        <h2 className="text-xl font-bold text-gray-900">投票ランキング</h2>
         <div className="flex gap-1">
           {(['daily', 'weekly', 'monthly'] as const).map((p) => (
             <button
@@ -101,17 +101,16 @@ export function RankingSection() {
                     </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div
-                    className="text-sm font-medium"
-                    style={{ color: getAccentTypeColor(word.dominantAccent) }}
-                  >
-                    {getAccentTypeName(word.dominantAccent)}
+                {word.dominantVoteType && (
+                  <div className="text-right">
+                    <div className="text-sm font-medium text-gray-700">
+                      {word.dominantVoteType}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {word.dominantVotePercentage || word.dominantAccentPercentage}%
+                    </div>
                   </div>
-                  <div className="text-xs text-gray-500">
-                    {word.dominantAccentPercentage}%
-                  </div>
-                </div>
+                )}
               </div>
             </Link>
           ))}

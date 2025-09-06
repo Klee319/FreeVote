@@ -89,7 +89,11 @@ export interface PollResults {
   demographics?: {
     byAge: Record<AgeGroup, number>;
     byPrefecture: Record<Prefecture, number>;
-    byGender?: Record<string, number>;
+    byGender?: {
+      male?: number;
+      female?: number;
+      other?: number;
+    };
   };
   votingTrends?: {
     hourly: Array<{ hour: number; votes: number }>;

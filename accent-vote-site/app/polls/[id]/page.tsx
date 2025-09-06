@@ -71,7 +71,7 @@ function getCategoryLabel(category: string): string {
 // 投票詳細ページコンポーネント
 export default function PollDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
-  const { user, loading: userLoading } = useUserStatus();
+  const { isLoading: userLoading } = useUserStatus();
   const [poll, setPoll] = useState<PollDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -168,16 +168,14 @@ export default function PollDetailPage({ params }: { params: Promise<{ id: strin
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(voteData),
+        credentials: 'include', // Cookieを送信
       });
       
       const data = await response.json();
       
       if (data.success) {
         setSuccess(true);
-        // 結果ページへ遷移
-        setTimeout(() => {
-          router.push(`/polls/${pollId}/results`);
-        }, 1500);
+        // 投票完了後の処理を遅延させない
       } else {
         setError(data.message || '投票に失敗しました');
       }
@@ -294,22 +292,40 @@ export default function PollDetailPage({ params }: { params: Promise<{ id: strin
             <CardContent>
               {/* 投票フォームまたは結果表示 */}
               {success ? (
-                <Alert className="mb-6">
-                  <CheckCircle2 className="h-4 w-4" />
-                  <AlertDescription>
-                    投票が完了しました！結果ページへ移動します...
-                  </AlertDescription>
-                </Alert>
+                <div className="space-y-4 mb-6">
+                  <Alert className="bg-green-50 border-green-200">
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    <AlertDescription className="text-green-800">
+                      投票ありがとうございました！
+                    </AlertDescription>
+                  </Alert>
+                  <Button
+                    onClick={() => router.push(`/polls/${pollId}/results`)}
+                    className="w-full bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-medium rounded-lg shadow-lg transition-all duration-200 transform hover:scale-105"
+                    size="lg"
+                  >
+                    <BarChart2 className="mr-2 h-5 w-5" />
+                    統計を確認する
+                  </Button>
+                </div>
               ) : hasVoted ? (
-                <Alert className="mb-6">
-                  <CheckCircle2 className="h-4 w-4" />
-                  <AlertDescription>
-                    既に投票済みです。
-                    <Link href={`/polls/${pollId}/results`} className="underline ml-1">
-                      結果を見る
-                    </Link>
-                  </AlertDescription>
-                </Alert>
+                <div className="space-y-4 mb-6">
+                  <Alert className="bg-blue-50 border-blue-200">
+                    <CheckCircle2 className="h-4 w-4 text-blue-600" />
+                    <AlertDescription className="text-blue-800">
+                      既に投票済みです。
+                    </AlertDescription>
+                  </Alert>
+                  <Button
+                    onClick={() => router.push(`/polls/${pollId}/results`)}
+                    variant="outline"
+                    className="w-full"
+                    size="lg"
+                  >
+                    <BarChart2 className="mr-2 h-5 w-5" />
+                    結果を見る
+                  </Button>
+                </div>
               ) : !isActive ? (
                 <Alert className="mb-6">
                   <AlertCircle className="h-4 w-4" />

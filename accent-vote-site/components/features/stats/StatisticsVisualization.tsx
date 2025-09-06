@@ -26,7 +26,7 @@ export function StatisticsVisualization({
   const mapSettings = useMapSettings();
   const chartSettings = useChartSettings();
   
-  const [activeTab, setActiveTab] = useState<'national' | 'prefecture' | 'map'>('national');
+  const [activeTab, setActiveTab] = useState<'national' | 'prefecture' | 'map'>('national'); // デフォルトを「総合順位」に設定
   const [selectedPref, setSelectedPref] = useState(selectedPrefecture || mapSettings.defaultSelectedPrefecture);
 
   const handlePrefectureSelect = (prefecture: string) => {

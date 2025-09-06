@@ -65,7 +65,11 @@ export function PollVotingForm({
 
   const handleSingleOptionChange = (optionId: string) => {
     setSelectedOptions([parseInt(optionId)]);
-    setErrors((prev) => ({ ...prev, options: undefined }));
+    setErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors.options;
+      return newErrors;
+    });
   };
 
   const handleMultipleOptionChange = (optionId: number, checked: boolean) => {
@@ -82,14 +86,22 @@ export function PollVotingForm({
         return prev;
       }
 
-      setErrors((prevErrors) => ({ ...prevErrors, options: undefined }));
+      setErrors((prevErrors) => {
+        const newErrors = { ...prevErrors };
+        delete newErrors.options;
+        return newErrors;
+      });
       return newSelection;
     });
   };
 
   const handleReasonChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setReason(e.target.value);
-    setErrors((prev) => ({ ...prev, reason: undefined }));
+    setErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors.reason;
+      return newErrors;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

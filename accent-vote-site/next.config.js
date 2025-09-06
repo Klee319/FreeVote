@@ -9,15 +9,16 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:3003/api/:path*',
+        destination: 'http://localhost:3004/api/:path*',
       },
     ];
   },
   // Windows環境でのEPERMエラー対策とNext.js 15対応
   experimental: {
     disableOptimizedLoading: true,
-    serverComponentsExternalPackages: [],
   },
+  // Next.js 15での新しい設定位置
+  serverExternalPackages: [],
   // Windowsでのファイルロック問題を回避
   webpack: (config, { isServer }) => {
     // メモリキャッシュのみ使用
@@ -46,10 +47,6 @@ const nextConfig = {
   // トレース生成を完全に無効化
   generateBuildId: async () => {
     return 'build-' + Date.now();
-  },
-  // テレメトリー無効化
-  telemetry: {
-    enabled: false,
   },
 }
 

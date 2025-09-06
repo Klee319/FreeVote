@@ -114,10 +114,10 @@ export const RankingTabs: React.FC = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             {getSummaryIcon()}
-            アクセントランキング
+            投票ランキング
           </CardTitle>
           <CardDescription>
-            地域・年代・性別ごとの人気語ランキングを表示
+            地域・年代・性別ごとの人気項目ランキングを表示
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -162,7 +162,7 @@ export const RankingTabs: React.FC = () => {
                       <div className="text-2xl font-bold">
                         {data.summary.uniqueWords.toLocaleString()}
                       </div>
-                      <p className="text-xs text-muted-foreground">投票された語数</p>
+                      <p className="text-xs text-muted-foreground">投票された項目数</p>
                     </CardContent>
                   </Card>
                   <Card>

@@ -94,10 +94,10 @@ export const RankingTable: React.FC<RankingTableProps> = ({
           <TableHeader>
             <TableRow className="bg-gray-50">
               <TableHead className="w-20 text-center">順位</TableHead>
-              <TableHead>語・読み</TableHead>
+              <TableHead>項目名</TableHead>
               <TableHead className="text-right">総投票数</TableHead>
               <TableHead className="text-right">投票者数</TableHead>
-              <TableHead>最多アクセント</TableHead>
+              <TableHead>最多投票</TableHead>
               {showRankChange && (
                 <TableHead className="text-center">前回比</TableHead>
               )}
@@ -146,14 +146,27 @@ export const RankingTable: React.FC<RankingTableProps> = ({
                 </TableCell>
                 
                 <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary">
-                      {item.mostVotedAccentType.name}
-                    </Badge>
-                    <span className="text-sm text-gray-500">
-                      ({item.mostVotedAccentType.votePercentage.toFixed(1)}%)
-                    </span>
-                  </div>
+                  {item.mostVotedType ? (
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary">
+                        {item.mostVotedType.name || item.mostVotedAccentType?.name || '未設定'}
+                      </Badge>
+                      <span className="text-sm text-gray-500">
+                        ({(item.mostVotedType.votePercentage || item.mostVotedAccentType?.votePercentage || 0).toFixed(1)}%)
+                      </span>
+                    </div>
+                  ) : item.mostVotedAccentType ? (
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary">
+                        {item.mostVotedAccentType.name}
+                      </Badge>
+                      <span className="text-sm text-gray-500">
+                        ({item.mostVotedAccentType.votePercentage.toFixed(1)}%)
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-sm text-gray-400">-</span>
+                  )}
                 </TableCell>
                 
                 {showRankChange && (

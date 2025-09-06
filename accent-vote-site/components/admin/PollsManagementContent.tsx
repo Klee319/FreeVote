@@ -222,7 +222,7 @@ export default function PollsManagementContent() {
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary-500"
+              className="px-4 py-2 border border-gray-300 bg-white rounded-lg focus:outline-none focus:border-primary-500"
             >
               <option value="all">全ての状態</option>
               <option value="active">実施中</option>

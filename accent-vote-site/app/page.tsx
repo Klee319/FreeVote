@@ -11,10 +11,10 @@ export default function HomePage() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-8">
             <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-              日本語の<span className="text-primary-600">アクセント</span>を調べよう
+              <span className="text-primary-600">気になる投票所</span>へようこそ
             </h1>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              全国のユーザーが投票した日本語のアクセントパターンを調査・共有するプラットフォーム
+              日本語のアクセントから身近な疑問まで、みんなで投票して答えを見つける投票プラットフォーム
             </p>
           </div>
           
@@ -61,6 +61,12 @@ export default function HomePage() {
               className="px-6 py-3 bg-white text-primary-600 border border-primary-600 rounded-lg hover:bg-primary-50 transition-colors"
             >
               新しい語を投稿する
+            </a>
+            <a
+              href="/request"
+              className="px-6 py-3 bg-secondary-600 text-white rounded-lg hover:bg-secondary-700 transition-colors"
+            >
+              投票リクエストはこちら
             </a>
           </div>
         </div>

@@ -150,7 +150,7 @@ const MapVisualization: React.FC<MapVisualizationProps> = ({
       };
     }).filter(Boolean);
 
-    const option: echarts.EChartsOption = {
+    const option: echarts.EChartsCoreOption = {
       backgroundColor: 'transparent',
       title: {
         text: title,

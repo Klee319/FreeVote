@@ -135,7 +135,7 @@ export function PollAnalytics({
         opacity: 0.1,
       },
       emphasis: {
-        focus: 'series',
+        focus: 'series' as const,
       },
     })) || [];
 
