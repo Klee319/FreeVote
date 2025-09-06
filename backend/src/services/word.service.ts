@@ -226,6 +226,156 @@ export class WordService {
   }
   
   /**
+   * ランキングを取得
+   */
+  async getRanking(params: {
+    period: 'daily' | 'weekly' | 'monthly';
+    limit?: number;
+  }) {
+    const { period, limit = 10 } = params;
+    
+    // キャッシュキー生成
+    const cacheKey = `ranking:${period}:${limit}`;
+    
+    // キャッシュ確認
+    const cached = await CacheHelper.get<any>(cacheKey);
+    if (cached) {
+      logger.debug('Cache hit for ranking');
+      return cached;
+    }
+    
+    // 期間に応じた日時範囲を計算
+    const now = new Date();
+    let startDate: Date;
+    
+    switch (period) {
+      case 'daily':
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        break;
+      case 'weekly':
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+        break;
+      case 'monthly':
+        startDate = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+        break;
+      default:
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+    }
+    
+    // 投票数の集計（期間内）
+    const wordVotes = await this.prisma?.vote.groupBy({
+      by: ['wordId'],
+      where: {
+        createdAt: {
+          gte: startDate,
+        },
+      },
+      _count: {
+        id: true,
+      },
+      orderBy: {
+        _count: {
+          id: 'desc',
+        },
+      },
+      take: limit * 2, // 多めに取得して後でフィルタリング
+    });
+    
+    if (!wordVotes || wordVotes.length === 0) {
+      // キャッシュ保存（5分）
+      const emptyResult = { words: [], period };
+      await CacheHelper.set(cacheKey, emptyResult, 300);
+      return emptyResult;
+    }
+    
+    // 語の詳細情報を取得
+    const wordIds = wordVotes.map(wv => wv.wordId);
+    const words = await this.prisma?.word.findMany({
+      where: {
+        id: { in: wordIds },
+        status: 'approved',
+      },
+      include: {
+        category: true,
+        _count: {
+          select: { votes: true },
+        },
+      },
+    });
+    
+    if (!words) {
+      const emptyResult = { words: [], period };
+      await CacheHelper.set(cacheKey, emptyResult, 300);
+      return emptyResult;
+    }
+    
+    // 前回のランキング取得（変動計算用）
+    const previousCacheKey = `ranking:${period}:previous`;
+    const previousRanking = await CacheHelper.get<any>(previousCacheKey);
+    const previousPositions = new Map<number, number>();
+    
+    if (previousRanking && previousRanking.words) {
+      previousRanking.words.forEach((word: any, index: number) => {
+        previousPositions.set(word.id, index + 1);
+      });
+    }
+    
+    // ランキングデータ作成
+    const rankedWords = wordVotes
+      .filter(wv => words.some(w => w.id === wv.wordId))
+      .slice(0, limit)
+      .map((wv, index) => {
+        const word = words.find(w => w.id === wv.wordId)!;
+        const currentPosition = index + 1;
+        const previousPosition = previousPositions.get(word.id);
+        
+        let trend: 'up' | 'down' | 'same' | 'new';
+        let change = 0;
+        
+        if (!previousPosition) {
+          trend = 'new';
+        } else if (previousPosition > currentPosition) {
+          trend = 'up';
+          change = previousPosition - currentPosition;
+        } else if (previousPosition < currentPosition) {
+          trend = 'down';
+          change = currentPosition - previousPosition;
+        } else {
+          trend = 'same';
+        }
+        
+        return {
+          id: word.id,
+          rank: currentPosition,
+          headword: word.headword,
+          reading: word.reading,
+          category: word.category?.name || '',
+          votesInPeriod: wv._count.id,
+          totalVotes: word._count.votes,
+          trend,
+          change,
+          previousRank: previousPosition || null,
+        };
+      });
+    
+    const result = {
+      words: rankedWords,
+      period,
+      startDate: startDate.toISOString(),
+      endDate: now.toISOString(),
+      totalCount: rankedWords.length,
+    };
+    
+    // 現在のランキングを「前回」として保存
+    await CacheHelper.set(previousCacheKey, result, 86400); // 24時間保持
+    
+    // キャッシュ保存（5分）
+    await CacheHelper.set(cacheKey, result, 300);
+    
+    return result;
+  }
+  
+  /**
    * 新語を投稿
    */
   async submitWord(params: {

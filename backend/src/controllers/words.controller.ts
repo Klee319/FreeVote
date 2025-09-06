@@ -171,6 +171,36 @@ export class WordsController {
   }
   
   /**
+   * ランキング取得
+   * GET /api/words/ranking
+   */
+  async getRanking(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const {
+        period = 'weekly',
+        limit = 10
+      } = req.query;
+      
+      // バリデーション
+      if (!['daily', 'weekly', 'monthly'].includes(period as string)) {
+        throw new AppError('無効な期間指定です', 400, 'INVALID_PERIOD');
+      }
+      
+      const result = await this.wordService.getRanking({
+        period: period as 'daily' | 'weekly' | 'monthly',
+        limit: Math.min(Number(limit), 50)
+      });
+      
+      res.json({
+        success: true,
+        data: result
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+  
+  /**
    * 新語投稿（認証必須）
    * POST /api/words
    */

@@ -40,6 +40,19 @@ router.get('/recent',
 );
 
 /**
+ * GET /api/words/ranking
+ * ランキング取得
+ */
+router.get('/ranking',
+  [
+    query('period').optional().isIn(['daily', 'weekly', 'monthly']),
+    query('limit').optional().isInt({ min: 1, max: 50 })
+  ],
+  validateRequest,
+  (req, res, next) => wordsController.getRanking(req, res, next)
+);
+
+/**
  * GET /api/words/:id
  * 語の詳細取得
  */

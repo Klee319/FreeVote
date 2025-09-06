@@ -37,7 +37,8 @@
       "Bash(powershell:*)",
       "Bash(PORT=3002 npm run dev)",
       "Bash(PORT=3004 npm run dev)",
-      "Bash(PORT=3005 npm run dev)"
+      "Bash(PORT=3005 npm run dev)",
+      "mcp__playwright__browser_evaluate"
     ],
     "deny": [],
     "ask": [],

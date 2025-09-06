@@ -16,7 +16,7 @@ export function StatisticsSummary() {
   const [displayStats, setDisplayStats] = useState<StatItem[]>([
     { label: '総語数', value: 0, unit: '語', icon: '📚' },
     { label: '総投票数', value: 0, unit: '票', icon: '🗳️' },
-    { label: '参加県数', value: 0, unit: '県', icon: '🗾' },
+    { label: '今週の投票', value: 0, unit: '票', icon: '📈' },
     { label: '今日の投票', value: 0, unit: '票', icon: '📊' },
   ]);
 
@@ -44,10 +44,10 @@ export function StatisticsSummary() {
           icon: '🗳️' 
         },
         { 
-          label: '参加県数', 
-          value: 47, // TODO: 実際の参加県数をAPIから取得
-          unit: '県', 
-          icon: '🗾' 
+          label: '今週の投票', 
+          value: siteStats.activity.thisWeek, 
+          unit: '票', 
+          icon: '📈' 
         },
         { 
           label: '今日の投票', 

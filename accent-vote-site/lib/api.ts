@@ -305,23 +305,118 @@ export const api = {
   
   // ランキング取得
   getRanking: async (period: 'daily' | 'weekly' | 'monthly' = 'weekly'): Promise<RankingWord[]> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    return mockRankingWords;
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/words/ranking?period=${period}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch ranking: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      if (DEBUG_MODE) {
+        console.log('[API] Ranking response:', {
+          period,
+          count: result.data?.words?.length || 0,
+          hasData: !!result.data
+        });
+      }
+      
+      // レスポンスデータを正規化して返す
+      if (result.data && result.data.words) {
+        return result.data.words.map((word: any) => ({
+          id: word.id,
+          rank: word.rank,
+          headword: word.headword,
+          reading: word.reading,
+          category: word.category,
+          votesInPeriod: word.votesInPeriod,
+          totalVotes: word.totalVotes,
+          trend: word.trend,
+          change: word.change,
+          previousRank: word.previousRank
+        }));
+      }
+      
+      return [];
+    } catch (error) {
+      // 開発環境でバックエンドに接続できない場合はモックデータにフォールバック
+      if (DEBUG_MODE && error instanceof TypeError && error.message.includes('fetch')) {
+        console.warn('[API] Falling back to mock data for ranking');
+        await new Promise(resolve => setTimeout(resolve, 300));
+        return mockRankingWords;
+      }
+      
+      console.error('[API] Error fetching ranking:', error);
+      throw error;
+    }
   },
   
   // 新着語取得
   getRecentWords: async (limit: number = 10): Promise<Word[]> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    // 作成日でソートして返す
-    const sorted = [...mockWords].sort((a, b) => {
-      const dateA = new Date(a.createdAt || '2024-01-01').getTime();
-      const dateB = new Date(b.createdAt || '2024-01-01').getTime();
-      return dateB - dateA;
-    });
-    
-    return sorted.slice(0, limit);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/words/recent?limit=${limit}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch recent words: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      if (DEBUG_MODE) {
+        console.log('[API] Recent words response:', {
+          count: result.data?.words?.length || 0,
+          hasData: !!result.data
+        });
+      }
+      
+      // レスポンスデータを正規化して返す
+      if (result.data && result.data.words) {
+        return result.data.words.map((word: any) => ({
+          id: word.id,
+          headword: word.headword,
+          reading: word.reading,
+          category: word.category,
+          totalVotes: word.initialVotes || word.totalVotes || 0,
+          prefectureCount: word.prefectureCount || 0,
+          lastVoteAt: word.lastVoteAt,
+          createdAt: word.approvedAt || word.createdAt,
+          submittedBy: word.submittedBy
+        }));
+      }
+      
+      return [];
+    } catch (error) {
+      // 開発環境でバックエンドに接続できない場合はモックデータにフォールバック
+      if (DEBUG_MODE && error instanceof TypeError && error.message.includes('fetch')) {
+        console.warn('[API] Falling back to mock data for recent words');
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // 作成日でソートして返す
+        const sorted = [...mockWords].sort((a, b) => {
+          const dateA = new Date(a.createdAt || '2024-01-01').getTime();
+          const dateB = new Date(b.createdAt || '2024-01-01').getTime();
+          return dateB - dateA;
+        });
+        
+        return sorted.slice(0, limit);
+      }
+      
+      console.error('[API] Error fetching recent words:', error);
+      throw error;
+    }
   },
   
   // 投票可能かチェック
