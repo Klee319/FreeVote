@@ -2,15 +2,20 @@
 
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Users, 
   FileText, 
   TrendingUp, 
   Activity,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Vote,
+  BookOpen
 } from 'lucide-react';
 import { formatNumber } from '@/lib/utils';
+import PollsManagementContent from '@/components/admin/PollsManagementContent';
+import AccentWordsManagementContent from '@/components/admin/AccentWordsManagementContent';
 
 interface StatsOverview {
   totalWords: number;
@@ -23,6 +28,7 @@ interface StatsOverview {
 export default function AdminDashboard() {
   const [stats, setStats] = useState<StatsOverview | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('polls');
 
   useEffect(() => {
     fetchStats();
@@ -58,10 +64,10 @@ export default function AdminDashboard() {
       {/* ページタイトル */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900">管理者ダッシュボード</h1>
-        <p className="text-gray-600 mt-2">サイト全体の統計情報と管理機能</p>
+        <p className="text-gray-600 mt-2">投票管理と統計情報</p>
       </div>
 
-      {/* 統計カード */}
+      {/* 全体統計カード */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -142,50 +148,27 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
-      {/* クイックリンク */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-          <CardHeader>
-            <CardTitle className="text-lg">単語管理</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-gray-600">
-              単語の追加、編集、削除を管理
-            </p>
-            <a href="/admin/words" className="text-primary-600 hover:underline mt-2 inline-block">
-              管理画面へ →
-            </a>
-          </CardContent>
-        </Card>
+      {/* タブによる機能管理 */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsTrigger value="polls" className="flex items-center gap-2">
+            <Vote className="h-4 w-4" />
+            汎用投票管理
+          </TabsTrigger>
+          <TabsTrigger value="accent" className="flex items-center gap-2">
+            <BookOpen className="h-4 w-4" />
+            アクセント投票管理
+          </TabsTrigger>
+        </TabsList>
 
-        <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-          <CardHeader>
-            <CardTitle className="text-lg">投票統計</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-gray-600">
-              詳細な投票統計とレポート
-            </p>
-            <a href="/admin/stats" className="text-primary-600 hover:underline mt-2 inline-block">
-              統計画面へ →
-            </a>
-          </CardContent>
-        </Card>
+        <TabsContent value="polls" className="space-y-4">
+          <PollsManagementContent />
+        </TabsContent>
 
-        <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-          <CardHeader>
-            <CardTitle className="text-lg">データ管理</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-gray-600">
-              インポート・エクスポート機能
-            </p>
-            <a href="/admin/data" className="text-primary-600 hover:underline mt-2 inline-block">
-              データ管理へ →
-            </a>
-          </CardContent>
-        </Card>
-      </div>
+        <TabsContent value="accent" className="space-y-4">
+          <AccentWordsManagementContent />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

@@ -6,7 +6,6 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import {
   Home,
-  FileText,
   BarChart3,
   Users,
   Settings,
@@ -15,8 +14,7 @@ import {
   Shield,
   ChevronLeft,
   ChevronRight,
-  LogOut,
-  Vote
+  LogOut
 } from 'lucide-react';
 
 interface NavItem {
@@ -31,16 +29,6 @@ const navItems: NavItem[] = [
     title: 'ダッシュボード',
     href: '/admin',
     icon: Home,
-  },
-  {
-    title: '単語管理',
-    href: '/admin/words',
-    icon: FileText,
-  },
-  {
-    title: '投票管理',
-    href: '/admin/polls',
-    icon: Vote,
   },
   {
     title: '統計',
