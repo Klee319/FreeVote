@@ -64,11 +64,14 @@ export class WordService {
       return cached;
     }
     
+    // オフセットを計算
+    const offset = (page - 1) * limit;
+    
     // データベースから検索
     const result = await this.wordRepository.searchWords({
       query,
-      category,
-      page,
+      categoryId: category ? parseInt(category, 10) : undefined, // categoryIdに変換
+      offset,
       limit,
       sort,
       status: 'approved' // 承認済みのみ
@@ -194,15 +197,19 @@ export class WordService {
       return cached;
     }
     
-    // データベースから取得
-    const result = await this.wordRepository.getRecentWords({
-      page,
-      limit,
-      status: 'approved'
-    });
+    // オフセットを計算
+    const offset = (page - 1) * limit;
+    
+    // データベースから取得（配列を返す）
+    const words = await this.wordRepository.getRecentWords(limit, offset);
+    
+    // 総件数を取得（承認済みの語の総数）
+    const total = await this.prisma?.word.count({
+      where: { status: 'approved' }
+    }) || 0;
     
     const response = {
-      words: result.words.map(word => ({
+      words: words.map((word: any) => ({
         id: word.id,
         headword: word.headword,
         reading: word.reading,
@@ -214,8 +221,8 @@ export class WordService {
       pagination: {
         page,
         limit,
-        total: result.total,
-        totalPages: Math.ceil(result.total / limit)
+        total,
+        totalPages: Math.ceil(total / limit)
       }
     };
     
