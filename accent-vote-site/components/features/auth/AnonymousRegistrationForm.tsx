@@ -163,7 +163,7 @@ export default function AnonymousRegistrationForm({
         <CardDescription>
           {isEditMode 
             ? '属性情報を編集できます。変更内容は自動的に保存されます。'
-            : '日本語アクセント投票サイトへようこそ！より正確な統計データを収集するため、簡単な属性情報を教えてください。'}
+            : '気になる投票所へようこそ！より正確な統計データを収集するため、簡単な属性情報を教えてください。'}
         </CardDescription>
       </CardHeader>
       <CardContent>

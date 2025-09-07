@@ -7,6 +7,8 @@ interface PrismaClient {
   accentWord: any;
   accentVote: any;
   user: any;
+  word: any;
+  vote: any;
   $disconnect: () => Promise<void>;
 }
 
@@ -60,6 +62,23 @@ class MockPrismaClient implements PrismaClient {
     create: async (data: any) => ({ id: 1, ...data }),
     update: async (data: any) => data,
     delete: async () => null,
+  };
+
+  word = {
+    findMany: async () => [],
+    findUnique: async () => null,
+    create: async (data: any) => ({ id: 1, ...data }),
+    update: async (data: any) => data,
+    delete: async () => null,
+  };
+
+  vote = {
+    findMany: async () => [],
+    findUnique: async () => null,
+    create: async (data: any) => ({ id: 1, ...data }),
+    update: async (data: any) => data,
+    delete: async () => null,
+    count: async () => 0,
   };
 
   async $disconnect() {

@@ -3,8 +3,8 @@ import Link from 'next/link';
 import ScrollToTopButton from '@/components/common/ScrollToTopButton';
 
 export const metadata: Metadata = {
-  title: 'サイトマップ | 日本語アクセント投票サイト',
-  description: '日本語アクセント投票サイトの全ページ一覧です。お探しのページを見つけやすくするためのサイトマップです。',
+  title: 'サイトマップ | 気になる投票所',
+  description: '気になる投票所の全ページ一覧です。お探しのページを見つけやすくするためのサイトマップです。',
 };
 
 export default function SitemapPage() {
@@ -86,7 +86,7 @@ export default function SitemapPage() {
         
         <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-8" role="note">
           <p className="text-gray-700">
-            このページでは、日本語アクセント投票サイトの全ページを一覧でご確認いただけます。
+            このページでは、気になる投票所の全ページを一覧でご確認いただけます。
             お探しのページをクリックしてアクセスしてください。
           </p>
         </div>

@@ -3,8 +3,8 @@ import Link from 'next/link';
 import ScrollToTopButton from '@/components/common/ScrollToTopButton';
 
 export const metadata: Metadata = {
-  title: 'プライバシーポリシー | 日本語アクセント投票サイト',
-  description: '日本語アクセント投票サイトのプライバシーポリシーについて説明しています。個人情報の取り扱いについてご確認ください。',
+  title: 'プライバシーポリシー | 気になる投票所',
+  description: '気になる投票所のプライバシーポリシーについて説明しています。個人情報の取り扱いについてご確認ください。',
 };
 
 export default function PrivacyPage() {
@@ -44,7 +44,7 @@ export default function PrivacyPage() {
             はじめに
           </h2>
           <p className="text-gray-700 leading-relaxed">
-            日本語アクセント投票サイト（以下、「当サイト」といいます。）は、利用者のプライバシーを尊重し、
+            気になる投票所（以下、「当サイト」といいます。）は、利用者のプライバシーを尊重し、
             個人情報の保護に努めています。本プライバシーポリシーは、当サイトにおける情報の収集、
             利用、管理について説明するものです。
           </p>
@@ -89,7 +89,7 @@ export default function PrivacyPage() {
             収集した情報は、以下の目的で利用します：
           </p>
           <ul className="list-disc list-inside space-y-2 text-gray-700">
-            <li>日本語アクセントパターンの統計分析</li>
+            <li>投票データの統計分析</li>
             <li>地域別・年代別の言語使用傾向の研究</li>
             <li>サービスの改善と新機能の開発</li>
             <li>不正利用の防止とセキュリティの向上</li>
@@ -257,7 +257,7 @@ export default function PrivacyPage() {
           <div className="mt-6 p-4 bg-gray-50 rounded-lg">
             <h3 className="font-semibold text-gray-900 mb-2">運営者情報</h3>
             <p className="text-gray-700">
-              日本語アクセント投票サイト運営チーム<br />
+              気になる投票所運営チーム<br />
               メール: privacy@accent-vote.jp（例）
             </p>
           </div>

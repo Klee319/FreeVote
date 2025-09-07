@@ -15,8 +15,8 @@ export function Header() {
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
-            <span className="text-2xl font-bold text-primary-600">日本語</span>
-            <span className="text-xl">アクセント</span>
+            <span className="text-2xl font-bold text-primary-600">気になる</span>
+            <span className="text-xl">投票所</span>
           </Link>
 
           {/* Desktop Right Side - User Menu and Request Button */}

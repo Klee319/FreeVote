@@ -42,7 +42,9 @@ export function RecentWordsSection() {
                 <div className="flex-1">
                   <div className="font-medium text-gray-900 mb-1">
                     {word.headword}
-                    <span className="ml-2 text-sm text-gray-500">({word.reading})</span>
+                    {word.reading && (
+                      <span className="ml-2 text-sm text-gray-500">({word.reading})</span>
+                    )}
                   </div>
                   <div className="flex items-center space-x-4 text-xs text-gray-500">
                     <span className="flex items-center">

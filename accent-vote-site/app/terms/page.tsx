@@ -3,8 +3,8 @@ import Link from 'next/link';
 import ScrollToTopButton from '@/components/common/ScrollToTopButton';
 
 export const metadata: Metadata = {
-  title: '利用規約 | 日本語アクセント投票サイト',
-  description: '日本語アクセント投票サイトの利用規約について説明しています。',
+  title: '利用規約 | 気になる投票所',
+  description: '気になる投票所の利用規約について説明しています。',
 };
 
 export default function TermsPage() {
@@ -44,7 +44,7 @@ export default function TermsPage() {
             はじめに
           </h2>
           <p className="text-gray-700 leading-relaxed">
-            この利用規約（以下、「本規約」といいます。）は、日本語アクセント投票サイト（以下、「当サイト」といいます。）の利用条件を定めるものです。
+            この利用規約（以下、「本規約」といいます。）は、気になる投票所（以下、「当サイト」といいます。）の利用条件を定めるものです。
             当サイトをご利用いただく場合は、本規約に同意したものとみなします。
           </p>
         </section>

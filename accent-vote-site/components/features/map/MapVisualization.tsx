@@ -303,7 +303,7 @@ const MapVisualization: React.FC<MapVisualizationProps> = ({
 
     // 凡例データの設定
     if (option.legend && typeof option.legend === 'object' && !Array.isArray(option.legend)) {
-      option.legend.data = Object.keys(accentColors).filter(key => key !== 'データ不足').map(type => ({
+      (option.legend as any).data = Object.keys(accentColors).filter(key => key !== 'データ不足').map(type => ({
         name: type,
         icon: 'circle',
         itemStyle: {
@@ -324,8 +324,8 @@ const MapVisualization: React.FC<MapVisualizationProps> = ({
         }
       } else if (params.componentType === 'series' && params.data) {
         // 散布図のポイントをクリック
-        if (onPrefectureClick) {
-          onPrefectureClick(params.data.name);
+        if (onPrefectureClick && typeof params.data === 'object' && params.data && 'name' in params.data) {
+          onPrefectureClick((params.data as any).name);
         }
       }
     });
@@ -333,8 +333,8 @@ const MapVisualization: React.FC<MapVisualizationProps> = ({
     myChart.on('mouseover', function(params) {
       if (params.componentType === 'geo' && params.name) {
         setHoveredPrefecture(params.name);
-      } else if (params.data) {
-        setHoveredPrefecture(params.data.name);
+      } else if (params.data && typeof params.data === 'object' && 'name' in params.data) {
+        setHoveredPrefecture((params.data as any).name);
       }
     });
 

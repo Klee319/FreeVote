@@ -160,7 +160,7 @@ export const PrefectureComparison: React.FC<PrefectureComparisonProps> = ({
                                       #{ranking.rank}
                                     </div>
                                     <Badge 
-                                      className={`${getAccentBadgeColor(ranking.accentType)} text-white text-xs`}
+                                      className={`${getAccentBadgeColor(ranking.accentType || '')} text-white text-xs`}
                                     >
                                       {ranking.accentType}
                                     </Badge>

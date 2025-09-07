@@ -76,8 +76,8 @@ interface EnvironmentVariable {
 export default function SettingsPage() {
   const [settings, setSettings] = useState<SystemSettings>({
     general: {
-      siteName: 'アクセント投票サイト',
-      siteDescription: '日本語アクセントの地域差を投票で収集',
+      siteName: '気になる投票所',
+      siteDescription: 'みんなで作る投票プラットフォーム',
       maintenanceMode: false,
       registrationEnabled: true,
     },

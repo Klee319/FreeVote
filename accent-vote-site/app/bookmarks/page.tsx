@@ -1,7 +1,7 @@
 import { BookmarkList } from '@/components/features/bookmarks/BookmarkList';
 
 export const metadata = {
-  title: 'ブックマーク | アクセント投票サイト',
+  title: 'ブックマーク | 気になる投票所',
   description: 'ブックマークした単語の一覧',
 };
 

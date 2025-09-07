@@ -590,7 +590,7 @@ export function PollAnalytics({
                   <p className="text-sm text-muted-foreground">残り時間</p>
                   {remainingTime && !remainingTime.expired ? (
                     <div className="text-lg font-bold">
-                      {remainingTime.days > 0 && `${remainingTime.days}日`}
+                      {remainingTime.days && remainingTime.days > 0 && `${remainingTime.days}日`}
                       {remainingTime.hours}時間{remainingTime.minutes}分
                     </div>
                   ) : (

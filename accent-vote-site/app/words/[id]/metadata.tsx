@@ -9,7 +9,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   try {
     const wordDetail = await api.getWordDetail(params.id);
     
-    const title = `「${wordDetail.headword}」のアクセント投票 | 日本語アクセント投票サイト`;
+    const title = `「${wordDetail.headword}」の投票 | 気になる投票所`;
     const description = `「${wordDetail.headword}（${wordDetail.reading}）」の発音アクセントに投票しよう！全国の方言・アクセントの違いを可視化する参加型の言語調査プロジェクトです。`;
     
     return {
@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         title,
         description,
         url: `${process.env.NEXT_PUBLIC_SITE_URL}/words/${params.id}`,
-        siteName: '日本語アクセント投票サイト',
+        siteName: '気になる投票所',
         images: [
           {
             url: `/api/og/words/${params.id}`, // OG画像生成APIエンドポイント
@@ -45,7 +45,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   } catch (error) {
     console.error('Error generating metadata:', error);
     return {
-      title: '日本語アクセント投票サイト',
+      title: '気になる投票所',
       description: '全国の方言・アクセントの違いを可視化する参加型の言語調査プロジェクト',
     };
   }

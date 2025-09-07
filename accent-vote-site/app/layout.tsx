@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     default: '気になる投票所 | みんなで作る投票プラットフォーム',
     template: '%s | 気になる投票所',
   },
-  description: '日本語の単語のアクセントパターンを地域別に調査・共有するプラットフォーム。全国各地の発音の違いを投票で明らかにし、日本語の多様性を可視化します。',
+  description: 'みんなで作る投票プラットフォーム。様々なテーマについて投票を行い、意見や傾向を可視化します。',
   keywords: ['日本語', 'アクセント', '方言', '投票', '地域差', '発音', '言語学', '日本語教育'],
   authors: [{ name: '気になる投票所運営チーム' }],
   creator: '気になる投票所',
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: '気になる投票所',
-    description: 'みんなで作る投票プラットフォーム - 日本語アクセントから様々なテーマまで',
+    description: 'みんなで作る投票プラットフォーム - 様々なテーマについて投票できます',
     url: 'https://accent-vote.jp',
     siteName: '気になる投票所',
     locale: 'ja_JP',

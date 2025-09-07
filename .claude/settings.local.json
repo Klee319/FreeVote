@@ -41,7 +41,10 @@
       "mcp__playwright__browser_evaluate",
       "Bash(docker-compose logs:*)",
       "Bash(docker-compose:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(git commit:*)",
+      "mcp__playwright__browser_network_requests",
+      "mcp__playwright__browser_install"
     ],
     "deny": [],
     "ask": [],

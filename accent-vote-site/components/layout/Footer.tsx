@@ -28,11 +28,11 @@ export function Footer() {
           {/* ロゴと説明 */}
           <div className="col-span-1">
             <div className="flex items-center space-x-2 mb-3">
-              <span className="text-xl font-bold text-primary-600">日本語</span>
-              <span className="text-lg">アクセント</span>
+              <span className="text-xl font-bold text-primary-600">気になる</span>
+              <span className="text-lg">投票所</span>
             </div>
             <p className="text-sm text-gray-600">
-              日本語のアクセントパターンを全国から収集・共有するプラットフォーム
+              みんなで作る投票プラットフォーム - 様々なテーマについて投票できます
             </p>
           </div>
 
@@ -101,7 +101,7 @@ export function Footer() {
         {/* Copyright */}
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-500">
-            <span aria-label="著作権">©</span> {currentYear} 日本語アクセント投票サイト. All rights reserved.
+            <span aria-label="著作権">©</span> {currentYear} 気になる投票所. All rights reserved.
           </p>
           <p className="text-xs text-gray-400 mt-2">
             このサイトはWCAG 2.1 レベルAAに準拠したアクセシビリティ対応を行っています

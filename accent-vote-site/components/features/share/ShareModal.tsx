@@ -65,7 +65,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
 
   // ハッシュタグ生成
   const generateHashtags = () => {
-    const tags = ['日本語アクセント', '方言調査', word.headword];
+    const tags = ['気になる投票所', '投票', word.headword];
     if (word.category) {
       tags.push(word.category === 'general' ? '一般語' : 
                 word.category === 'proper_noun' ? '固有名詞' : 

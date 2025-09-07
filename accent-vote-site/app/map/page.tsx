@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export const metadata: Metadata = {
-  title: '日本のアクセント分布地図 | アクセント投票サイト',
+  title: '日本のアクセント分布地図 | 気になる投票所',
   description: '日本全国のアクセント分布を可視化した地図。都道府県ごとのアクセントタイプの傾向を一目で確認できます。',
   keywords: '日本語, アクセント, 方言, 地図, 都道府県, 頭高型, 平板型, 中高型, 尾高型',
   openGraph: {

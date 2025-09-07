@@ -4,8 +4,8 @@ import Image from 'next/image';
 import ScrollToTopButton from '@/components/common/ScrollToTopButton';
 
 export const metadata: Metadata = {
-  title: '使い方ガイド | 日本語アクセント投票サイト',
-  description: '日本語アクセント投票サイトの使い方を分かりやすく説明します。初めての方でも簡単に投票できます。',
+  title: '使い方ガイド | 気になる投票所',
+  description: '気になる投票所の使い方を分かりやすく説明します。初めての方でも簡単に投票できます。',
 };
 
 export default function GuidePage() {
@@ -34,7 +34,7 @@ export default function GuidePage() {
         
         <div className="bg-green-50 border-l-4 border-green-400 p-4 mb-8" role="note">
           <p className="text-gray-700">
-            このガイドでは、日本語アクセント投票サイトの基本的な使い方を説明します。
+            このガイドでは、気になる投票所の基本的な使い方を説明します。
             初めての方でも簡単に参加できます！
           </p>
         </div>

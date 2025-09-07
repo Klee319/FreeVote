@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { PollCategory } from '@/types/polls';
 
@@ -266,12 +267,12 @@ export default function RequestPage() {
 
           {/* 戻るリンク */}
           <div className="text-center mt-8">
-            <a
+            <Link
               href="/"
               className="text-primary-600 hover:text-primary-700 underline"
             >
               トップページに戻る
-            </a>
+            </Link>
           </div>
         </div>
       </div>

@@ -4,10 +4,10 @@ import { useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { api } from '@/lib/api';
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 
-export default function SearchPage() {
+function SearchContent() {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get('q') || '';
   const [searchQuery, setSearchQuery] = useState(initialQuery);
@@ -96,5 +96,13 @@ export default function SearchPage() {
         </div>
       ) : null}
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<div>検索ページを読み込み中...</div>}>
+      <SearchContent />
+    </Suspense>
   );
 }
