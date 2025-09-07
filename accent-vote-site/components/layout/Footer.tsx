@@ -18,11 +18,11 @@ export function Footer() {
 
   return (
     <footer className="mt-auto bg-gray-50 border-t" role="contentinfo" aria-label="サイトフッター">
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="container mx-auto px-4 py-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* ロゴと説明 */}
           <div className="col-span-1">
-            <div className="flex items-center space-x-2 mb-3">
+            <div className="flex items-center space-x-2 mb-2">
               <span className="text-xl font-bold text-primary-600">気になる</span>
               <span className="text-lg">投票所</span>
             </div>
@@ -34,11 +34,11 @@ export function Footer() {
           {/* リンクセクション */}
           {Object.entries(footerLinks).map(([title, links]) => (
             <div key={title}>
-              <h3 className="font-semibold text-gray-900 mb-3" id={`footer-${title}`}>
+              <h3 className="font-semibold text-gray-900 mb-2" id={`footer-${title}`}>
                 {title}
               </h3>
               <nav aria-labelledby={`footer-${title}`}>
-                <ul className="space-y-2">
+                <ul className="space-y-1">
                   {links.map((link) => (
                     <li key={link.href}>
                       {link.available ? (
@@ -68,7 +68,7 @@ export function Footer() {
         </div>
 
         {/* アクセシビリティとプライバシー情報 */}
-        <div className="mt-6 pt-6 border-t">
+        <div className="mt-4 pt-4 border-t">
           <div className="flex flex-wrap justify-center gap-4 text-sm">
             <Link 
               href="/terms" 
@@ -94,11 +94,11 @@ export function Footer() {
         </div>
 
         {/* Copyright */}
-        <div className="mt-6 text-center">
+        <div className="mt-4 text-center">
           <p className="text-sm text-gray-500">
             <span aria-label="著作権">©</span> {currentYear} 気になる投票所. All rights reserved.
           </p>
-          <p className="text-xs text-gray-400 mt-2">
+          <p className="text-xs text-gray-400 mt-1">
             このサイトはWCAG 2.1 レベルAAに準拠したアクセシビリティ対応を行っています
           </p>
         </div>

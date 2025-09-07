@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { AccentStat, PrefectureStat } from '@/types';
 import { getAccentTypeName, getAccentTypeColor, getPrefectureName } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import { useMapSettings, useChartSettings } from '@/contexts/AppSettingsContext';
-import { ChartBarIcon, MapIcon } from '@heroicons/react/24/outline';
 import { JapanMapVisualization } from './JapanMapVisualization';
+import { CommonStatisticsView, StatisticsMode, ViewType } from './CommonStatisticsView';
+import { CommonMapVisualization, MapDataItem } from './CommonMapVisualization';
 
 interface StatisticsVisualizationProps {
   wordId: number;
@@ -26,7 +27,8 @@ export function StatisticsVisualization({
   const mapSettings = useMapSettings();
   const chartSettings = useChartSettings();
   
-  const [activeTab, setActiveTab] = useState<'national' | 'prefecture' | 'map'>('national'); // デフォルトを「総合順位」に設定
+  const [statisticsMode, setStatisticsMode] = useState<StatisticsMode>('overall');
+  const [viewType, setViewType] = useState<ViewType>('ranking');
   const [selectedPref, setSelectedPref] = useState(selectedPrefecture || mapSettings.defaultSelectedPrefecture);
 
   const handlePrefectureSelect = (prefecture: string) => {
@@ -40,55 +42,89 @@ export function StatisticsVisualization({
   // 全国統計の最大値を取得（バーの幅計算用）
   const maxVotes = Math.max(...nationalStats.map(s => s.count));
 
-  return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-bold text-gray-900">アクセント分布</h2>
-        
-        {/* タブ切替 */}
-        <div className="flex bg-gray-100 rounded-lg p-1">
-          <button
-            onClick={() => setActiveTab('national')}
-            className={cn(
-              'px-3 py-2 rounded-md transition-colors flex items-center space-x-1.5',
-              activeTab === 'national'
-                ? 'bg-white text-gray-900 shadow'
-                : 'text-gray-600 hover:text-gray-900'
-            )}
-          >
-            <ChartBarIcon className="w-4 h-4" />
-            <span className="text-sm font-medium">全国統計</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('prefecture')}
-            className={cn(
-              'px-3 py-2 rounded-md transition-colors flex items-center space-x-1.5',
-              activeTab === 'prefecture'
-                ? 'bg-white text-gray-900 shadow'
-                : 'text-gray-600 hover:text-gray-900'
-            )}
-          >
-            <MapIcon className="w-4 h-4" />
-            <span className="text-sm font-medium">都道府県別</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('map')}
-            className={cn(
-              'px-3 py-2 rounded-md transition-colors flex items-center space-x-1.5',
-              activeTab === 'map'
-                ? 'bg-white text-gray-900 shadow'
-                : 'text-gray-600 hover:text-gray-900'
-            )}
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-            </svg>
-            <span className="text-sm font-medium">地図表示</span>
-          </button>
-        </div>
-      </div>
+  // 年代別・性別の集計データを生成（モックデータ）
+  const demographicData = useMemo(() => {
+    // TODO: 実際のAPIからデータを取得
+    return {
+      byAge: {
+        '10s': nationalStats.map(s => ({ accentType: s.accentType, count: Math.floor(s.count * 0.1), percentage: 10 })),
+        '20s': nationalStats.map(s => ({ accentType: s.accentType, count: Math.floor(s.count * 0.25), percentage: 25 })),
+        '30s': nationalStats.map(s => ({ accentType: s.accentType, count: Math.floor(s.count * 0.2), percentage: 20 })),
+        '40s': nationalStats.map(s => ({ accentType: s.accentType, count: Math.floor(s.count * 0.15), percentage: 15 })),
+        '50s': nationalStats.map(s => ({ accentType: s.accentType, count: Math.floor(s.count * 0.15), percentage: 15 })),
+        '60s': nationalStats.map(s => ({ accentType: s.accentType, count: Math.floor(s.count * 0.1), percentage: 10 })),
+        '70s+': nationalStats.map(s => ({ accentType: s.accentType, count: Math.floor(s.count * 0.05), percentage: 5 })),
+      },
+      byGender: {
+        male: nationalStats.map(s => ({ accentType: s.accentType, count: Math.floor(s.count * 0.45), percentage: 45 })),
+        female: nationalStats.map(s => ({ accentType: s.accentType, count: Math.floor(s.count * 0.5), percentage: 50 })),
+        other: nationalStats.map(s => ({ accentType: s.accentType, count: Math.floor(s.count * 0.05), percentage: 5 })),
+      }
+    };
+  }, [nationalStats]);
 
-      {activeTab === 'national' ? (
+  // 現在のモードに応じた表示データを取得
+  const getCurrentModeData = () => {
+    switch (statisticsMode) {
+      case 'overall':
+        return nationalStats;
+      case 'age':
+        // 年代別の最多アクセントを表示
+        return Object.entries(demographicData.byAge).map(([age, stats]) => {
+          const maxStat = stats.reduce((max, s) => s.count > max.count ? s : max);
+          return {
+            label: getAgeLabel(age),
+            ...maxStat
+          };
+        });
+      case 'gender':
+        // 性別の最多アクセントを表示
+        return Object.entries(demographicData.byGender).map(([gender, stats]) => {
+          const maxStat = stats.reduce((max, s) => s.count > max.count ? s : max);
+          return {
+            label: getGenderLabel(gender),
+            ...maxStat
+          };
+        });
+      case 'prefecture':
+        return prefectureStats;
+      default:
+        return nationalStats;
+    }
+  };
+
+  const getAgeLabel = (age: string) => {
+    const labels: Record<string, string> = {
+      '10s': '10代',
+      '20s': '20代',
+      '30s': '30代',
+      '40s': '40代',
+      '50s': '50代',
+      '60s': '60代',
+      '70s+': '70代以上'
+    };
+    return labels[age] || age;
+  };
+
+  const getGenderLabel = (gender: string) => {
+    const labels: Record<string, string> = {
+      male: '男性',
+      female: '女性',
+      other: 'その他'
+    };
+    return labels[gender] || gender;
+  };
+
+  return (
+    <CommonStatisticsView
+      mode={statisticsMode}
+      viewType={viewType}
+      onModeChange={setStatisticsMode}
+      onViewTypeChange={setViewType}
+      title="集計状況"
+    >
+
+      {statisticsMode === 'overall' ? (
         /* 全国統計表示 */
         <div className="space-y-4">
           <h3 className="font-semibold text-gray-700">全国のアクセント分布</h3>
@@ -126,7 +162,7 @@ export function StatisticsVisualization({
             </div>
           ))}
         </div>
-      ) : activeTab === 'prefecture' ? (
+      ) : statisticsMode === 'prefecture' && viewType === 'ranking' ? (
         /* 都道府県別統計表示 */
         <div>
           <div className="mb-4">
@@ -209,14 +245,37 @@ export function StatisticsVisualization({
             </div>
           )}
         </div>
-      ) : activeTab === 'map' ? (
+      ) : statisticsMode === 'prefecture' && viewType === 'map' ? (
         /* 地図表示 */
         <div>
-          <JapanMapVisualization
-            prefectureStats={prefectureStats}
-            selectedPrefecture={selectedPref}
-            onPrefectureSelect={handlePrefectureSelect}
-          />
+          {(() => {
+            // 各県の1位アクセントデータを準備
+            const mapData: MapDataItem[] = prefectureStats.map(pref => {
+              const topAccent = pref.dominantAccent;
+              const topAccentData = pref.accentDistribution[topAccent];
+              
+              return {
+                prefectureCode: pref.prefectureCode,
+                name: getPrefectureName(pref.prefectureCode),
+                topItem: getAccentTypeName(topAccent),
+                topItemCount: topAccentData?.count || 0,
+                totalVotes: pref.totalVotes,
+                color: getAccentTypeColor(topAccent),
+                percentage: topAccentData?.percentage || 0,
+              };
+            });
+
+            return (
+              <CommonMapVisualization
+                data={mapData}
+                selectedPrefecture={selectedPref}
+                onPrefectureSelect={handlePrefectureSelect}
+                title="都道府県別アクセント分布マップ"
+                colorScheme="category"
+                showLegend={true}
+              />
+            );
+          })()}
           
           {/* 選択された都道府県の詳細情報 */}
           {selectedPref && prefectureStats.find(p => p.prefectureCode === selectedPref) && (
@@ -260,7 +319,69 @@ export function StatisticsVisualization({
             </div>
           )}
         </div>
+      ) : statisticsMode === 'age' ? (
+        /* 年代別統計表示 */
+        <div className="space-y-4">
+          <h3 className="font-semibold text-gray-700">年代別アクセント分布</h3>
+          {Object.entries(demographicData.byAge).map(([age, stats]) => {
+            const maxStat = stats.reduce((max, s) => s.count > max.count ? s : max);
+            const totalVotes = stats.reduce((sum, s) => sum + s.count, 0);
+            return (
+              <div key={age} className="border rounded-lg p-4">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="font-medium">{getAgeLabel(age)}</span>
+                  <span className="text-sm text-gray-600">{totalVotes}票</span>
+                </div>
+                <div className="space-y-2">
+                  {stats.map((stat) => (
+                    <div key={stat.accentType} className="flex items-center space-x-2">
+                      <div
+                        className="w-3 h-3 rounded"
+                        style={{ backgroundColor: getAccentTypeColor(stat.accentType) }}
+                      />
+                      <span className="text-sm">{getAccentTypeName(stat.accentType)}</span>
+                      <span className="text-sm text-gray-500 ml-auto">
+                        {stat.count}票 ({stat.percentage}%)
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : statisticsMode === 'gender' ? (
+        /* 性別統計表示 */
+        <div className="space-y-4">
+          <h3 className="font-semibold text-gray-700">性別アクセント分布</h3>
+          {Object.entries(demographicData.byGender).map(([gender, stats]) => {
+            const maxStat = stats.reduce((max, s) => s.count > max.count ? s : max);
+            const totalVotes = stats.reduce((sum, s) => sum + s.count, 0);
+            return (
+              <div key={gender} className="border rounded-lg p-4">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="font-medium">{getGenderLabel(gender)}</span>
+                  <span className="text-sm text-gray-600">{totalVotes}票</span>
+                </div>
+                <div className="space-y-2">
+                  {stats.map((stat) => (
+                    <div key={stat.accentType} className="flex items-center space-x-2">
+                      <div
+                        className="w-3 h-3 rounded"
+                        style={{ backgroundColor: getAccentTypeColor(stat.accentType) }}
+                      />
+                      <span className="text-sm">{getAccentTypeName(stat.accentType)}</span>
+                      <span className="text-sm text-gray-500 ml-auto">
+                        {stat.count}票 ({stat.percentage}%)
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       ) : null}
-    </div>
+    </CommonStatisticsView>
   );
 }

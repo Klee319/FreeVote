@@ -1,13 +1,10 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Toaster } from 'react-hot-toast';
 import Script from 'next/script';
-
-const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: {
@@ -106,7 +103,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${inter.className} font-japanese`}>
+      <body className="font-japanese">
         {/* Skip to main content link for accessibility */}
         <a 
           href="#main-content"

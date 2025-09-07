@@ -253,41 +253,56 @@ export default function WordDetailPage() {
 
           {/* 統計可視化 */}
           <div id="statistics-section">
-            <StatisticsVisualization
-              wordId={wordDetail.id}
-              nationalStats={wordDetail.nationalStats}
-              prefectureStats={wordDetail.prefectureStats}
-              selectedPrefecture={selectedPrefecture}
-              onPrefectureSelect={setSelectedPrefecture}
-            />
+            {(!hasVoted && canVoteData?.canVote) ? (
+              <div className="bg-gray-50 rounded-lg shadow p-8 text-center">
+                <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                <h3 className="text-xl font-semibold text-gray-700 mb-2">投票結果を確認するには</h3>
+                <p className="text-gray-600 mb-4">投票後に全国・都道府県別の統計データをご覧いただけます</p>
+                <p className="text-sm text-gray-500">公正な投票のため、投票前の結果表示は制限されています</p>
+              </div>
+            ) : (
+              <StatisticsVisualization
+                wordId={wordDetail.id}
+                nationalStats={wordDetail.nationalStats}
+                prefectureStats={wordDetail.prefectureStats}
+                selectedPrefecture={selectedPrefecture}
+                onPrefectureSelect={setSelectedPrefecture}
+              />
+            )}
           </div>
 
-          {/* 地図表示トグル */}
-          <div className="bg-white rounded-lg shadow p-4">
-            <button
-              onClick={() => setShowMap(!showMap)}
-              className="flex items-center justify-between w-full text-left"
-            >
-              <h3 className="font-bold text-lg">全国アクセント分布地図</h3>
-              <svg 
-                className={`w-5 h-5 transition-transform ${showMap ? 'rotate-180' : ''}`}
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-          </div>
+          {/* 地図表示トグル - 投票後のみ表示 */}
+          {(hasVoted || !canVoteData?.canVote) && (
+            <>
+              <div className="bg-white rounded-lg shadow p-4">
+                <button
+                  onClick={() => setShowMap(!showMap)}
+                  className="flex items-center justify-between w-full text-left"
+                >
+                  <h3 className="font-bold text-lg">全国アクセント分布地図</h3>
+                  <svg 
+                    className={`w-5 h-5 transition-transform ${showMap ? 'rotate-180' : ''}`}
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+              </div>
 
-          {/* アクセント分布地図 */}
-          {showMap && wordDetail && (
-            <WordAccentMapContainer
-              wordId={parseInt(wordId)}
-              headword={wordDetail.headword}
-              reading={wordDetail.reading}
-              className="mt-4"
-            />
+              {/* アクセント分布地図 */}
+              {showMap && wordDetail && (
+                <WordAccentMapContainer
+                  wordId={parseInt(wordId)}
+                  headword={wordDetail.headword}
+                  reading={wordDetail.reading}
+                  className="mt-4"
+                />
+              )}
+            </>
           )}
         </div>
 
@@ -299,28 +314,38 @@ export default function WordDetailPage() {
           {/* 投票統計 */}
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="font-bold text-lg mb-4">投票統計</h3>
-            <dl className="space-y-3">
-              <div className="flex justify-between">
-                <dt className="text-gray-600">総投票数</dt>
-                <dd className="font-semibold">{wordDetail.totalVotes}票</dd>
+            {(!hasVoted && canVoteData?.canVote) ? (
+              <div className="text-center py-4">
+                <svg className="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                <p className="text-gray-600 text-sm">投票後に詳細な統計を</p>
+                <p className="text-gray-600 text-sm">確認できます</p>
               </div>
-              <div className="flex justify-between">
-                <dt className="text-gray-600">参加都道府県</dt>
-                <dd className="font-semibold">{wordDetail.prefectureCount}県</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-gray-600">モーラ数</dt>
-                <dd className="font-semibold">{wordDetail.moraCount}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-gray-600">カテゴリ</dt>
-                <dd className="font-semibold">
-                  {wordDetail.category === 'general' ? '一般語' :
-                   wordDetail.category === 'proper_noun' ? '固有名詞' :
-                   wordDetail.category === 'technical' ? '専門用語' : '方言'}
-                </dd>
-              </div>
-            </dl>
+            ) : (
+              <dl className="space-y-3">
+                <div className="flex justify-between">
+                  <dt className="text-gray-600">総投票数</dt>
+                  <dd className="font-semibold">{wordDetail.totalVotes}票</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-gray-600">参加都道府県</dt>
+                  <dd className="font-semibold">{wordDetail.prefectureCount}県</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-gray-600">モーラ数</dt>
+                  <dd className="font-semibold">{wordDetail.moraCount}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-gray-600">カテゴリ</dt>
+                  <dd className="font-semibold">
+                    {wordDetail.category === 'general' ? '一般語' :
+                     wordDetail.category === 'proper_noun' ? '固有名詞' :
+                     wordDetail.category === 'technical' ? '専門用語' : '方言'}
+                  </dd>
+                </div>
+              </dl>
+            )}
           </div>
 
           {/* シェアボタン */}
