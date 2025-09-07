@@ -49,7 +49,7 @@ export function RankingSection() {
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-bold text-gray-900">投票ランキング</h2>
+        <h2 className="text-xl font-bold text-gray-900">人気ランキング</h2>
         <div className="flex gap-1">
           {(['daily', 'weekly', 'monthly'] as const).map((p) => (
             <button
