@@ -201,7 +201,7 @@ export class CacheHelper {
     try {
       const data = JSON.stringify(value);
       if (ttl) {
-        await this.redis().setex(key, ttl, data);
+        await this.redis().setEx(key, ttl, data);
       } else {
         await this.redis().set(key, data);
       }

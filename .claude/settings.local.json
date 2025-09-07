@@ -44,7 +44,14 @@
       "Bash(find:*)",
       "Bash(git commit:*)",
       "mcp__playwright__browser_network_requests",
-      "mcp__playwright__browser_install"
+      "mcp__playwright__browser_install",
+      "Bash(cat:*)",
+      "Bash(sed:*)",
+      "Bash(npx next lint:*)",
+      "Bash(ls:*)",
+      "Bash(mv:*)",
+      "Bash(npm run type-check:*)",
+      "Bash(npm run lint)"
     ],
     "deny": [],
     "ask": [],

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { PollsController } from '../controllers/polls.controller';
+import { requireAdmin } from '../middleware/auth';
 
 const router = Router();
 
@@ -20,6 +21,7 @@ router.get(
 // 新規投票を作成（管理者のみ）
 router.post(
   '/',
+  requireAdmin,
   PollsController.createPollValidation,
   PollsController.createPoll
 );
@@ -48,6 +50,7 @@ router.get(
 // 投票を更新（管理者のみ）
 router.put(
   '/:id',
+  requireAdmin,
   PollsController.updatePollValidation,
   PollsController.updatePoll
 );
@@ -55,6 +58,7 @@ router.put(
 // 投票を削除（管理者のみ）
 router.delete(
   '/:id',
+  requireAdmin,
   PollsController.deletePollValidation,
   PollsController.deletePoll
 );
@@ -68,6 +72,7 @@ router.post(
 
 router.get(
   '/requests',
+  requireAdmin,
   PollsController.getVoteRequestsValidation,
   PollsController.getVoteRequests
 );

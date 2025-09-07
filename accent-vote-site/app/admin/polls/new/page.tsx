@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 // フォームのバリデーションスキーマ
 const formSchema = z.object({
@@ -55,6 +56,7 @@ export default function NewPollPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema) as any,
@@ -379,7 +381,7 @@ export default function NewPollPage() {
                 キャンセル
               </Button>
             </Link>
-            <Button type="button" variant="outline">
+            <Button type="button" variant="outline" onClick={() => setShowPreview(true)}>
               <Eye className="h-4 w-4 mr-2" />
               プレビュー
             </Button>
@@ -399,6 +401,100 @@ export default function NewPollPage() {
           </div>
         </form>
       </Form>
+
+      {/* プレビューダイアログ */}
+      <Dialog open={showPreview} onOpenChange={setShowPreview}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>投票プレビュー</DialogTitle>
+            <DialogDescription>
+              実際の投票画面のプレビューを表示しています
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6 mt-4">
+            {/* メイン画像 */}
+            {form.watch('thumbnailUrl') && (
+              <div className="w-full h-48 bg-gray-100 rounded-lg overflow-hidden">
+                <img 
+                  src={form.watch('thumbnailUrl')} 
+                  alt="投票のサムネイル"
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              </div>
+            )}
+            
+            {/* タイトル */}
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">
+                {form.watch('title') || '（タイトル未入力）'}
+              </h2>
+              {form.watch('description') && (
+                <p className="mt-2 text-gray-600">
+                  {form.watch('description')}
+                </p>
+              )}
+            </div>
+
+            {/* 投票期限 */}
+            {form.watch('deadline') && (
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <CalendarIcon className="h-4 w-4" />
+                <span>投票期限: {format(form.watch('deadline')!, 'yyyy年MM月dd日', { locale: ja })}</span>
+              </div>
+            )}
+
+            {/* 選択肢 */}
+            <div className="space-y-3">
+              <h3 className="font-semibold text-gray-700">選択肢</h3>
+              <div className="grid gap-3">
+                {form.watch('options').map((option, index) => (
+                  option.text && (
+                    <div key={index} className="border rounded-lg p-4 hover:border-primary-500 transition-colors cursor-pointer">
+                      <div className="flex items-center gap-4">
+                        {option.thumbnailUrl && (
+                          <div className="w-16 h-16 bg-gray-100 rounded overflow-hidden flex-shrink-0">
+                            <img 
+                              src={option.thumbnailUrl} 
+                              alt={option.text}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <span className="text-gray-900">{option.text}</span>
+                        </div>
+                        <div className="w-6 h-6 border-2 border-gray-300 rounded-full"></div>
+                      </div>
+                    </div>
+                  )
+                ))}
+              </div>
+            </div>
+
+            {/* ハッシュタグ */}
+            {form.watch('shareHashtags') && (
+              <div className="pt-4 border-t">
+                <p className="text-sm text-gray-500">
+                  共有時のハッシュタグ: {form.watch('shareHashtags')}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end mt-6">
+            <Button onClick={() => setShowPreview(false)}>
+              閉じる
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

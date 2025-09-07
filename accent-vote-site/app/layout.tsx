@@ -115,13 +115,7 @@ export default function RootLayout({
           メインコンテンツへスキップ
         </a>
         <Providers>
-          <div className="flex min-h-screen flex-col">
-            <Header />
-            <main id="main-content" className="flex-1">
-              {children}
-            </main>
-            <Footer />
-          </div>
+          {children}
           <Toaster 
             position="top-center"
             toastOptions={{
