@@ -100,4 +100,7 @@ body {
   )
   rgb(var(--background-start-rgb));
   font-family: var(--font-japanese);
+  font-weight: 600;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }

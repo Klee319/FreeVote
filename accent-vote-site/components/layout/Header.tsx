@@ -16,7 +16,7 @@ export function Header() {
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
             <span className="text-2xl font-bold text-primary-600">気になる</span>
-            <span className="text-xl">投票所</span>
+            <span className="text-xl font-bold">投票所</span>
           </Link>
 
           {/* Desktop Right Side - User Menu and Request Button */}

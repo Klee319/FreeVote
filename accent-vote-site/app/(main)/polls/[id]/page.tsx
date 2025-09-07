@@ -445,7 +445,8 @@ export default function PollDetailPage({ params }: { params: Promise<{ id: strin
               <CardTitle className="text-lg">投票情報</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
+              {/* 投票数の表示は投票画面では非表示 */}
+              {/* <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Users className="h-4 w-4" />
                   <span>参加者数</span>
@@ -459,7 +460,7 @@ export default function PollDetailPage({ params }: { params: Promise<{ id: strin
                   <span>総投票数</span>
                 </div>
                 <span className="font-semibold">{poll.totalVotes}票</span>
-              </div>
+              </div> */}
               
               {poll.startDate && (
                 <div className="flex items-center justify-between">

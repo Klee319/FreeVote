@@ -51,7 +51,9 @@
       "Bash(ls:*)",
       "Bash(mv:*)",
       "Bash(npm run type-check:*)",
-      "Bash(npm run lint)"
+      "Bash(npm run lint)",
+      "Bash(dir \"C:\\Users\\T-319\\Documents\\Program\\ClaudeCodeDev\\products\\Vote_site\")",
+      "Bash(sqlite3:*)"
     ],
     "deny": [],
     "ask": [],

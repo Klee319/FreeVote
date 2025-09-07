@@ -53,6 +53,11 @@ class MemoryCache {
     }
   }
   
+  async setEx(key: string, seconds: number, value: string | any): Promise<void> {
+    // setExメソッドをRedis互換で実装
+    await this.set(key, value, { EX: seconds });
+  }
+  
   async del(key: string | string[]): Promise<void> {
     const keys = Array.isArray(key) ? key : [key];
     

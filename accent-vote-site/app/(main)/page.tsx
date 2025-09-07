@@ -13,7 +13,7 @@ export default function HomePage() {
             <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
               <span className="text-primary-600">気になる投票所</span>へようこそ
             </h1>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            <p className="text-lg font-semibold text-gray-600 max-w-2xl mx-auto">
               日本語のアクセントから身近な疑問まで、みんなで投票して答えを見つける投票プラットフォーム
             </p>
           </div>

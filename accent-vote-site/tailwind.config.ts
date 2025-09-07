@@ -37,11 +37,19 @@ const config: Config = {
   			japanese: [
   				'Hiragino Sans',
   				'Hiragino Kaku Gothic ProN',
+  				'Yu Gothic',
   				'Yu Gothic Medium',
   				'Meiryo',
   				'MS Gothic',
   				'sans-serif'
   			]
+  		},
+  		fontWeight: {
+  			normal: '400',
+  			medium: '500',
+  			semibold: '600',
+  			bold: '700',
+  			extrabold: '800'
   		},
   		animation: {
   			'fade-in': 'fadeIn 0.5s ease-in-out',

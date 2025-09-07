@@ -19,6 +19,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { CommonStatisticsView, StatisticsMode, ViewType as StatsViewType } from '@/components/features/stats/CommonStatisticsView';
+import { CommonMapVisualization, MapDataItem } from '@/components/features/stats/CommonMapVisualization';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -121,6 +123,8 @@ export default function PollResultsPage({ params }: { params: Promise<{ id: stri
   const [chartType, setChartType] = useState<ChartType>('auto');
   const [demographicBreakdown, setDemographicBreakdown] = useState<'age' | 'prefecture' | 'gender'>('age');
   const [sortBy, setSortBy] = useState<'default' | 'prefecture' | 'age' | 'gender'>('default');
+  const [statisticsMode, setStatisticsMode] = useState<StatisticsMode>('overall');
+  const [statsViewType, setStatsViewType] = useState<StatsViewType>('ranking');
   const [filterPrefecture, setFilterPrefecture] = useState<string>('all');
   const [filterAge, setFilterAge] = useState<string>('all');
   const [filterGender, setFilterGender] = useState<string>('all');
@@ -650,7 +654,7 @@ export default function PollResultsPage({ params }: { params: Promise<{ id: stri
               <Tabs value={viewType} onValueChange={(v) => setViewType(v as any)}>
                 <TabsList>
                   <TabsTrigger value="chart">グラフ</TabsTrigger>
-                  <TabsTrigger value="demographics">属性別</TabsTrigger>
+                  <TabsTrigger value="demographics">集計状況</TabsTrigger>
                   <TabsTrigger value="trends">推移</TabsTrigger>
                 </TabsList>
               </Tabs>
@@ -670,7 +674,7 @@ export default function PollResultsPage({ params }: { params: Promise<{ id: stri
                 </Select>
               )}
               
-              {viewType === 'demographics' && (
+              {viewType === 'chart' && (
                 <div className="flex gap-2">
                   <Select value={demographicBreakdown} onValueChange={(v) => setDemographicBreakdown(v as any)}>
                     <SelectTrigger className="w-[140px]">
@@ -709,12 +713,177 @@ export default function PollResultsPage({ params }: { params: Promise<{ id: stri
             />
           )}
           
-          {viewType === 'demographics' && demographicChartOptions && (
-            <ReactECharts 
-              option={demographicChartOptions}
-              style={{ height: '400px' }}
-              theme="light"
-            />
+          {viewType === 'demographics' && (
+            <CommonStatisticsView
+              mode={statisticsMode}
+              viewType={statsViewType}
+              onModeChange={setStatisticsMode}
+              onViewTypeChange={setStatsViewType}
+              title="集計状況"
+            >
+              {statisticsMode === 'overall' ? (
+                /* 総合順位表示 */
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-gray-700">全体の投票結果</h3>
+                  {results.options.map((option, index) => (
+                    <div key={option.id} className="border rounded-lg p-4">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center space-x-3">
+                          <span className="text-2xl font-bold text-gray-600">#{index + 1}</span>
+                          <div>
+                            <div className="font-medium">{option.text}</div>
+                            {option.description && (
+                              <div className="text-sm text-gray-500 mt-1">{option.description}</div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-lg font-bold">{option.voteCount}票</div>
+                          <div className="text-sm text-gray-500">{option.percentage}%</div>
+                        </div>
+                      </div>
+                      <div className="mt-3">
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-blue-500 h-2 rounded-full transition-all"
+                            style={{ width: `${option.percentage}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : statisticsMode === 'prefecture' && statsViewType === 'ranking' ? (
+                /* 県別ランキング表示 */
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-gray-700">都道府県別ランキング</h3>
+                  {results?.demographics?.byPrefecture && (
+                    <div className="space-y-2">
+                      {Object.entries(results.demographics.byPrefecture)
+                        .sort(([, a], [, b]) => b - a)
+                        .slice(0, 10)
+                        .map(([code, count], index) => (
+                          <div key={code} className="flex justify-between items-center p-3 border rounded-lg">
+                            <div className="flex items-center space-x-3">
+                              <span className="text-lg font-bold text-gray-600">#{index + 1}</span>
+                              <span className="font-medium">{getPrefectureName(code as Prefecture)}</span>
+                            </div>
+                            <span className="text-gray-600">{count}票</span>
+                          </div>
+                        ))
+                      }
+                    </div>
+                  )}
+                </div>
+              ) : statisticsMode === 'prefecture' && statsViewType === 'map' ? (
+                /* 地図表示 */
+                <div>
+                  {(() => {
+                    // 各県の1位選択肢データを準備
+                    if (!results?.demographics?.byPrefecture || !results?.options) {
+                      return (
+                        <div className="text-center py-12 text-muted-foreground">
+                          地図表示用のデータがありません
+                        </div>
+                      );
+                    }
+
+                    // 都道府県ごとの投票データを集計（仮のデータ構造）
+                    // 実際のAPIから詳細データを取得する必要がある場合は、ここで処理
+                    const mapData: MapDataItem[] = Object.entries(results.demographics.byPrefecture)
+                      .map(([prefCode, totalVotes]) => {
+                        // 各県の1位を計算（現在は全体の1位を仮で使用）
+                        const topOption = results.options[0];
+                        
+                        return {
+                          prefectureCode: prefCode,
+                          name: getPrefectureName(prefCode as Prefecture),
+                          topItem: topOption?.text || '未投票',
+                          topItemCount: Math.floor(totalVotes * (topOption?.percentage || 0) / 100),
+                          totalVotes: totalVotes,
+                          percentage: topOption?.percentage || 0,
+                        };
+                      })
+                      .filter(item => item.totalVotes > 0);
+
+                    return (
+                      <CommonMapVisualization
+                        data={mapData}
+                        selectedPrefecture={filterPrefecture !== 'all' ? filterPrefecture : undefined}
+                        onPrefectureSelect={(prefecture) => setFilterPrefecture(prefecture)}
+                        title="都道府県別投票分布"
+                        colorScheme="gradient"
+                        showLegend={false}
+                      />
+                    );
+                  })()}
+                </div>
+              ) : statisticsMode === 'age' ? (
+                /* 年代別表示 */
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-gray-700">年代別投票分布</h3>
+                  {results?.demographics?.byAge && (
+                    <div className="space-y-3">
+                      {Object.entries(results.demographics.byAge)
+                        .sort(([a], [b]) => a.localeCompare(b))
+                        .map(([ageGroup, count]) => {
+                          const total = results.totalVotes;
+                          const percentage = total > 0 ? ((count / total) * 100).toFixed(1) : '0';
+                          return (
+                            <div key={ageGroup} className="border rounded-lg p-4">
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="font-medium">{getAgeGroupLabel(ageGroup as AgeGroup)}</span>
+                                <span className="text-gray-600">{count}票 ({percentage}%)</span>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div
+                                  className="bg-green-500 h-2 rounded-full transition-all"
+                                  style={{ width: `${percentage}%` }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })
+                      }
+                    </div>
+                  )}
+                </div>
+              ) : statisticsMode === 'gender' ? (
+                /* 性別表示 */
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-gray-700">性別投票分布</h3>
+                  {results?.demographics?.byGender && (
+                    <div className="space-y-3">
+                      {Object.entries(results.demographics.byGender)
+                        .map(([gender, count]) => {
+                          const total = results.totalVotes;
+                          const percentage = total > 0 ? ((count / total) * 100).toFixed(1) : '0';
+                          const genderLabels: Record<string, string> = {
+                            male: '男性',
+                            female: '女性',
+                            other: 'その他'
+                          };
+                          return (
+                            <div key={gender} className="border rounded-lg p-4">
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="font-medium">{genderLabels[gender] || gender}</span>
+                                <span className="text-gray-600">{count}票 ({percentage}%)</span>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div
+                                  className="bg-purple-500 h-2 rounded-full transition-all"
+                                  style={{ width: `${percentage}%` }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })
+                      }
+                    </div>
+                  )}
+                </div>
+              ) : null}
+            </CommonStatisticsView>
           )}
           
           {viewType === 'trends' && (
@@ -726,7 +895,7 @@ export default function PollResultsPage({ params }: { params: Promise<{ id: stri
       </Card>
 
       {/* フィルタリングオプション */}
-      {viewType === 'demographics' && (
+      {false && (
         <Card className="mt-6">
           <CardHeader>
             <CardTitle>フィルタリング</CardTitle>
