@@ -1,6 +1,6 @@
 import { SearchSection } from '@/components/features/search/SearchSection';
 import { RankingSection } from '@/components/features/stats/RankingSection';
-import { RecentWordsSection } from '@/components/features/stats/RecentWordsSection';
+import { RecentPollsSection } from '@/components/features/stats/RecentPollsSection';
 import { StatisticsSummary } from '@/components/features/stats/StatisticsSummary';
 
 export default function HomePage() {
@@ -33,8 +33,8 @@ export default function HomePage() {
             {/* Popular Rankings */}
             <RankingSection />
             
-            {/* Recent Words */}
-            <RecentWordsSection />
+            {/* Recent Polls */}
+            <RecentPollsSection />
           </div>
         </div>
       </section>

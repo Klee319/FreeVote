@@ -769,4 +769,40 @@ export const api = {
       throw error;
     }
   },
+
+  // 新着投票を取得
+  getRecentPolls: async (limit: number = 10): Promise<any[]> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/polls/recent?limit=${limit}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch recent polls: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result.data || [];
+    } catch (error) {
+      console.error('[API] Error fetching recent polls:', error);
+      
+      // 開発環境でバックエンドに接続できない場合はモックデータにフォールバック
+      if (DEBUG_MODE && error instanceof TypeError && error.message.includes('fetch')) {
+        console.warn('[API] Falling back to mock data for recent polls');
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // モックデータを返す
+        return [
+          { id: 1, title: '最新の投票1', description: '説明1', createdAt: new Date().toISOString(), voteCount: 123 },
+          { id: 2, title: '最新の投票2', description: '説明2', createdAt: new Date().toISOString(), voteCount: 45 },
+          { id: 3, title: '最新の投票3', description: '説明3', createdAt: new Date().toISOString(), voteCount: 67 },
+        ];
+      }
+      
+      throw error;
+    }
+  },
 };
