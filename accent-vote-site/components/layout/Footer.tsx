@@ -14,17 +14,12 @@ export function Footer() {
       { href: '/terms', label: '利用規約', available: true },
       { href: '/contact', label: 'お問い合わせ', available: false },
     ],
-    関連リンク: [
-      { href: '/research', label: '研究プロジェクト', available: false },
-      { href: '/partners', label: '提携大学', available: false },
-      { href: '/data-usage', label: 'データ利用について', available: false },
-    ],
   };
 
   return (
     <footer className="mt-auto bg-gray-50 border-t" role="contentinfo" aria-label="サイトフッター">
       <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* ロゴと説明 */}
           <div className="col-span-1">
             <div className="flex items-center space-x-2 mb-3">
