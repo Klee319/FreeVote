@@ -3,6 +3,12 @@ import { Poll, Vote, PollStatistics } from '@/types';
 
 interface PollState {
   polls: Poll[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  } | null;
   currentPoll: Poll | null;
   currentStatistics: PollStatistics | null;
   recentVotes: Map<string, number>; // pollId -> optionIndex
@@ -11,6 +17,7 @@ interface PollState {
 
   // Actions
   setPolls: (polls: Poll[]) => void;
+  setPagination: (pagination: { page: number; limit: number; total: number; totalPages: number }) => void;
   setCurrentPoll: (poll: Poll | null) => void;
   setCurrentStatistics: (stats: PollStatistics | null) => void;
   addRecentVote: (pollId: string, optionIndex: number) => void;
@@ -22,6 +29,7 @@ interface PollState {
 
 export const usePollStore = create<PollState>((set, get) => ({
   polls: [],
+  pagination: null,
   currentPoll: null,
   currentStatistics: null,
   recentVotes: new Map(),
@@ -29,6 +37,8 @@ export const usePollStore = create<PollState>((set, get) => ({
   error: null,
 
   setPolls: (polls) => set({ polls, error: null }),
+
+  setPagination: (pagination) => set({ pagination }),
 
   setCurrentPoll: (poll) => set({ currentPoll: poll, error: null }),
 
@@ -50,6 +60,7 @@ export const usePollStore = create<PollState>((set, get) => ({
 
   reset: () => set({
     polls: [],
+    pagination: null,
     currentPoll: null,
     currentStatistics: null,
     isLoading: false,

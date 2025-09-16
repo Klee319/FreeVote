@@ -6,12 +6,14 @@ import { Poll, Vote, PollStatistics } from '@/types';
 export function usePolls() {
   const {
     polls,
+    pagination,
     currentPoll,
     currentStatistics,
     recentVotes,
     isLoading,
     error,
     setPolls,
+    setPagination,
     setCurrentPoll,
     setCurrentStatistics,
     addRecentVote,
@@ -32,13 +34,24 @@ export function usePolls() {
     const response = await api.getPolls(params);
 
     if (response.status === 'success' && response.data) {
-      setPolls(response.data);
+      // APIレスポンスからpollsとpaginationを分離して設定
+      if (response.data.polls && Array.isArray(response.data.polls)) {
+        setPolls(response.data.polls);
+        if (response.data.pagination) {
+          setPagination(response.data.pagination);
+        }
+      } else if (Array.isArray(response.data)) {
+        // 配列が直接返される場合（後方互換性のため）
+        setPolls(response.data);
+      } else {
+        setError('予期しないデータ形式です');
+      }
     } else {
       setError(response.error || '投票の取得に失敗しました');
     }
 
     setLoading(false);
-  }, [setPolls, setLoading, setError]);
+  }, [setPolls, setPagination, setLoading, setError]);
 
   // Fetch single poll
   const fetchPoll = useCallback(async (id: string) => {
@@ -170,6 +183,7 @@ export function usePolls() {
   return {
     // State
     polls,
+    pagination,
     currentPoll,
     currentStatistics,
     recentVotes,

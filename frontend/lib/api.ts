@@ -62,17 +62,32 @@ export async function apiCall<T>(
   params?: any
 ): Promise<ApiResponse<T>> {
   try {
-    const response = await apiClient.request<T>({
+    const response = await apiClient.request<{ success: boolean; data?: T; message?: string }>({
       method,
       url: endpoint,
       data,
       params,
     });
 
-    return {
-      data: response.data,
-      status: 'success',
-    };
+    // バックエンドは { success: true, data: {...} } 形式で返す
+    if (response.data?.success && response.data?.data !== undefined) {
+      return {
+        data: response.data.data,
+        status: 'success',
+      };
+    } else if (response.data?.success) {
+      // dataフィールドがない成功レスポンス（削除など）
+      return {
+        data: response.data as any,
+        status: 'success',
+      };
+    } else {
+      // 成功フラグがfalseの場合
+      return {
+        error: response.data?.message || 'Request failed',
+        status: 'error',
+      };
+    }
   } catch (error) {
     const axiosError = error as AxiosError<{ message?: string; error?: string }>;
 

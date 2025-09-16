@@ -18,6 +18,8 @@ export function PollList({
   showTrending = false,
   columns = 3
 }: PollListProps) {
+  // pollsが配列でない場合は空配列として扱う
+  const safePolls = Array.isArray(polls) ? polls : [];
   const getGridCols = () => {
     switch(columns) {
       case 1: return 'grid-cols-1';
@@ -49,7 +51,7 @@ export function PollList({
     );
   }
 
-  if (polls.length === 0) {
+  if (safePolls.length === 0) {
     return (
       <div className="text-center py-12">
         <p className="text-muted-foreground">投票が見つかりませんでした</p>
@@ -59,7 +61,7 @@ export function PollList({
 
   return (
     <div className={`grid ${getGridCols()} gap-6`}>
-      {polls.map((poll) => (
+      {safePolls.map((poll) => (
         <PollCard
           key={poll.id}
           poll={poll}

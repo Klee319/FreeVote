@@ -66,8 +66,9 @@ export default function Home() {
   };
 
   // Filter trending and new polls for hero section
-  const trendingPolls = polls.slice(0, 3);
-  const newPolls = polls.slice(3, 6);
+  // pollsが配列であることを確認（初期値は空配列）
+  const trendingPolls = Array.isArray(polls) ? polls.slice(0, 3) : [];
+  const newPolls = Array.isArray(polls) ? polls.slice(3, 6) : [];
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -123,7 +124,7 @@ export default function Home() {
               「{searchQuery}」の検索結果
             </h2>
             <p className="text-muted-foreground mt-1">
-              {polls.length}件の投票が見つかりました
+              {Array.isArray(polls) ? polls.length : 0}件の投票が見つかりました
             </p>
           </div>
         )}
