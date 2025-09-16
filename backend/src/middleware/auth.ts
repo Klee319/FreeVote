@@ -1,186 +1,151 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { AppError } from '../utils/errors';
 import { config } from '../config/env';
-import { AuthService } from '../services/auth.service';
-import { PrismaClient } from '../generated/prisma';
+import { AuthenticationError, AuthorizationError } from '../utils/errors';
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
-const authService = new AuthService(prisma);
 
-/**
- * JWTペイロードの型定義
- */
-interface JWTPayload {
-  id: string;
-  email: string;
-  role: string;
-  type: 'access' | 'refresh';
-  iat?: number;
-  exp?: number;
+export interface JwtPayload {
+  userId: string;
+  email?: string;
+  isAdmin: boolean;
 }
 
-/**
- * 認証情報を含む拡張Requestインターフェース
- */
-export interface AuthenticatedRequest extends Request {
-  user?: {
-    id: string;
-    email: string;
-    role: string;
-  };
+// Express Request型を拡張
+declare global {
+  namespace Express {
+    interface Request {
+      user?: JwtPayload;
+    }
+  }
 }
 
-/**
- * JWT認証ミドルウェア
- * JWTトークンを検証し、ユーザー情報をリクエストに追加
- */
-export async function authMiddleware(
-  req: AuthenticatedRequest,
+// JWTトークンの検証
+export function verifyToken(token: string): JwtPayload {
+  try {
+    return jwt.verify(token, config.jwt.secret) as JwtPayload;
+  } catch (error) {
+    throw new AuthenticationError('無効なトークンです');
+  }
+}
+
+// 認証ミドルウェア
+export async function authenticate(
+  req: Request,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ): Promise<void> {
   try {
-    let token: string | undefined;
-
-    // Authorizationヘッダーからトークンを取得
     const authHeader = req.headers.authorization;
-    if (authHeader) {
-      const [scheme, headerToken] = authHeader.split(' ');
-      if (scheme === 'Bearer' && headerToken) {
-        token = headerToken;
-      }
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      throw new AuthenticationError('認証トークンが必要です');
     }
 
-    // クッキーからトークンを取得（ヘッダーにない場合）
-    if (!token && req.cookies?.accessToken) {
-      token = req.cookies.accessToken;
+    const token = authHeader.substring(7);
+    const payload = verifyToken(token);
+
+    // ユーザーの存在確認
+    const user = await prisma.user.findUnique({
+      where: { id: payload.userId },
+      select: { id: true, email: true, isAdmin: true },
+    });
+
+    if (!user) {
+      throw new AuthenticationError('ユーザーが見つかりません');
     }
 
-    if (!token) {
-      throw new AppError('認証が必要です', 401);
-    }
-
-    // トークンの検証
-    const payload = await authService.verifyAccessToken(token);
-
-    // ユーザー情報をリクエストに追加
     req.user = {
-      id: payload.id,
-      email: payload.email,
-      role: payload.role,
+      userId: user.id,
+      email: user.email || undefined,
+      isAdmin: user.isAdmin,
     };
 
     next();
   } catch (error) {
-    next(error);
+    if (error instanceof AuthenticationError) {
+      res.status(401).json({
+        success: false,
+        error: {
+          message: error.message,
+          code: 'AUTHENTICATION_ERROR',
+        },
+      });
+    } else {
+      res.status(401).json({
+        success: false,
+        error: {
+          message: '認証に失敗しました',
+          code: 'AUTHENTICATION_ERROR',
+        },
+      });
+    }
   }
 }
 
-/**
- * オプショナル認証ミドルウェア
- * トークンがある場合のみ検証し、ない場合もリクエストを通す
- */
-export async function optionalAuth(
-  req: AuthenticatedRequest,
+// 管理者権限確認ミドルウェア
+export async function requireAdmin(
+  req: Request,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ): Promise<void> {
   try {
-    let token: string | undefined;
+    // まず認証を確認
+    if (!req.user) {
+      await authenticate(req, res, () => {});
+    }
 
-    // Authorizationヘッダーからトークンを取得
+    if (!req.user?.isAdmin) {
+      throw new AuthorizationError('管理者権限が必要です');
+    }
+
+    next();
+  } catch (error) {
+    if (error instanceof AuthorizationError) {
+      res.status(403).json({
+        success: false,
+        error: {
+          message: error.message,
+          code: 'AUTHORIZATION_ERROR',
+        },
+      });
+    } else {
+      next(error);
+    }
+  }
+}
+
+// オプショナル認証ミドルウェア（認証なしでも通過可能）
+export async function optionalAuth(
+  req: Request,
+  _res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
     const authHeader = req.headers.authorization;
-    if (authHeader) {
-      const [scheme, headerToken] = authHeader.split(' ');
-      if (scheme === 'Bearer' && headerToken) {
-        token = headerToken;
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      const payload = verifyToken(token);
+
+      const user = await prisma.user.findUnique({
+        where: { id: payload.userId },
+        select: { id: true, email: true, isAdmin: true },
+      });
+
+      if (user) {
+        req.user = {
+          userId: user.id,
+          email: user.email || undefined,
+          isAdmin: user.isAdmin,
+        };
       }
     }
 
-    // クッキーからトークンを取得（ヘッダーにない場合）
-    if (!token && req.cookies?.accessToken) {
-      token = req.cookies.accessToken;
-    }
-
-    // トークンがない場合はスキップ
-    if (!token) {
-      next();
-      return;
-    }
-
-    // トークンの検証
-    try {
-      const payload = await authService.verifyAccessToken(token);
-      req.user = {
-        id: payload.id,
-        email: payload.email,
-        role: payload.role,
-      };
-    } catch {
-      // 認証エラーの場合もリクエストは通すが、user情報は付与しない
-    }
-
     next();
   } catch (error) {
-    next(error);
+    // エラーが発生しても認証なしとして続行
+    next();
   }
 }
-
-/**
- * ロールベースアクセス制御ミドルウェア
- * 指定されたロール以上の権限を持つユーザーのみアクセス可能
- */
-export function authorize(...allowedRoles: string[]): 
-  (req: AuthenticatedRequest, res: Response, next: NextFunction) => void {
-  return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
-    // 認証チェック
-    if (!req.user) {
-      next(new AppError('認証が必要です', 401));
-      return;
-    }
-
-    // ロール階層の定義
-    const roleHierarchy: Record<string, number> = {
-      admin: 3,
-      moderator: 2,
-      user: 1,
-    };
-
-    // ユーザーのロールレベルを取得
-    const userRoleLevel = roleHierarchy[req.user.role] || 0;
-    
-    // 許可されたロールの最小レベルを取得
-    const minRequiredLevel = Math.min(
-      ...allowedRoles.map((role) => roleHierarchy[role] || 0),
-    );
-
-    // 権限チェック
-    if (userRoleLevel < minRequiredLevel) {
-      next(new AppError('権限が不足しています', 403));
-      return;
-    }
-
-    next();
-  };
-}
-
-/**
- * 管理者権限チェックミドルウェア
- */
-export const requireAdmin = authorize('admin');
-
-/**
- * モデレーター以上の権限チェックミドルウェア
- */
-export const requireModerator = authorize('moderator', 'admin');
-
-/**
- * ログインユーザー権限チェックミドルウェア
- */
-export const requireAuth = authorize('user', 'moderator', 'admin');
-
-/**
- * 特定ロール権限チェックミドルウェア
- */
-export const requireRole = (role: string) => authorize(role);

@@ -18,6 +18,7 @@ Please ensure that the instructions described here are also applied to sub-agent
 * Proactively use sub-agents appropriate to the situation.
 * Handle tasks in parallel when parallelization is possible.
 * To improve the accuracy of distributed processing, chain a sub-agent's feedback to the next sub-agent you invoke as needed.
+* If you are working directly without using a subagent, please check the necessary documents in the ./ref/system directory depending on the work you are doing.
 
 ## Web Search Rules
 * Always think based on the latest information and choose the optimal approach.

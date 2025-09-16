@@ -1,760 +1,430 @@
-# システムアーキテクチャ設計書: 日本語アクセント投票サイト
+# システムアーキテクチャ設計書
 
-**バージョン**: 1.0  
-**最終更新日**: 2025-08-28  
-**対象システム**: 日本語アクセント投票サイト
+## 1. システム概要
 
-## 1. 概要とアーキテクチャ方針
+### 1.1 プロジェクト概要
+「みんなの投票」は、誰でも簡単に投票に参加でき、SNSで拡散しやすい汎用投票プラットフォームです。既存のアクセント投票機能を含み、時事・エンタメ・雑学など幅広いテーマに対応します。
 
-### 1.1 アーキテクチャの基本方針
-- **モノリシック構成**: Next.js Full-Stack架構により、フロントエンドとバックエンドを統合
-- **マイクロサービス化の準備**: API層を明確に分離し、将来的なマイクロサービス化に対応
-- **水平スケーラビリティ**: ステートレス設計により複数インスタンスでの並列処理を実現
-- **レイヤードアーキテクチャ**: 各層の責任分離によるメンテナンス性向上
-- **DDD（Domain-Driven Design）要素**: 語・投票・統計の各ドメインで境界を明確化
+### 1.2 アーキテクチャの基本方針
+- **マイクロサービス指向**: フロントエンドとバックエンドを分離し、RESTful APIで通信
+- **スケーラビリティ**: 段階的な負荷増加に対応可能な設計
+- **保守性**: モジュール化されたコンポーネント設計により、機能追加・修正が容易
+- **セキュリティ**: JWT認証とレート制限による堅牢なセキュリティ
+- **リアルタイム性**: 投票結果の即座反映とライブ統計表示
 
-### 1.2 システム全体の構成概要
+## 2. システム全体アーキテクチャ
 
 ```
-[Frontend (Next.js 14)]
-        ↕ HTTP/WebSocket
-[API Layer (Next.js API Routes)]
-        ↕
-[Business Logic Layer (Service Classes)]
-        ↕
-[Data Access Layer (Prisma ORM)]
-        ↕
-[Database (PostgreSQL)] + [Cache (Redis)] + [External Services]
+┌─────────────────────────────────────────────────────────────┐
+│                        Client Layer                         │
+├─────────────────────────────────────────────────────────────┤
+│  Web Browser (PC/Mobile)  │  SNS Apps (X/Instagram/TikTok) │
+│  ┌─────────────────────┐   │  ┌─────────────────────────────┐ │
+│  │   Next.js 14       │   │  │    Share Links              │ │
+│  │   - App Router      │   │  │    - Magic Links            │ │
+│  │   - SSR/SSG/ISR     │   │  │    - Deep Links             │ │
+│  │   - Client Components│   │  │    - Universal Links        │ │
+│  └─────────────────────┘   │  └─────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                            HTTPS
+                              │
+┌─────────────────────────────────────────────────────────────┐
+│                    API Gateway Layer                        │
+├─────────────────────────────────────────────────────────────┤
+│                      Vercel Edge                            │
+│  ┌─────────────────────────────────────────────────────────┐ │
+│  │ Rate Limiting │ CORS │ Security Headers │ Compression  │ │
+│  └─────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              │
+┌─────────────────────────────────────────────────────────────┐
+│                   Application Layer                         │
+├─────────────────────────────────────────────────────────────┤
+│                    Express.js Server                        │
+│  ┌─────────────────┐ ┌─────────────────┐ ┌───────────────┐   │
+│  │   Controllers   │ │   Middleware    │ │   Services    │   │
+│  │  - Auth         │ │  - JWT Auth     │ │  - Poll       │   │
+│  │  - Polls        │ │  - Validation   │ │  - Vote       │   │
+│  │  - Votes        │ │  - Error        │ │  - Stats      │   │
+│  │  - Admin        │ │  - Rate Limit   │ │  - Auth       │   │
+│  │  - Stats        │ │  - CORS         │ │  - Referral   │   │
+│  └─────────────────┘ └─────────────────┘ └───────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              │
+┌─────────────────────────────────────────────────────────────┐
+│                     Data Layer                              │
+├─────────────────────────────────────────────────────────────┤
+│                    PostgreSQL Database                      │
+│  ┌─────────────────┐ ┌─────────────────┐ ┌───────────────┐   │
+│  │    Core Tables  │ │   Statistics    │ │   Analytics   │   │
+│  │  - Users        │ │  - PollVotes    │ │  - Referrals  │   │
+│  │  - Polls        │ │  - VoteStats    │ │  - Trends     │   │
+│  │  - Words        │ │  - Aggregates   │ │  - Metrics    │   │
+│  │  - Settings     │ │                 │ │               │   │
+│  └─────────────────┘ └─────────────────┘ └───────────────┘   │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-## 2. システム全体アーキテクチャ図
+## 3. 技術スタック詳細
 
-### 2.1 高レベルアーキテクチャ
+### 3.1 フロントエンド (Client Layer)
+| 技術 | バージョン | 役割 | 選定理由 |
+|------|-----------|------|----------|
+| Next.js | 14.x | React フレームワーク | App Router、SSR/SSG/ISR対応、SEO最適化 |
+| React | 18.x | UI ライブラリ | コンポーネント指向、豊富なエコシステム |
+| TypeScript | 5.x | 型安全 | 開発効率向上、実行時エラー削減 |
+| Tailwind CSS | 3.x | CSS フレームワーク | 高速開発、一貫したデザイン |
+| shadcn/ui | latest | UI コンポーネント | アクセシブル、カスタマイズ性 |
+| Zustand | 4.x | 状態管理 | 軽量、シンプルAPI |
+| React Query | 4.x | サーバー状態管理 | キャッシュ、楽観的更新 |
 
-```mermaid
-graph TB
-    subgraph "Client Tier"
-        Client[Web Browser]
-        Mobile[Mobile Browser]
-    end
+### 3.2 バックエンド (Application Layer)
+| 技術 | バージョン | 役割 | 選定理由 |
+|------|-----------|------|----------|
+| Node.js | 18+ | ランタイム | JavaScript統一、豊富なライブラリ |
+| Express.js | 4.x | Web フレームワーク | 軽量、拡張性、実績 |
+| Prisma | 5.x | ORM | 型安全、マイグレーション、開発効率 |
+| JWT | - | 認証 | ステートレス、スケーラブル |
+| Zod | 3.x | バリデーション | TypeScript連携、実行時型チェック |
 
-    subgraph "CDN & Load Balancer"
-        CDN[Cloudflare CDN]
-        LB[Load Balancer]
-    end
+### 3.3 データベース (Data Layer)
+| 技術 | バージョン | 役割 | 選定理由 |
+|------|-----------|------|----------|
+| PostgreSQL | 15+ | メインデータベース | ACID準拠、JSON対応、高性能 |
+| Redis | 7.x | キャッシュ・セッション | 高速アクセス、永続化対応 |
 
-    subgraph "Application Tier"
-        subgraph "Next.js Application (Port 3000)"
-            Frontend[Frontend Components]
-            API[API Routes]
-            Middleware[Middleware Layer]
-        end
-        
-        subgraph "Business Logic"
-            WordService[Word Service]
-            VoteService[Vote Service] 
-            StatsService[Statistics Service]
-            AuthService[Authentication Service]
-            AdminService[Admin Service]
-        end
-    end
+### 3.4 インフラストラクチャ
+| サービス | 役割 | 選定理由 |
+|----------|------|----------|
+| Vercel | フロントエンドホスティング | 自動デプロイ、CDN、Edge Functions |
+| Railway/Supabase | バックエンドホスティング | PostgreSQL統合、スケーリング |
+| Cloudflare | CDN・DDoS対策 | グローバル配信、セキュリティ |
 
-    subgraph "Data Tier"
-        PostgresMain[(PostgreSQL Main DB)]
-        RedisCache[(Redis Cache)]
-        RedisSession[(Redis Sessions)]
-    end
+## 4. アーキテクチャパターン
 
-    subgraph "External Services"
-        SupabaseAuth[Supabase Auth]
-        Turnstile[Cloudflare Turnstile]
-        EmailService[Email Service]
-    end
-
-    Client --> CDN
-    Mobile --> CDN
-    CDN --> LB
-    LB --> Frontend
-    Frontend --> API
-    API --> Middleware
-    Middleware --> WordService
-    Middleware --> VoteService
-    Middleware --> StatsService
-    Middleware --> AuthService
-    Middleware --> AdminService
-
-    WordService --> PostgresMain
-    VoteService --> PostgresMain
-    VoteService --> RedisCache
-    StatsService --> PostgresMain
-    StatsService --> RedisCache
-    AuthService --> SupabaseAuth
-    AuthService --> RedisSession
-    AdminService --> PostgresMain
-
-    API --> Turnstile
-    AdminService --> EmailService
+### 4.1 レイヤード アーキテクチャ
+```
+┌─────────────────────────────────────┐
+│          Presentation Layer         │ ← Next.js Pages & Components
+├─────────────────────────────────────┤
+│           API Layer                 │ ← Express.js Routes & Controllers
+├─────────────────────────────────────┤
+│        Business Logic Layer         │ ← Services & Domain Logic
+├─────────────────────────────────────┤
+│         Data Access Layer           │ ← Prisma ORM & Repositories
+├─────────────────────────────────────┤
+│            Data Layer               │ ← PostgreSQL Database
+└─────────────────────────────────────┘
 ```
 
-### 2.2 データフローアーキテクチャ
+### 4.2 コンポーネント設計パターン
 
-```mermaid
-graph LR
-    subgraph "Frontend Layer"
-        Components[React Components]
-        Hooks[Custom Hooks]
-        Store[Zustand Store]
-        Query[TanStack Query]
-    end
-
-    subgraph "API Gateway Layer"
-        Routes[API Routes]
-        Middleware[Middleware]
-        Validation[Input Validation]
-    end
-
-    subgraph "Service Layer"
-        WordSvc[Word Service]
-        VoteSvc[Vote Service]
-        StatsSvc[Stats Service]
-    end
-
-    subgraph "Data Layer"
-        Prisma[Prisma ORM]
-        Cache[Redis Cache]
-        DB[PostgreSQL]
-    end
-
-    Components --> Hooks
-    Hooks --> Query
-    Query --> Routes
-    Routes --> Middleware
-    Middleware --> Validation
-    Validation --> WordSvc
-    Validation --> VoteSvc
-    Validation --> StatsSvc
-    
-    WordSvc --> Prisma
-    VoteSvc --> Prisma
-    VoteSvc --> Cache
-    StatsSvc --> Cache
-    Prisma --> DB
+#### フロントエンド コンポーネント階層
+```
+App
+├── Layout Components
+│   ├── Header
+│   ├── Navigation
+│   ├── Footer
+│   └── AdminSidebar
+├── Page Components
+│   ├── HomePage
+│   ├── PollDetailPage
+│   ├── StatsPage
+│   └── AdminPage
+├── Feature Components
+│   ├── PollCard
+│   ├── VoteForm
+│   ├── ResultsChart
+│   ├── JapanMap
+│   └── AccentPlayer
+└── UI Components (shadcn/ui)
+    ├── Button
+    ├── Dialog
+    ├── Form
+    └── ...
 ```
 
-## 3. 各コンポーネントの役割と責任
+#### バックエンド サービス階層
+```
+Router Layer
+├── /api/auth/*        → AuthController
+├── /api/polls/*       → PollsController
+├── /api/votes/*       → VotesController
+├── /api/stats/*       → StatsController
+└── /api/admin/*       → AdminController
 
-### 3.1 フロントエンド層 (Frontend Tier)
+Service Layer
+├── AuthService        → JWT処理、認証ロジック
+├── PollService        → 投票作成、取得、統計
+├── VoteService        → 投票記録、重複チェック
+├── StatsService       → 統計計算、地図データ生成
+└── ReferralService    → 紹介機能、ランキング
 
-#### 3.1.1 責任範囲
-- **UI/UX**: ユーザーインターフェースの描画と操作
-- **状態管理**: クライアント側の状態管理とキャッシュ
-- **入力検証**: クライアントサイドバリデーション
-- **ルーティング**: 画面遷移とページ状態管理
-
-#### 3.1.2 主要コンポーネント
-- **Pages (App Router)**: 各画面の構成とレイアウト
-- **Components**: 再利用可能なUIコンポーネント
-- **Hooks**: データフェッチングと状態管理ロジック
-- **Store**: グローバル状態管理（Zustand）
-- **Utils**: ユーティリティ関数群
-
-### 3.2 API層 (API Gateway Tier)
-
-#### 3.2.1 責任範囲
-- **リクエスト受信**: HTTP/WebSocketリクエストの受付
-- **認証・認可**: トークン検証と権限チェック  
-- **入力検証**: リクエストデータの妥当性検証
-- **レート制限**: API利用制限の制御
-- **レスポンス整形**: 統一されたレスポンス形式での返却
-
-#### 3.2.2 主要コンポーネント
-
-```typescript
-// API Routes 構造
-/api/
-├── words/
-│   ├── route.ts          # GET /api/words (検索・一覧)
-│   ├── [id]/
-│   │   ├── route.ts      # GET /api/words/[id] (詳細)
-│   │   └── stats/
-│   │       └── route.ts  # GET /api/words/[id]/stats (統計)
-│   └── recent/
-│       └── route.ts      # GET /api/words/recent (新着)
-├── votes/
-│   ├── route.ts          # POST /api/votes (投票)
-│   └── [id]/
-│       └── route.ts      # DELETE /api/votes/[id] (取消)
-├── auth/
-│   ├── login/route.ts    # POST /api/auth/login
-│   ├── logout/route.ts   # POST /api/auth/logout
-│   └── me/route.ts       # GET /api/auth/me
-├── admin/
-│   └── submissions/
-│       ├── route.ts      # GET /api/admin/submissions
-│       └── [id]/
-│           └── route.ts  # PUT /api/admin/submissions/[id]
-└── stats/
-    ├── summary/route.ts  # GET /api/stats/summary
-    └── trends/route.ts   # GET /api/stats/trends
+Repository Layer
+├── UserRepository     → ユーザーデータアクセス
+├── PollRepository     → 投票データアクセス
+├── VoteRepository     → 投票記録アクセス
+└── StatsRepository    → 統計データアクセス
 ```
 
-### 3.3 ビジネスロジック層 (Service Layer)
+## 5. データフロー設計
 
-#### 3.3.1 責任範囲
-- **ドメインロジック**: 業務ルールの実装
-- **データ変換**: 外部データとドメインオブジェクト間の変換
-- **トランザクション管理**: データ整合性の保証
-- **外部サービス連携**: 認証・通知サービスとの連携
-
-#### 3.3.2 サービスクラス設計
-
-```typescript
-// Word Service
-export class WordService {
-  async searchWords(query: SearchQuery): Promise<SearchResult>
-  async getWordDetail(id: number): Promise<WordDetail>
-  async submitNewWord(submission: WordSubmission): Promise<SubmissionResult>
-  async approveSubmission(id: number, approval: ApprovalData): Promise<void>
-}
-
-// Vote Service  
-export class VoteService {
-  async submitVote(vote: VoteData): Promise<VoteResult>
-  async undoVote(voteId: number, deviceId: string): Promise<void>
-  async canUserVote(wordId: number, deviceId: string): Promise<boolean>
-  async updateVoteStatistics(vote: VoteData): Promise<void>
-}
-
-// Statistics Service
-export class StatisticsService {
-  async getWordStatistics(wordId: number): Promise<WordStats>
-  async getNationalRanking(period: RankingPeriod): Promise<RankingData>
-  async getPrefectureDistribution(wordId: number): Promise<PrefectureStats>
-  async refreshStatisticsCache(): Promise<void>
-}
-
-// Authentication Service
-export class AuthenticationService {
-  async authenticateUser(credentials: LoginCredentials): Promise<AuthResult>
-  async validateToken(token: string): Promise<User>
-  async authorizeAction(user: User, resource: string, action: string): Promise<boolean>
-}
+### 5.1 投票フロー
+```
+[ユーザー] → [投票ページ] → [属性入力] → [投票送信]
+     ↓
+[VoteController] → [VoteService] → [重複チェック] → [DB保存]
+     ↓
+[結果集計] → [統計更新] → [リアルタイム反映] → [ユーザーに結果表示]
 ```
 
-### 3.4 データアクセス層 (Data Access Layer)
-
-#### 3.4.1 責任範囲
-- **データ永続化**: データベースへの読み書き操作
-- **クエリ最適化**: 効率的なSQL生成とクエリ実行
-- **接続管理**: データベース接続プールの管理
-- **トランザクション制御**: ACID特性の保証
-
-#### 3.4.2 Repository パターン実装
-
-```typescript
-// Word Repository
-export interface WordRepository {
-  findById(id: number): Promise<Word | null>
-  findByQuery(query: SearchQuery): Promise<Word[]>
-  save(word: Word): Promise<Word>
-  delete(id: number): Promise<void>
-}
-
-// Vote Repository
-export interface VoteRepository {
-  findByDeviceAndWord(deviceId: string, wordId: number): Promise<Vote | null>
-  save(vote: Vote): Promise<Vote>
-  countByWordAndPrefecture(wordId: number, prefecture: string): Promise<number>
-}
-
-// Statistics Repository
-export interface StatisticsRepository {
-  getWordStatistics(wordId: number): Promise<WordStatistics>
-  updatePrefectureStats(stats: PrefectureStats): Promise<void>
-  getRankingData(period: string, limit: number): Promise<RankingItem[]>
-}
+### 5.2 認証フロー
+```
+[ログイン要求] → [AuthController] → [認証情報検証]
+     ↓
+[JWT生成] → [リフレッシュトークン生成] → [Cookieセット]
+     ↓
+[認証済みセッション] → [保護されたAPI アクセス]
 ```
 
-## 4. データフロー設計
-
-### 4.1 投票処理のデータフロー
-
-```mermaid
-sequenceDiagram
-    participant Client as Browser
-    participant API as API Routes
-    participant Auth as Auth Middleware
-    participant Vote as Vote Service
-    participant Stats as Stats Service
-    participant Cache as Redis Cache
-    participant DB as PostgreSQL
-
-    Client->>API: POST /api/votes (投票データ)
-    API->>Auth: デバイスID検証
-    Auth->>API: 検証結果
-    
-    API->>Vote: submitVote()
-    Vote->>DB: 重複投票チェック
-    DB-->>Vote: チェック結果
-    
-    alt 投票可能
-        Vote->>DB: 投票データ保存
-        Vote->>Stats: updateStatistics()
-        Stats->>Cache: 統計キャッシュ更新
-        Stats->>DB: 集計テーブル更新
-        Vote-->>API: 投票成功
-        API-->>Client: 投票結果 + 統計データ
-    else 投票不可
-        Vote-->>API: エラー（重複投票）
-        API-->>Client: エラーレスポンス
-    end
+### 5.3 統計データフロー
+```
+[投票データ] → [集計バッチ処理] → [統計テーブル更新]
+     ↓
+[地図データ生成] → [ランキング更新] → [キャッシュ更新]
+     ↓
+[API経由でフロントエンドに配信] → [リアルタイム表示]
 ```
 
-### 4.2 統計データ取得のデータフロー
+## 6. 非同期処理設計
 
-```mermaid
-sequenceDiagram
-    participant Client as Browser
-    participant API as API Routes
-    participant Stats as Stats Service
-    participant Cache as Redis Cache
-    participant DB as PostgreSQL
+### 6.1 非同期処理パターン
+| 処理 | パターン | 実装方法 | 目的 |
+|------|----------|----------|------|
+| 投票集計 | 即時処理 | 同期処理 | リアルタイム反映 |
+| 統計計算 | バッチ処理 | cron job | 重い計算の効率化 |
+| メール送信 | キュー処理 | Redis Queue | 非ブロッキング |
+| ファイル生成 | ワーカー処理 | Background Job | UI応答性向上 |
 
-    Client->>API: GET /api/words/1/stats
-    API->>Stats: getWordStatistics(1)
-    
-    Stats->>Cache: キャッシュ確認
-    alt キャッシュ存在
-        Cache-->>Stats: 統計データ
-        Stats-->>API: キャッシュされた統計
-    else キャッシュなし
-        Stats->>DB: 統計クエリ実行
-        DB-->>Stats: 生の統計データ
-        Stats->>Stats: データ変換・集計
-        Stats->>Cache: キャッシュに保存
-        Stats-->>API: 処理済み統計
-    end
-    
-    API-->>Client: 統計データレスポンス
+### 6.2 キャッシュ戦略
 ```
-
-### 4.3 新語承認処理のデータフロー
-
-```mermaid
-sequenceDiagram
-    participant Admin as 管理者
-    participant API as API Routes
-    participant Auth as Auth Service
-    participant Word as Word Service
-    participant Email as Email Service
-    participant DB as PostgreSQL
-
-    Admin->>API: PUT /api/admin/submissions/1 (承認)
-    API->>Auth: 管理者権限確認
-    Auth-->>API: 権限OK
-    
-    API->>Word: approveSubmission(1, approval)
-    Word->>DB: 投稿ステータス更新
-    Word->>DB: 単語マスタに登録
-    Word->>DB: アクセント型オプション生成
-    
-    Word->>Email: 承認通知メール送信
-    Email-->>Word: 送信完了
-    
-    Word-->>API: 承認処理完了
-    API-->>Admin: 承認結果
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│  Browser Cache  │    │   CDN Cache     │    │  Redis Cache    │
+│  (1 hour)       │    │   (24 hours)    │    │  (varies)       │
+│                 │    │                 │    │                 │
+│ - Static Assets │    │ - Images        │    │ - API responses │
+│ - API responses │    │ - API responses │    │ - Session data  │
+│ - User prefs    │    │ - Static pages  │    │ - Statistics    │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
-
-## 5. インフラ構成設計
-
-### 5.1 本番環境構成
-
-```mermaid
-graph TB
-    subgraph "CDN"
-        CF[Cloudflare CDN]
-    end
-
-    subgraph "Load Balancer"
-        ALB[Application Load Balancer]
-    end
-
-    subgraph "Application Servers"
-        App1[Next.js App #1]
-        App2[Next.js App #2]
-        App3[Next.js App #3]
-    end
-
-    subgraph "Database Cluster"
-        PG_Master[(PostgreSQL Master)]
-        PG_Replica1[(PostgreSQL Read Replica #1)]
-        PG_Replica2[(PostgreSQL Read Replica #2)]
-    end
-
-    subgraph "Cache Cluster"
-        Redis_Master[(Redis Master)]
-        Redis_Replica[(Redis Replica)]
-    end
-
-    subgraph "External Services"
-        Supabase[Supabase Auth]
-        Email[SendGrid/SES]
-        Monitoring[DataDog/New Relic]
-    end
-
-    CF --> ALB
-    ALB --> App1
-    ALB --> App2  
-    ALB --> App3
-
-    App1 --> PG_Master
-    App1 --> PG_Replica1
-    App2 --> PG_Master
-    App2 --> PG_Replica2
-    App3 --> PG_Master
-    App3 --> PG_Replica1
-
-    App1 --> Redis_Master
-    App2 --> Redis_Master
-    App3 --> Redis_Master
-    Redis_Master --> Redis_Replica
-
-    App1 --> Supabase
-    App2 --> Supabase
-    App3 --> Supabase
-    App1 --> Email
-    App1 --> Monitoring
-```
-
-### 5.2 開発・ステージング環境
-
-```mermaid
-graph TB
-    subgraph "Development Environment"
-        DevApp[Next.js Dev Server]
-        DevDB[(PostgreSQL)]
-        DevRedis[(Redis)]
-        DevAuth[Supabase Dev Project]
-    end
-
-    subgraph "Staging Environment"
-        StageApp[Next.js Staging]
-        StageDB[(PostgreSQL Staging)]
-        StageRedis[(Redis Staging)]
-        StageAuth[Supabase Staging]
-    end
-
-    DevApp --> DevDB
-    DevApp --> DevRedis
-    DevApp --> DevAuth
-
-    StageApp --> StageDB
-    StageApp --> StageRedis
-    StageApp --> StageAuth
-```
-
-## 6. 技術スタック構成
-
-### 6.1 フロントエンド技術スタック
-
-| カテゴリ | 技術・ライブラリ | バージョン | 役割 |
-|---------|----------------|------------|------|
-| フレームワーク | Next.js | 14.x | React フルスタックフレームワーク |
-| 言語 | TypeScript | 5.x | 型安全性とコード品質向上 |
-| UI フレームワーク | React | 18.x | コンポーネントベース UI |
-| スタイリング | Tailwind CSS | 3.x | ユーティリティファーストCSS |
-| 状態管理 | TanStack Query | 5.x | サーバー状態管理・キャッシュ |
-| 状態管理 | Zustand | 4.x | クライアント状態管理 |
-| フォーム | React Hook Form | 7.x | 高性能フォームライブラリ |
-| バリデーション | Zod | 3.x | TypeScript スキーマバリデーション |
-| 可視化 | Apache ECharts | 5.x | 地図・グラフ描画 |
-| アニメーション | Framer Motion | 11.x | 滑らかなアニメーション |
-
-### 6.2 バックエンド技術スタック
-
-| カテゴリ | 技術・ライブラリ | バージョン | 役割 |
-|---------|----------------|------------|------|
-| API | Next.js API Routes | 14.x | RESTful API・WebSocket |
-| ORM | Prisma | 5.x | データベース操作・マイグレーション |
-| データベース | PostgreSQL | 15.x | メインデータストア |
-| キャッシュ | Redis | 7.x | セッション・キャッシュ・レート制限 |
-| 認証 | Supabase Auth | latest | ユーザー認証・セッション管理 |
-| バリデーション | Zod | 3.x | API入力検証 |
-| セキュリティ | bcryptjs | 2.x | パスワードハッシュ化 |
-| ボット対策 | Cloudflare Turnstile | latest | ボット検証 |
-
-### 6.3 開発・運用技術スタック
-
-| カテゴリ | 技術・ツール | 役割 |
-|---------|-------------|------|
-| パッケージ管理 | pnpm | 高速パッケージマネージャー |
-| コード品質 | ESLint + Prettier | コードフォーマット・lint |
-| テスト | Vitest + React Testing Library | ユニット・統合テスト |
-| E2E テスト | Playwright | エンドツーエンドテスト |
-| Git Hooks | Husky + lint-staged | コミット時品質チェック |
-| CI/CD | GitHub Actions | 自動デプロイ・テスト |
-| 監視 | DataDog / New Relic | パフォーマンス監視 |
-| ログ | Winston / Pino | 構造化ログ出力 |
 
 ## 7. セキュリティアーキテクチャ
 
-### 7.1 セキュリティ層の配置
-
-```mermaid
-graph TB
-    subgraph "Security Layers"
-        CDN[CDN Security<br/>・DDoS Protection<br/>・WAF Rules]
-        LB[Load Balancer Security<br/>・SSL Termination<br/>・Rate Limiting]
-        App[Application Security<br/>・Input Validation<br/>・CSRF Protection<br/>・XSS Prevention]
-        Data[Data Security<br/>・Encryption at Rest<br/>・Row Level Security<br/>・SQL Injection Prevention]
-    end
-
-    Internet --> CDN
-    CDN --> LB
-    LB --> App
-    App --> Data
+### 7.1 セキュリティレイヤー
+```
+┌─────────────────────────────────────────────────────┐
+│                 Client Security                     │
+│ - CSP Headers, XSS Protection, Input Validation    │
+├─────────────────────────────────────────────────────┤
+│               Transport Security                    │
+│ - HTTPS/TLS 1.3, HSTS, Certificate Pinning        │
+├─────────────────────────────────────────────────────┤
+│              Application Security                   │
+│ - JWT Authentication, CSRF Protection, CORS        │
+├─────────────────────────────────────────────────────┤
+│                 Data Security                       │
+│ - Database Encryption, PII Protection, Backup     │
+└─────────────────────────────────────────────────────┘
 ```
 
 ### 7.2 認証・認可フロー
-
-```mermaid
-sequenceDiagram
-    participant User as ユーザー
-    participant Client as Browser
-    participant API as API Gateway
-    participant Auth as Auth Service
-    participant Supabase as Supabase Auth
-    participant DB as Database
-
-    User->>Client: ログイン要求
-    Client->>API: POST /api/auth/login
-    API->>Auth: authenticate()
-    Auth->>Supabase: verifyCredentials()
-    Supabase-->>Auth: JWT Token
-    Auth->>DB: ユーザー情報取得
-    DB-->>Auth: User データ
-    Auth->>API: AuthResult
-    API->>Client: HTTPOnly Cookie設定
-    Client->>User: ログイン完了
-
-    Note over Client: 以降のリクエストでCookieが送信される
-
-    Client->>API: 認証が必要なAPI呼び出し
-    API->>Auth: validateToken()
-    Auth->>Supabase: verifyJWT()
-    Supabase-->>Auth: Token Valid
-    Auth->>API: User Context
-    API->>API: 認可チェック
-    API-->>Client: リソース応答
+```
+Request → Rate Limiting → CORS → JWT Validation → Role Check → Controller
+   │           │           │           │             │            │
+   │           │           │           │             │            ▼
+   │           │           │           │             │      Business Logic
+   │           │           │           │             │            │
+   │           │           │           │             │            ▼
+   │           │           │           │             │       Data Access
+   │           │           │           │             │            │
+   ▼           ▼           ▼           ▼             ▼            ▼
+Error 429  Error 403   Error 403   Error 401   Error 403    Success 200
 ```
 
-## 8. パフォーマンス設計
+## 8. スケーラビリティ設計
 
-### 8.1 キャッシュ戦略
+### 8.1 水平スケーリング戦略
+| コンポーネント | スケーリング方法 | 負荷分散 | 制約事項 |
+|---------------|------------------|----------|----------|
+| Webサーバー | 複数インスタンス | ロードバランサー | セッション共有 |
+| データベース | リードレプリカ | 読み取り分散 | 書き込み単一 |
+| キャッシュ | Redis Cluster | シャーディング | データ整合性 |
+| ファイル | CDN配信 | エッジ配信 | 同期遅延 |
 
-```mermaid
-graph LR
-    subgraph "Cache Layers"
-        CDN_Cache[CDN Cache<br/>Static Assets<br/>24h TTL]
-        App_Cache[Application Cache<br/>TanStack Query<br/>5-30min TTL]
-        Redis_Cache[Redis Cache<br/>API Responses<br/>1-60min TTL]
-        DB_Cache[Database Cache<br/>Query Plan Cache<br/>shared_buffers]
-    end
-
-    Browser --> CDN_Cache
-    CDN_Cache --> App_Cache
-    App_Cache --> Redis_Cache
-    Redis_Cache --> DB_Cache
-    DB_Cache --> PostgreSQL
+### 8.2 パフォーマンス最適化
 ```
-
-### 8.2 データベース最適化戦略
-
-| 最適化項目 | 実装手法 | 効果 |
-|-----------|----------|------|
-| インデックス最適化 | 複合インデックス・部分インデックス | クエリ速度向上 |
-| マテリアライズドビュー | 重い集計クエリの事前計算 | 統計表示の高速化 |
-| パーティショニング | 日付ベースのテーブル分割 | 大容量データ対応 |
-| 接続プーリング | PgBouncer使用 | 同時接続数最適化 |
-| レプリケーション | 読み書き分離構成 | 読み取り処理の分散 |
-
-### 8.3 フロントエンド最適化戦略
-
-| 最適化項目 | 実装手法 | 効果 |
-|-----------|----------|------|
-| コード分割 | Dynamic Import・Route-based Splitting | 初期ロード時間短縮 |
-| 画像最適化 | Next.js Image・WebP変換・遅延ローディング | 画像ロード最適化 |
-| バンドルサイズ | Tree Shaking・不要ライブラリ除去 | JavaScript サイズ削減 |
-| メモ化 | React.memo・useMemo・useCallback | 不要な再レンダリング抑制 |
-| プリフェッチ | Link prefetch・TanStack Query | ページ遷移の高速化 |
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Frontend      │    │    Backend      │    │   Database      │
+│                 │    │                 │    │                 │
+│ - Code Split    │    │ - Connection    │    │ - Indexing      │
+│ - Lazy Loading  │    │   Pooling       │    │ - Query Opt     │
+│ - Tree Shaking  │    │ - Query Opt     │    │ - Partitioning  │
+│ - Image Opt     │    │ - Caching       │    │ - Read Replica  │
+│ - Bundle Opt    │    │ - Compression   │    │ - Vacuuming     │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+```
 
 ## 9. 監視・ログ設計
 
-### 9.1 監視項目とメトリクス
+### 9.1 監視対象メトリクス
+| カテゴリ | メトリクス | 目標値 | アラート閾値 |
+|----------|------------|--------|-------------|
+| 可用性 | Uptime | 99.9% | < 99% |
+| パフォーマンス | API Response Time | < 1s | > 3s |
+| エラー率 | Error Rate | < 1% | > 5% |
+| リソース | CPU Usage | < 70% | > 90% |
+| リソース | Memory Usage | < 80% | > 95% |
 
-```mermaid
-graph TB
-    subgraph "Infrastructure Metrics"
-        CPU[CPU Usage]
-        Memory[Memory Usage]
-        Disk[Disk I/O]
-        Network[Network I/O]
-    end
-
-    subgraph "Application Metrics"
-        ResponseTime[API Response Time]
-        Throughput[Request Throughput]
-        ErrorRate[Error Rate]
-        Availability[Service Availability]
-    end
-
-    subgraph "Business Metrics"
-        VotesPerHour[投票数/時間]
-        ActiveUsers[アクティブユーザー数]
-        WordSubmissions[新語投稿数]
-        ConversionRate[投票完了率]
-    end
-
-    subgraph "Database Metrics"
-        DBConnections[DB Connection Pool]
-        QueryTime[Query Execution Time]
-        LockWait[Lock Wait Time]
-        CacheHitRatio[Cache Hit Ratio]
-    end
+### 9.2 ログ設計
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│  Application    │    │    Structured   │    │   Centralized   │
+│     Logs        │────│     Logging     │────│    Storage      │
+│                 │    │                 │    │                 │
+│ - Access Log    │    │ - JSON Format   │    │ - Log Rotation  │
+│ - Error Log     │    │ - Timestamp     │    │ - Retention     │
+│ - Audit Log     │    │ - Correlation   │    │ - Search Index  │
+│ - Debug Log     │    │ - User Context  │    │ - Alert Rules   │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-### 9.2 ログ収集アーキテクチャ
+## 10. 災害復旧・バックアップ戦略
 
-```mermaid
-graph LR
-    subgraph "Log Sources"
-        AppLogs[Application Logs]
-        AccessLogs[Access Logs]
-        ErrorLogs[Error Logs]
-        AuditLogs[Audit Logs]
-    end
+### 10.1 バックアップ戦略
+| データ種別 | バックアップ頻度 | 保持期間 | 復旧時間目標 |
+|------------|------------------|----------|-------------|
+| データベース | 毎日 | 30日 | 1時間以内 |
+| ファイル | 毎日 | 30日 | 1時間以内 |
+| 設定 | 変更時 | 永久 | 30分以内 |
+| コード | Git管理 | 永久 | 15分以内 |
 
-    subgraph "Log Processing"
-        LogAgent[Log Agent<br/>Fluentd/Vector]
-        LogBuffer[Log Buffer<br/>Redis/Kafka]
-    end
-
-    subgraph "Log Storage"
-        LogStore[Log Storage<br/>Elasticsearch/CloudWatch]
-    end
-
-    subgraph "Visualization"
-        Dashboard[Dashboard<br/>Grafana/DataDog]
-        Alerts[Alert System<br/>PagerDuty/Slack]
-    end
-
-    AppLogs --> LogAgent
-    AccessLogs --> LogAgent
-    ErrorLogs --> LogAgent
-    AuditLogs --> LogAgent
-    
-    LogAgent --> LogBuffer
-    LogBuffer --> LogStore
-    LogStore --> Dashboard
-    LogStore --> Alerts
+### 10.2 障害対応フロー
+```
+障害検知 → 影響度評価 → 対応方針決定 → 緊急対応
+    │           │           │           │
+    │           │           │           ▼
+    │           │           │     一時復旧
+    │           │           │           │
+    │           │           │           ▼
+    │           │           │      根本対応
+    │           │           │           │
+    │           │           │           ▼
+    │           │           │     事後分析
+    │           │           │           │
+    ▼           ▼           ▼           ▼
+ 通知      優先度     リソース     改善策
+発信       設定       配分        実装
 ```
 
-## 10. スケーラビリティ設計
+## 11. 開発・運用プロセス
 
-### 10.1 水平スケーリング戦略
-
-```mermaid
-graph TB
-    subgraph "Traffic Growth Phases"
-        Phase1[Phase 1: 1K users<br/>Single Instance]
-        Phase2[Phase 2: 10K users<br/>Multi Instance + LB]
-        Phase3[Phase 3: 100K users<br/>DB Replication + Cache]
-        Phase4[Phase 4: 1M users<br/>Microservices + CDN]
-    end
-
-    Phase1 --> Phase2
-    Phase2 --> Phase3
-    Phase3 --> Phase4
+### 11.1 CI/CDパイプライン
+```
+Code Push → Lint/Test → Build → Deploy → Monitor
+    │           │         │       │        │
+    │           │         │       │        ▼
+    │           │         │       │   Performance
+    │           │         │       │      Check
+    │           │         │       │        │
+    │           │         │       ▼        │
+    │           │         │    Rollback    │
+    │           │         │   (if error)   │
+    │           │         │        │       │
+    │           ▼         ▼        ▼       ▼
+    │      Unit Test   Integration  Production
+    │         │           Test        │
+    │         │            │          │
+    ▼         ▼            ▼          ▼
+   ESLint  Jest/RTL    Playwright   Vercel
+ TypeCheck  Supertest    E2E Test   Railway
 ```
 
-### 10.2 データベーススケーリング
+### 11.2 環境戦略
+| 環境 | 目的 | データ | デプロイ |
+|------|------|--------|----------|
+| Development | 開発作業 | Mock/Seed | Manual |
+| Staging | 本番前検証 | 本番コピー | Auto (PR) |
+| Production | 本番運用 | 本番データ | Auto (main) |
 
-```mermaid
-graph TB
-    subgraph "Scaling Strategy"
-        Vertical[垂直スケーリング<br/>CPU・メモリ増強]
-        Horizontal[水平スケーリング<br/>リードレプリカ追加]
-        Sharding[シャーディング<br/>データ分割]
-        Archive[アーカイブ<br/>古いデータの分離]
-    end
+## 12. API設計原則
 
-    subgraph "Implementation Order"
-        Step1[1. リードレプリカ導入]
-        Step2[2. キャッシュ層強化]
-        Step3[3. パーティショニング]
-        Step4[4. シャーディング検討]
-    end
-
-    Vertical --> Step1
-    Step1 --> Step2
-    Step2 --> Step3
-    Step3 --> Step4
+### 12.1 RESTful API設計
+```
+Resource-based URLs:
+GET    /api/polls              # 投票一覧取得
+POST   /api/polls              # 投票作成
+GET    /api/polls/{id}         # 投票詳細取得
+PUT    /api/polls/{id}         # 投票更新
+DELETE /api/polls/{id}         # 投票削除
+POST   /api/polls/{id}/votes   # 投票記録
 ```
 
-## 11. 障害対応・復旧設計
+### 12.2 レスポンス形式統一
+```typescript
+// 成功レスポンス
+{
+  success: true,
+  data: T,
+  meta?: {
+    pagination?: PaginationInfo,
+    timestamp: string
+  }
+}
 
-### 11.1 障害シナリオと対応策
-
-| 障害シナリオ | 影響範囲 | 対応策 | 復旧時間目標 |
-|------------|----------|--------|--------------|
-| アプリケーションサーバー障害 | 一部機能停止 | ロードバランサー自動切り替え | 30秒以内 |
-| データベースマスター障害 | 全機能停止 | リードレプリカの手動昇格 | 5分以内 |
-| Redis障害 | パフォーマンス低下 | DB直接アクセスに切り替え | 1分以内 |
-| 外部サービス障害 | 一部機能制限 | グレースフル・デグレーデーション | 継続運用 |
-| CDN障害 | 表示速度低下 | オリジンサーバー直接配信 | 1分以内 |
-
-### 11.2 バックアップ・復旧戦略
-
-```mermaid
-graph TB
-    subgraph "Backup Strategy"
-        DBBackup[Database Backup<br/>・Full: Daily<br/>・Incremental: Hourly<br/>・WAL: Continuous]
-        CodeBackup[Code Repository<br/>・Git Repository<br/>・Multiple Remotes]
-        ConfigBackup[Configuration<br/>・Infrastructure as Code<br/>・Environment Variables]
-    end
-
-    subgraph "Recovery Procedures"
-        PointInTime[Point-in-Time Recovery<br/>最大1時間前まで復旧可能]
-        DisasterRecovery[Disaster Recovery<br/>別リージョンでの復旧]
-        DataValidation[Data Validation<br/>復旧後の整合性チェック]
-    end
-
-    DBBackup --> PointInTime
-    CodeBackup --> DisasterRecovery
-    ConfigBackup --> DisasterRecovery
-    PointInTime --> DataValidation
-    DisasterRecovery --> DataValidation
+// エラーレスポンス
+{
+  success: false,
+  error: {
+    code: string,
+    message: string,
+    details?: any
+  }
+}
 ```
 
-## 12. まとめと次ステップ
+## 13. 拡張性設計
 
-### 12.1 アーキテクチャの特徴
-1. **モジュラー設計**: 各層の独立性により、段階的な改修・拡張が可能
-2. **スケーラブル**: 負荷増加に応じた柔軟なスケーリング対応
-3. **可観測性**: 包括的な監視・ログ・メトリクス収集
-4. **セキュア**: 多層防御による堅牢なセキュリティ
-5. **開発効率**: モダンな技術スタックによる高い開発生産性
+### 13.1 プラグインアーキテクチャ
+```
+Core System
+├── Auth Plugin      # 認証プロバイダー拡張
+├── Storage Plugin   # ストレージ拡張
+├── Analytics Plugin # 分析機能拡張
+├── Payment Plugin   # 決済機能拡張
+└── AI Plugin        # AI機能拡張
+```
 
-### 12.2 実装時の注意点
-1. **段階的実装**: MVP → 機能拡張 → 最適化の順で進行
-2. **パフォーマンステスト**: 各段階でのパフォーマンス検証
-3. **セキュリティレビュー**: 定期的なセキュリティ監査
-4. **ドキュメント整備**: アーキテクチャ変更の継続的なドキュメント更新
+### 13.2 将来対応予定機能
+- WebSocket による リアルタイム更新
+- GraphQL API 対応
+- マイクロサービス分割
+- Kubernetes 対応
+- 多言語対応 (i18n)
+- PWA 対応
+- 機械学習による 投票予測
 
-### 12.3 将来的な発展方向
-1. **マイクロサービス化**: トラフィック増加に応じた段階的なサービス分割
-2. **機械学習統合**: アクセント予測・異常検知機能の追加
-3. **リアルタイム機能**: WebSocketベースの投票結果リアルタイム更新
-4. **国際化**: 多言語対応と他言語アクセント調査への拡張
+## 14. まとめ
 
-このアーキテクチャ設計により、日本語アクセント投票サイトの要求を満たしつつ、将来の拡張性も確保した堅牢なシステムを構築できます。
+本アーキテクチャ設計は以下の特徴を持ちます：
+
+1. **モジュラー設計**: 各コンポーネントが独立し、並行開発が可能
+2. **スケーラブル**: 段階的な拡張に対応
+3. **セキュア**: 多層防御によるセキュリティ
+4. **保守性**: 明確な責任分離と文書化
+5. **パフォーマンス**: 適切なキャッシュ戦略とクエリ最適化
+
+これにより、安定性と拡張性を両立した投票プラットフォームの構築が可能です。

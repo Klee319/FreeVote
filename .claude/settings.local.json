@@ -11,8 +11,5 @@
     "defaultMode": "bypassPermissions"
   },
   "enableAllProjectMcpServers": true,
-  "enabledMcpjsonServers": [
-    "playwright",
-    "serena"
-  ]
+  "enabledMcpjsonServers": []
 }

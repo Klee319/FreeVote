@@ -1,327 +1,144 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
+// ユーザーモデル
 model User {
-  id                   String       @id @default(uuid())
-  email                String       @unique
-  displayName          String?      @map("display_name")
-  role                 String       @default("user")
-  prefectureCode       String?      @map("prefecture_code")
-  ageGroup             String?      @map("age_group")
-  createdAt            DateTime     @default(now()) @map("created_at")
-  updatedAt            DateTime     @updatedAt @map("updated_at")
-  auditLogs            AuditLog[]
-  moderatedSubmissions Submission[] @relation("ModeratedSubmissions")
-  submissions          Submission[]
-  prefecture           Prefecture?  @relation(fields: [prefectureCode], references: [code])
-  votes                Vote[]
-  approvedWords        Word[]       @relation("ApprovedWords")
-  submittedWords       Word[]       @relation("SubmittedWords")
+  id            String          @id @default(uuid())
+  username      String?         @unique
+  email         String?         @unique
+  passwordHash  String?
+  ageGroup      String          // 10代、20代、30代...
+  prefecture    String          // 都道府県コード
+  gender        String          // 男性/女性/その他
+  provider      String?         // twitter, instagram, tiktok
+  providerId    String?
+  referralCount Int             @default(0)
+  isAdmin       Boolean         @default(false)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
 
-  @@map("users")
+  votes         PollVote[]
+  referrals     UserReferral[]
+  pollsCreated  Poll[]
+  refreshTokens RefreshToken[]
+  requests      UserVoteRequest[]
+
+  @@index([email])
+  @@index([provider, providerId])
 }
 
-model Prefecture {
-  code           String          @id
-  name           String
-  region         String
-  anonymousUsers AnonymousUser[]
-  submissions    Submission[]
-  users          User[]
-  votes          Vote[]
-  wordPrefStats  WordPrefStats[]
+// リフレッシュトークン管理
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 
-  @@map("prefectures")
+  @@index([userId])
+  @@index([token])
 }
 
-model WordCategory {
-  id          Int          @id @default(autoincrement())
-  name        String       @unique
-  description String?
-  submissions Submission[]
-  words       Word[]
-
-  @@map("word_categories")
-}
-
-model Word {
-  id            Int                 @id @default(autoincrement())
-  headword      String
-  reading       String
-  categoryId    Int?                @map("category_id")
-  moraCount     Int                 @map("mora_count")
-  moraSegments  String              @map("mora_segments")
-  status        String              @default("approved")
-  submittedBy   String?             @map("submitted_by")
-  approvedBy    String?             @map("approved_by")
-  approvedAt    DateTime?           @map("approved_at")
-  createdAt     DateTime            @default(now()) @map("created_at")
-  updatedAt     DateTime            @updatedAt @map("updated_at")
-  accentOptions AccentOption[]
-  votes         Vote[]
-  aliases       WordAlias[]
-  nationalStats WordNationalStats[]
-  prefStats     WordPrefStats[]
-  polls         Poll[]              // 汎用投票との関連
-  approver      User?               @relation("ApprovedWords", fields: [approvedBy], references: [id])
-  submitter     User?               @relation("SubmittedWords", fields: [submittedBy], references: [id])
-  category      WordCategory?       @relation(fields: [categoryId], references: [id])
-
-  @@unique([headword, reading])
-  @@map("words")
-}
-
-model WordAlias {
-  id        Int      @id @default(autoincrement())
-  wordId    Int      @map("word_id")
-  alias     String
-  createdAt DateTime @default(now()) @map("created_at")
-  word      Word     @relation(fields: [wordId], references: [id], onDelete: Cascade)
-
-  @@map("word_aliases")
-}
-
-model AccentType {
-  id            Int                 @id @default(autoincrement())
-  code          String              @unique
-  name          String
-  description   String?
-  sortOrder     Int                 @default(0) @map("sort_order")
-  accentOptions AccentOption[]
-  submissions   Submission[]
-  votes         Vote[]
-  nationalStats WordNationalStats[]
-  prefStats     WordPrefStats[]
-
-  @@map("accent_types")
-}
-
-model AccentOption {
-  id            Int        @id @default(autoincrement())
-  wordId        Int        @map("word_id")
-  accentTypeId  Int        @map("accent_type_id")
-  accentPattern String     @map("accent_pattern")
-  dropPosition  Int?       @map("drop_position")
-  createdAt     DateTime   @default(now()) @map("created_at")
-  accentType    AccentType @relation(fields: [accentTypeId], references: [id])
-  word          Word       @relation(fields: [wordId], references: [id], onDelete: Cascade)
-
-  @@unique([wordId, accentTypeId])
-  @@map("accent_options")
-}
-
-model Device {
-  id              String     @id @default(uuid())
-  fingerprintHash String     @unique @map("fingerprint_hash")
-  createdAt       DateTime   @default(now()) @map("created_at")
-  lastSeenAt      DateTime   @default(now()) @map("last_seen_at")
-  auditLogs       AuditLog[]
-  votes           Vote[]
-
-  @@map("devices")
-}
-
-model Vote {
-  id                Int            @id @default(autoincrement())
-  wordId            Int            @map("word_id")
-  accentTypeId      Int            @map("accent_type_id")
-  deviceId          String         @map("device_id")
-  userId            String?        @map("user_id")
-  anonymousDeviceId String?        @map("anonymous_device_id")
-  prefectureCode    String?        @map("prefecture_code")
-  ageGroup          String?        @map("age_group")
-  ipAddress         String?        @map("ip_address")
-  userAgent         String?        @map("user_agent")
-  createdAt         DateTime       @default(now()) @map("created_at")
-  updatedAt         DateTime       @updatedAt @map("updated_at")
-  prefecture        Prefecture?    @relation(fields: [prefectureCode], references: [code])
-  anonymousUser     AnonymousUser? @relation("AnonymousVotes", fields: [anonymousDeviceId], references: [deviceId])
-  user              User?          @relation(fields: [userId], references: [id])
-  device            Device         @relation(fields: [deviceId], references: [id])
-  accentType        AccentType     @relation(fields: [accentTypeId], references: [id])
-  word              Word           @relation(fields: [wordId], references: [id], onDelete: Cascade)
-
-  @@unique([deviceId, wordId])
-  @@index([anonymousDeviceId])
-  @@map("votes")
-}
-
-model WordPrefStats {
-  id               Int        @id @default(autoincrement())
-  wordId           Int        @map("word_id")
-  prefectureCode   String     @map("prefecture_code")
-  accentTypeId     Int        @map("accent_type_id")
-  voteCount        Int        @default(0) @map("vote_count")
-  votePercentage   Decimal    @default(0.00) @map("vote_percentage")
-  totalVotesInPref Int        @default(0) @map("total_votes_in_pref")
-  updatedAt        DateTime   @updatedAt @map("updated_at")
-  accentType       AccentType @relation(fields: [accentTypeId], references: [id])
-  prefecture       Prefecture @relation(fields: [prefectureCode], references: [code])
-  word             Word       @relation(fields: [wordId], references: [id], onDelete: Cascade)
-
-  @@unique([wordId, prefectureCode, accentTypeId])
-  @@map("word_pref_stats")
-}
-
-model WordNationalStats {
-  id             Int        @id @default(autoincrement())
-  wordId         Int        @map("word_id")
-  accentTypeId   Int        @map("accent_type_id")
-  voteCount      Int        @default(0) @map("vote_count")
-  votePercentage Decimal    @default(0.00) @map("vote_percentage")
-  totalVotes     Int        @default(0) @map("total_votes")
-  updatedAt      DateTime   @updatedAt @map("updated_at")
-  accentType     AccentType @relation(fields: [accentTypeId], references: [id])
-  word           Word       @relation(fields: [wordId], references: [id], onDelete: Cascade)
-
-  @@unique([wordId, accentTypeId])
-  @@map("word_national_stats")
-}
-
-model Submission {
-  id                  Int           @id @default(autoincrement())
-  headword            String
-  reading             String
-  categoryId          Int?          @map("category_id")
-  aliases             String?
-  submittedBy         String?       @map("submitted_by")
-  initialAccentTypeId Int?          @map("initial_accent_type_id")
-  prefectureCode      String?       @map("prefecture_code")
-  ageGroup            String?       @map("age_group")
-  status              String        @default("pending")
-  moderatorComment    String?       @map("moderator_comment")
-  approvedBy          String?       @map("approved_by")
-  approvedAt          DateTime?     @map("approved_at")
-  createdAt           DateTime      @default(now()) @map("created_at")
-  prefecture          Prefecture?   @relation(fields: [prefectureCode], references: [code])
-  initialAccentType   AccentType?   @relation(fields: [initialAccentTypeId], references: [id])
-  approver            User?         @relation("ModeratedSubmissions", fields: [approvedBy], references: [id])
-  submitter           User?         @relation(fields: [submittedBy], references: [id])
-  category            WordCategory? @relation(fields: [categoryId], references: [id])
-
-  @@unique([headword, reading])
-  @@map("submissions")
-}
-
-model RateLimit {
-  id          Int      @id @default(autoincrement())
-  ipAddress   String   @map("ip_address")
-  actionType  String   @map("action_type")
-  count       Int      @default(1)
-  windowStart DateTime @default(now()) @map("window_start")
-  createdAt   DateTime @default(now()) @map("created_at")
-
-  @@unique([ipAddress, actionType, windowStart])
-  @@map("rate_limits")
-}
-
-model AuditLog {
-  id           Int      @id @default(autoincrement())
-  userId       String?  @map("user_id")
-  deviceId     String?  @map("device_id")
-  action       String
-  resourceType String   @map("resource_type")
-  resourceId   Int?     @map("resource_id")
-  oldData      String?  @map("old_data")
-  newData      String?  @map("new_data")
-  ipAddress    String?  @map("ip_address")
-  userAgent    String?  @map("user_agent")
-  createdAt    DateTime @default(now()) @map("created_at")
-  device       Device?  @relation(fields: [deviceId], references: [id])
-  user         User?    @relation(fields: [userId], references: [id])
-
-  @@map("audit_logs")
-}
-
-model AnonymousUser {
-  deviceId       String     @id @default(uuid()) @map("device_id")
-  ageGroup       String     @map("age_group")
-  gender         String
-  prefectureCode String     @map("prefecture_code")
-  registeredAt   DateTime   @default(now()) @map("registered_at")
-  lastActiveAt   DateTime   @default(now()) @map("last_active_at")
-  sessionData    String     @default("{}") @map("session_data")
-  prefecture     Prefecture @relation(fields: [prefectureCode], references: [code])
-  votes          Vote[]     @relation("AnonymousVotes")
-
-  @@index([prefectureCode])
-  @@index([lastActiveAt])
-  @@index([registeredAt])
-  @@map("anonymous_users")
-}
-
-model AppSettings {
-  id          Int      @id @default(autoincrement())
-  key         String   @unique
-  value       String
-  type        String   @default("string") // string, number, boolean, json
-  description String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  @@index([key])
-  @@map("app_settings")
-}
-
-// 汎用投票システムのモデル
+// 投票モデル
 model Poll {
-  id               Int        @id @default(autoincrement())
-  title            String
-  description      String?
-  isAccentMode     Boolean    @default(false) @map("is_accent_mode")
-  options          String     // JSON: 選択肢の配列（最大4件）
-  wordId           Int?       @map("word_id") // アクセントモード時のみ
-  deadline         DateTime?
-  shareHashtags    String?    @map("share_hashtags")
-  thumbnailUrl     String?    @map("thumbnail_url")
-  optionThumbnails String?    @map("option_thumbnails") // JSON: 各選択肢のサムネイル画像URL
-  status           String     @default("active") // active, closed, draft
-  createdAt        DateTime   @default(now()) @map("created_at")
-  createdBy        String     @map("created_by") // 管理者のユーザーID
-  updatedAt        DateTime   @updatedAt @map("updated_at")
-  votes            PollVote[]
-  word             Word?      @relation(fields: [wordId], references: [id])
+  id                String      @id @default(uuid())
+  title             String
+  description       String?
+  isAccentMode      Boolean     @default(false)
+  wordId            Int?        // アクセント投票の場合の単語ID
+  options           Json        // 選択肢配列 [{label, thumbnailUrl, pitchPattern?, voiceSampleUrl?}]
+  deadline          DateTime?
+  shareMessage      String?
+  shareHashtags     String?
+  thumbnailUrl      String?
+  optionThumbnails  Json?       // 各選択肢のサムネイル画像URL配列
+  categories        String[]    // カテゴリ配列
+  status            String      @default("active") // active, closed, draft
+  viewCount         Int         @default(0)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  createdBy         String
+  creator           User        @relation(fields: [createdBy], references: [id])
 
-  @@index([status, deadline])
-  @@map("polls")
-}
-
-model PollVote {
-  id            Int         @id @default(autoincrement())
-  pollId        Int         @map("poll_id")
-  poll          Poll        @relation(fields: [pollId], references: [id], onDelete: Cascade)
-  optionIndex   Int         @map("option_index") // 選択肢インデックス（0〜3）
-  userId        String?     @map("user_id") // ログインユーザーID（匿名投票の場合null）
-  deviceId      String?     @map("device_id") // デバイスID
-  prefecture    String      // 投票者の都道府県コード
-  ipAddress     String?     @map("ip_address")
-  userAgent     String?     @map("user_agent")
-  votedAt       DateTime    @default(now()) @map("voted_at")
-
-  @@unique([pollId, deviceId]) // 1つの投票に対して1デバイス1票
-  @@index([pollId, optionIndex])
-  @@map("poll_votes")
-}
-
-model UserVoteRequest {
-  id          Int      @id @default(autoincrement())
-  title       String
-  description String?
-  options     String?  // JSON: ユーザー提案の選択肢（オプショナル）
-  count       Int      @default(1) // 同一リクエストのカウント
-  status      String   @default("pending") // pending, approved, rejected
-  deviceId    String?  @map("device_id")
-  userId      String?  @map("user_id")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  votes             PollVote[]
+  referrals         UserReferral[]
 
   @@index([status])
-  @@map("user_vote_requests")
+  @@index([createdAt])
+  @@index([deadline])
+}
+
+// 投票記録モデル
+model PollVote {
+  id          String   @id @default(uuid())
+  pollId      String
+  poll        Poll     @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  option      Int      // 選択肢インデックス (0-3)
+  prefecture  String
+  ageGroup    String?
+  gender      String?
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  userToken   String   // 匿名ユーザー識別用トークン
+  votedAt     DateTime @default(now())
+
+  @@unique([pollId, userToken]) // 同一投票に対して同じユーザートークンで重複投票不可
+  @@index([pollId])
+  @@index([userId])
+  @@index([votedAt])
+}
+
+// ユーザー投票提案モデル
+model UserVoteRequest {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  options     Json     // 選択肢候補の配列
+  categories  String[] // カテゴリ
+  likeCount   Int      @default(0)
+  status      String   @default("pending") // pending, approved, rejected
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ユーザー紹介記録モデル
+model UserReferral {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pollId       String
+  poll         Poll     @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  visitorToken String
+  referredAt   DateTime @default(now())
+
+  @@unique([userId, pollId, visitorToken]) // 同一ユーザー・投票・訪問者の組み合わせで重複不可
+  @@index([userId])
+  @@index([pollId])
+  @@index([referredAt])
+}
+
+// アプリ設定モデル（サイト全体の設定）
+model AppSettings {
+  id                String   @id @default(uuid())
+  key               String   @unique
+  value             Json
+  description       String?
+  updatedAt         DateTime @updatedAt
+
+  @@index([key])
 }

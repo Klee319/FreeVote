@@ -1,156 +1,145 @@
-import { Router } from 'express';
-import { authMiddleware, requireModerator, requireAdmin } from '../middleware/auth';
-import { AdminController } from '../controllers/admin.controller';
-import { body, query, param } from 'express-validator';
-import { validationMiddleware } from '../middleware/validation';
+import { Router } from "express";
+import { adminController } from "../controllers/admin.controller";
+import { devAdminAuth } from "../middleware/admin-auth";
+import { validateRequest } from "../middleware/validation";
+import { body, query, param } from "express-validator";
 
 const router = Router();
 
-// 管理者ルートは全て認証必須
-router.use(authMiddleware);
+// すべてのルートに管理者認証を適用
+router.use(devAdminAuth);
 
-/**
- * @route POST /api/admin/database/reset
- * @desc データベースリセット（全データ削除）
- * @access Admin
- */
-router.post('/database/reset', requireAdmin, AdminController.resetDatabase.bind(AdminController));
+// ダッシュボード統計
+router.get("/dashboard/stats", adminController.getDashboardStats);
 
-/**
- * @route GET /api/admin/database/stats
- * @desc データベース統計情報取得
- * @access Admin
- */
-router.get('/database/stats', requireAdmin, AdminController.getDatabaseStats.bind(AdminController));
+// 投票管理
+router.get(
+  "/polls",
+  [
+    query("page").optional().isInt({ min: 1 }),
+    query("limit").optional().isInt({ min: 1, max: 100 }),
+    query("status").optional().isIn(["active", "closed", "draft"]),
+    query("category").optional().isString(),
+    query("search").optional().isString(),
+  ],
+  validateRequest,
+  adminController.getPolls
+);
 
-/**
- * @route GET /api/admin/submissions
- * @desc 投稿一覧取得
- * @access Moderator
- */
-router.get('/submissions', requireModerator, async (req, res) => {
-  // TODO: 実装
-  res.status(501).json({
-    success: false,
-    message: 'Not implemented yet',
-  });
-});
+router.post(
+  "/polls",
+  [
+    body("title").notEmpty().withMessage("タイトルは必須です"),
+    body("description").notEmpty().withMessage("説明は必須です"),
+    body("options").isArray({ min: 2, max: 4 }).withMessage("選択肢は2〜4個必要です"),
+    body("deadline").isISO8601().withMessage("有効な締切日時を指定してください"),
+    body("category").optional().isString(),
+    body("isAccentMode").optional().isBoolean(),
+  ],
+  validateRequest,
+  adminController.createPoll
+);
 
-/**
- * @route PUT /api/admin/submissions/:id/approve
- * @desc 投稿承認
- * @access Moderator
- */
-router.put('/submissions/:id/approve', requireModerator, async (req, res) => {
-  // TODO: 実装
-  res.status(501).json({
-    success: false,
-    message: 'Not implemented yet',
-  });
-});
+router.put(
+  "/polls/:id",
+  [
+    param("id").notEmpty(),
+    body("title").optional().notEmpty(),
+    body("description").optional().notEmpty(),
+    body("options").optional().isArray({ min: 2, max: 4 }),
+    body("deadline").optional().isISO8601(),
+  ],
+  validateRequest,
+  adminController.updatePoll
+);
 
-/**
- * @route PUT /api/admin/submissions/:id/reject
- * @desc 投稿却下
- * @access Moderator
- */
-router.put('/submissions/:id/reject', requireModerator, async (req, res) => {
-  // TODO: 実装
-  res.status(501).json({
-    success: false,
-    message: 'Not implemented yet',
-  });
-});
+router.delete(
+  "/polls/:id",
+  [param("id").notEmpty()],
+  validateRequest,
+  adminController.deletePoll
+);
 
-/**
- * @route GET /api/admin/users
- * @desc ユーザー一覧取得
- * @access Admin
- */
-router.get('/users', requireAdmin, AdminController.getUsers.bind(AdminController));
+// ユーザー提案管理
+router.get(
+  "/requests",
+  [
+    query("page").optional().isInt({ min: 1 }),
+    query("limit").optional().isInt({ min: 1, max: 100 }),
+    query("status").optional().isIn(["pending", "approved", "rejected"]),
+  ],
+  validateRequest,
+  adminController.getRequests
+);
 
-/**
- * @route PUT /api/admin/users/:id/role
- * @desc ユーザーロール更新
- * @access Admin
- */
-router.put('/users/:id/role', requireAdmin, AdminController.updateUserRole.bind(AdminController));
+router.post(
+  "/requests/:id/approve",
+  [param("id").notEmpty()],
+  validateRequest,
+  adminController.approveRequest
+);
 
-/**
- * @route GET /api/admin/audit-logs
- * @desc 監査ログ取得
- * @access Admin
- */
-router.get('/audit-logs', requireAdmin, AdminController.getAuditLogs.bind(AdminController));
+router.post(
+  "/requests/:id/reject",
+  [
+    param("id").notEmpty(),
+    body("reason").optional().isString(),
+  ],
+  validateRequest,
+  adminController.rejectRequest
+);
 
-/**
- * @route GET /api/admin/words
- * @desc 単語一覧取得（管理者用）
- * @access Admin
- */
-router.get('/words', requireAdmin, AdminController.getWords.bind(AdminController));
+// データインポート/エクスポート
+router.post(
+  "/import",
+  [
+    body("polls").isArray().withMessage("投票データの配列を提供してください"),
+  ],
+  validateRequest,
+  adminController.importData
+);
 
-/**
- * @route POST /api/admin/words
- * @desc 単語作成
- * @access Admin
- */
-router.post('/words', requireAdmin, AdminController.createWord.bind(AdminController));
+router.get(
+  "/export",
+  [
+    query("type").optional().isIn(["all", "polls", "votes", "users"]),
+  ],
+  validateRequest,
+  adminController.exportData
+);
 
-/**
- * @route PUT /api/admin/words/:id
- * @desc 単語更新
- * @access Admin
- */
-router.put('/words/:id', requireAdmin, AdminController.updateWord.bind(AdminController));
+// ユーザー管理
+router.get(
+  "/users",
+  [
+    query("page").optional().isInt({ min: 1 }),
+    query("limit").optional().isInt({ min: 1, max: 100 }),
+    query("search").optional().isString(),
+    query("role").optional().isIn(["user", "admin"]),
+  ],
+  validateRequest,
+  adminController.getUsers
+);
 
-/**
- * @route DELETE /api/admin/words/:id
- * @desc 単語削除
- * @access Admin
- */
-router.delete('/words/:id', requireAdmin, AdminController.deleteWord.bind(AdminController));
+router.put(
+  "/users/:id",
+  [
+    param("id").notEmpty(),
+    body("username").optional().isString(),
+    body("ageGroup").optional().isString(),
+    body("prefecture").optional().isString(),
+    body("gender").optional().isIn(["male", "female", "other"]),
+    body("role").optional().isIn(["user", "admin"]),
+  ],
+  validateRequest,
+  adminController.updateUser
+);
 
-/**
- * @route POST /api/admin/words/import
- * @desc JSON一括インポート
- * @access Admin
- */
-router.post('/words/import', requireAdmin, AdminController.importWords.bind(AdminController));
-
-/**
- * @route GET /api/admin/stats/overview
- * @desc 投票統計概要取得
- * @access Admin
- */
-router.get('/stats/overview', requireAdmin, AdminController.getVoteStats.bind(AdminController));
-
-/**
- * @route GET /api/admin/polls
- * @desc 投票一覧取得（管理者用）
- * @access Admin
- */
-router.get('/polls', requireAdmin, AdminController.getPolls.bind(AdminController));
-
-/**
- * @route POST /api/admin/polls
- * @desc 投票作成（管理者用）
- * @access Admin
- */
-router.post('/polls', requireAdmin, AdminController.createPoll.bind(AdminController));
-
-/**
- * @route PUT /api/admin/polls/:id
- * @desc 投票更新（管理者用）
- * @access Admin
- */
-router.put('/polls/:id', requireAdmin, AdminController.updatePoll.bind(AdminController));
-
-/**
- * @route DELETE /api/admin/polls/:id
- * @desc 投票削除（管理者用）
- * @access Admin
- */
-router.delete('/polls/:id', requireAdmin, AdminController.deletePoll.bind(AdminController));
+router.delete(
+  "/users/:id",
+  [param("id").notEmpty()],
+  validateRequest,
+  adminController.deleteUser
+);
 
 export default router;
