@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { useAuthStore } from '@/stores/authStore';
 import {
   DropdownMenu,
@@ -13,19 +12,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Search, User, Trophy, Plus, Menu } from 'lucide-react';
+import { User, Plus, Menu } from 'lucide-react';
 
 export function Header() {
   const { user, isAuthenticated, logout } = useAuthStore();
-  const [searchQuery, setSearchQuery] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      window.location.href = `/?search=${encodeURIComponent(searchQuery)}`;
-    }
-  };
 
   const getRankBadge = (referralCount: number) => {
     if (referralCount >= 100) return { name: 'プラチナ', color: 'bg-purple-500' };
@@ -48,28 +39,11 @@ export function Header() {
             </div>
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-4 flex-1 max-w-2xl mx-6">
-            {/* Search Bar */}
-            <form onSubmit={handleSearch} className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="投票を検索..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </form>
-          </div>
-
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center space-x-4">
             {/* Request Button */}
             <Button variant="outline" asChild>
-              <Link href="/request">
+              <Link href="/suggest-poll">
                 <Plus className="mr-2 h-4 w-4" />
                 投票を提案
               </Link>
@@ -135,24 +109,10 @@ export function Header() {
         {/* Mobile Navigation */}
         {isMenuOpen && (
           <div className="md:hidden py-4 space-y-4 border-t">
-            {/* Mobile Search */}
-            <form onSubmit={handleSearch}>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="投票を検索..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </form>
-
             {/* Mobile Actions */}
             <div className="space-y-2">
               <Button variant="outline" className="w-full" asChild>
-                <Link href="/request">
+                <Link href="/suggest-poll">
                   <Plus className="mr-2 h-4 w-4" />
                   投票を提案
                 </Link>

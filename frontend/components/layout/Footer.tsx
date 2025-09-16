@@ -4,7 +4,7 @@ export function Footer() {
   return (
     <footer className="w-full border-t bg-background">
       <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* About Section */}
           <div>
             <h3 className="font-bold text-lg mb-4">みんなの投票</h3>
@@ -23,40 +23,13 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/request" className="text-sm text-muted-foreground hover:text-primary">
-                  投票を提案
+                <Link href="/qa" className="text-sm text-muted-foreground hover:text-primary">
+                  Q&A
                 </Link>
               </li>
               <li>
-                <Link href="/ranking" className="text-sm text-muted-foreground hover:text-primary">
-                  ランキング
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Categories */}
-          <div>
-            <h3 className="font-bold text-lg mb-4">カテゴリ</h3>
-            <ul className="space-y-2">
-              <li>
-                <Link href="/?category=accent" className="text-sm text-muted-foreground hover:text-primary">
-                  アクセント投票
-                </Link>
-              </li>
-              <li>
-                <Link href="/?category=entertainment" className="text-sm text-muted-foreground hover:text-primary">
-                  エンタメ
-                </Link>
-              </li>
-              <li>
-                <Link href="/?category=news" className="text-sm text-muted-foreground hover:text-primary">
-                  ニュース
-                </Link>
-              </li>
-              <li>
-                <Link href="/?category=trivia" className="text-sm text-muted-foreground hover:text-primary">
-                  雑学
+                <Link href="/share-ranking" className="text-sm text-muted-foreground hover:text-primary">
+                  シェアランキング
                 </Link>
               </li>
             </ul>

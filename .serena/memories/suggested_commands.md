@@ -1,104 +1,100 @@
-# 開発コマンド一覧
+# 開発用コマンド一覧
 
-## フロントエンド
+## フロントエンド開発（frontend/）
 
-### 開発サーバー起動
+### 基本コマンド
 ```bash
 cd frontend
-npm run dev
+npm run dev       # 開発サーバー起動（http://localhost:3000）
+npm run build     # 本番ビルド
+npm run start     # 本番サーバー起動
+npm run lint      # ESLintでコードチェック
 ```
-アクセス: http://localhost:3000
-管理画面: http://localhost:3000/admin
 
-### ビルド
+## バックエンド開発（backend/）
+
+### 基本コマンド
 ```bash
+cd backend
+npm run dev       # 開発サーバー起動（http://localhost:5000）
+npm run build     # TypeScriptビルド
+npm run start     # 本番サーバー起動
+npm run lint      # ESLintでコードチェック
+npm run format    # Prettierでコード整形
+npm test          # テスト実行
+```
+
+### Prisma関連コマンド
+```bash
+npm run prisma:generate   # Prismaクライアント生成
+npm run prisma:migrate    # マイグレーション実行
+npm run prisma:push       # スキーマをDBに反映
+npm run prisma:seed       # シードデータ投入
+npm run prisma:studio     # Prisma Studio起動（データベース管理GUI）
+```
+
+## Windows環境での基本コマンド
+
+### ファイル操作
+```bash
+dir               # ファイル一覧表示（lsの代わり）
+type file.txt     # ファイル内容表示（catの代わり）
+copy src dest     # ファイルコピー（cpの代わり）
+move src dest     # ファイル移動（mvの代わり）
+del file          # ファイル削除（rmの代わり）
+mkdir folder      # フォルダ作成
+rmdir folder      # フォルダ削除
+```
+
+### Git操作
+```bash
+git status        # 変更状況確認
+git add .         # 全ファイルをステージング
+git commit -m ""  # コミット
+git push          # リモートにプッシュ
+git pull          # リモートから取得
+git log           # コミット履歴表示
+```
+
+### プロセス管理
+```bash
+tasklist          # 実行中のプロセス一覧（psの代わり）
+taskkill /PID <pid>  # プロセス終了（killの代わり）
+```
+
+### ネットワーク確認
+```bash
+netstat -an       # ポート使用状況確認
+ipconfig          # ネットワーク設定表示（ifconfigの代わり）
+```
+
+## 両環境同時起動スクリプト例
+フロントエンドとバックエンドを同時に起動する場合：
+```bash
+# PowerShellで2つのターミナルを開く
+Start-Process powershell -ArgumentList "cd frontend; npm run dev"
+Start-Process powershell -ArgumentList "cd backend; npm run dev"
+```
+
+## トラブルシューティング
+
+### ポートが使用中の場合
+```bash
+# Windows: ポート3000を使用しているプロセスを確認
+netstat -ano | findstr :3000
+# プロセスを終了
+taskkill /F /PID <process_id>
+```
+
+### node_modulesの再インストール
+```bash
+# フロントエンド
 cd frontend
-npm run build
-npm run start
-```
+rmdir /s /q node_modules
+npm install
 
-### リント・フォーマット
-```bash
-cd frontend
-npm run lint
-```
-
-## バックエンド
-
-### 開発サーバー起動
-```bash
+# バックエンド
 cd backend
-npm run dev
-```
-APIエンドポイント: http://localhost:3001
-
-### Prisma関連
-```bash
-cd backend
-npx prisma generate    # クライアント生成
-npx prisma migrate dev  # マイグレーション実行
-npx prisma studio      # GUI管理画面
-npx prisma db push     # スキーマ反映（マイグレーション無し）
-```
-
-### ビルド・本番起動
-```bash
-cd backend
-npm run build
-npm start
-```
-
-### テスト・リント
-```bash
-cd backend
-npm test
-npm run lint
-npm run format
-```
-
-## 全体
-
-### 依存関係インストール
-```bash
-# フロントエンドとバックエンド両方
-npm install --prefix frontend && npm install --prefix backend
-```
-
-### 同時起動（開発）
-```bash
-# 別々のターミナルで実行
-npm run dev --prefix frontend
-npm run dev --prefix backend
-```
-
-## Git関連
-
-### ステータス確認
-```bash
-git status
-```
-
-### 変更をステージング
-```bash
-git add .
-```
-
-### コミット
-```bash
-git commit -m "feat: 管理画面実装完了"
-```
-
-## 環境変数設定
-
-### フロントエンド (.env.local)
-```
-NEXT_PUBLIC_API_URL=http://localhost:3001
-```
-
-### バックエンド (.env)
-```
-DATABASE_URL="file:./dev.db"
-JWT_SECRET="your-secret-key"
-ADMIN_EMAILS="admin@example.com"
-NODE_ENV="development"
+rmdir /s /q node_modules
+npm install
 ```
