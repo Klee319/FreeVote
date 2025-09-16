@@ -102,10 +102,10 @@ export class PollsService {
       title: poll.title,
       description: poll.description,
       isAccentMode: poll.isAccentMode,
-      options: poll.options,
+      options: typeof poll.options === 'string' ? JSON.parse(poll.options) : poll.options,
       deadline: poll.deadline,
       thumbnailUrl: poll.thumbnailUrl,
-      categories: poll.categories,
+      categories: typeof poll.categories === 'string' ? JSON.parse(poll.categories) : poll.categories,
       voteCount: poll._count.votes,
       viewCount: poll.viewCount,
       createdAt: poll.createdAt,
@@ -195,7 +195,8 @@ export class PollsService {
 
     // レスポンス整形
     const totalVotes = poll.votes.length;
-    const results = Array.from({ length: (poll.options as any[]).length }, (_, i) => ({
+    const parsedOptions = typeof poll.options === 'string' ? JSON.parse(poll.options) : poll.options;
+    const results = Array.from({ length: parsedOptions.length }, (_, i) => ({
       option: i,
       count: voteCounts.get(i) || 0,
       percentage: totalVotes > 0 ? ((voteCounts.get(i) || 0) / totalVotes) * 100 : 0,
@@ -208,13 +209,14 @@ export class PollsService {
         description: poll.description,
         isAccentMode: poll.isAccentMode,
         wordId: poll.wordId,
-        options: poll.options,
+        options: parsedOptions,
         deadline: poll.deadline,
         shareMessage: poll.shareMessage,
         shareHashtags: poll.shareHashtags,
         thumbnailUrl: poll.thumbnailUrl,
-        optionThumbnails: poll.optionThumbnails,
-        categories: poll.categories,
+        optionThumbnails: poll.optionThumbnails ?
+          (typeof poll.optionThumbnails === 'string' ? JSON.parse(poll.optionThumbnails) : poll.optionThumbnails) : null,
+        categories: typeof poll.categories === 'string' ? JSON.parse(poll.categories) : poll.categories,
         status: isClosed ? 'closed' : poll.status,
         viewCount: poll.viewCount,
         createdAt: poll.createdAt,
@@ -362,7 +364,7 @@ export class PollsService {
     return {
       pollId,
       title: poll.title,
-      options: poll.options,
+      options: typeof poll.options === 'string' ? JSON.parse(poll.options) : poll.options,
       results,
     };
   }
@@ -387,10 +389,11 @@ export class PollsService {
       throw new NotFoundError('投票が見つかりません');
     }
 
+    const parsedOptions = typeof poll.options === 'string' ? JSON.parse(poll.options) : poll.options;
     const stats: any = {
       pollId: poll.id,
       title: poll.title,
-      options: poll.options,
+      options: parsedOptions,
       totalVotes: poll.votes.length,
       breakdown: {},
     };
