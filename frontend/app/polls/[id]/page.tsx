@@ -127,11 +127,12 @@ export default function PollDetailPage() {
           </div>
 
           <div className="flex flex-wrap gap-2 mt-4">
-            {currentPoll.categories.map((category) => (
-              <Badge key={category} variant="secondary">
-                {category}
-              </Badge>
-            ))}
+            {currentPoll.categories && Array.isArray(currentPoll.categories) &&
+              currentPoll.categories.map((category) => (
+                <Badge key={category} variant="secondary">
+                  {category}
+                </Badge>
+              ))}
             {currentPoll.isAccentMode && (
               <Badge variant="outline">アクセント投票</Badge>
             )}

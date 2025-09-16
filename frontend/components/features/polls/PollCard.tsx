@@ -62,11 +62,12 @@ export function PollCard({ poll, showTrending = false }: PollCardProps) {
 
         <CardContent>
           <div className="flex flex-wrap gap-2 mb-3">
-            {poll.categories.map((category) => (
-              <Badge key={category} variant="secondary">
-                {category}
-              </Badge>
-            ))}
+            {poll.categories && Array.isArray(poll.categories) &&
+              poll.categories.map((category) => (
+                <Badge key={category} variant="secondary">
+                  {category}
+                </Badge>
+              ))}
             {poll.isAccentMode && (
               <Badge variant="outline">アクセント投票</Badge>
             )}

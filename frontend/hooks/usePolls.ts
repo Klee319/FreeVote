@@ -61,8 +61,21 @@ export function usePolls() {
     const response = await api.getPoll(id);
 
     if (response.status === 'success' && response.data) {
-      setCurrentPoll(response.data);
-      return response.data;
+      // APIレスポンスからpollオブジェクトを正しく抽出
+      if (response.data.poll) {
+        // 新しいレスポンス形式：{ poll: {...}, results: {...} }
+        setCurrentPoll(response.data.poll);
+        // resultsデータも必要に応じて管理可能
+        if (response.data.results) {
+          // 投票結果を含めた完全なデータを返す
+          return { poll: response.data.poll, results: response.data.results };
+        }
+        return response.data.poll;
+      } else {
+        // 後方互換性：直接pollオブジェクトが返される場合
+        setCurrentPoll(response.data);
+        return response.data;
+      }
     } else {
       setError(response.error || '投票の取得に失敗しました');
       return null;
