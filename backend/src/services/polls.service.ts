@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import { NotFoundError, ValidationError, ConflictError } from '../utils/errors';
-import { createPollSchema, voteSchema } from '../utils/validation';
+import { voteSchema } from '../utils/validation';
 
 const prisma = new PrismaClient();
 
@@ -255,7 +255,8 @@ export class PollsService {
     }
 
     // 選択肢の範囲チェック
-    const optionsCount = (poll.options as any[]).length;
+    const options = JSON.parse(poll.options as string) as any[];
+    const optionsCount = options.length;
     if (validated.option < 0 || validated.option >= optionsCount) {
       throw new ValidationError('無効な選択肢です');
     }

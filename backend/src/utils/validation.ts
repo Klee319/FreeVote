@@ -80,6 +80,92 @@ export const voteRequestSchema = z.object({
   categories: z.array(z.string()).default([]),
 });
 
+// 投票提案(PollSuggestion)のバリデーション
+export const pollSuggestionCreateSchema = z.object({
+  title: z.string().min(5).max(100),
+  description: z.string().max(500).optional(),
+  options: z.array(z.object({
+    label: z.string().min(1).max(50),
+    description: z.string().max(200).optional()
+  })).min(2).max(10),
+  categories: z.array(z.string()).min(1).max(3)
+});
+
+// 投票提案ステータス更新のバリデーション
+export const pollSuggestionUpdateSchema = z.object({
+  status: z.enum(['approved', 'rejected']),
+  rejectionReason: z.string().max(500).optional(),
+  adminComment: z.string().max(500).optional()
+});
+
+// 投票提案一覧取得のバリデーション
+export const pollSuggestionQuerySchema = z.object({
+  page: z.string().regex(/^\d+$/).transform(Number).default('1'),
+  limit: z.string().regex(/^\d+$/).transform(Number).default('20'),
+  status: z.enum(['pending', 'approved', 'rejected', 'all']).optional(),
+  search: z.string().optional()
+});
+
+// シェア記録のバリデーション
+export const shareTrackSchema = z.object({
+  platform: z.enum(['twitter', 'instagram', 'tiktok', 'line', 'copy'])
+});
+
+// シェアランキング取得のバリデーション
+export const shareRankingQuerySchema = z.object({
+  period: z.enum(['today', 'week', 'month', 'all']).default('week'),
+  limit: z.string().regex(/^\d+$/).transform(Number).default('50'),
+  offset: z.string().regex(/^\d+$/).transform(Number).default('0')
+});
+
+// ユーザープロフィール更新のバリデーション
+export const updateProfileSchema = z.object({
+  username: z.string().min(1).max(50).optional(),
+  bio: z.string().max(500).optional(),
+  showInShareRanking: z.boolean().optional(),
+  showVoteHistory: z.boolean().optional(),
+  twitterId: z.string().max(100).optional(),
+  instagramId: z.string().max(100).optional(),
+  tiktokId: z.string().max(100).optional()
+});
+
+// ユーザーステータス更新のバリデーション（年1回制限対象）
+export const updateStatusSchema = z.object({
+  ageGroup: ageGroupSchema.optional(),
+  prefecture: prefectureSchema.optional(),
+  gender: genderSchema.optional()
+}).refine(data => {
+  // 少なくとも1つのフィールドが指定されている必要がある
+  return Object.values(data).some(value => value !== undefined);
+}, {
+  message: "少なくとも1つのフィールドを指定してください"
+});
+
+// SNS連携のバリデーション
+export const linkSnsSchema = z.object({
+  platform: z.enum(['twitter', 'instagram', 'tiktok']),
+  providerId: z.string().min(1).max(200),
+  handle: z.string().min(1).max(100)
+});
+
+// SNS連携解除のバリデーション
+export const unlinkSnsSchema = z.object({
+  platform: z.enum(['twitter', 'instagram', 'tiktok'])
+});
+
+// 投票履歴取得のバリデーション
+export const voteHistoryQuerySchema = z.object({
+  page: z.string().regex(/^\d+$/).transform(Number).default('1'),
+  limit: z.string().regex(/^\d+$/).transform(Number).default('20'),
+  category: z.string().optional()
+});
+
+// ファイルアップロードのバリデーション
+export const fileUploadSchema = z.object({
+  mimetype: z.enum(['image/jpeg', 'image/png', 'image/webp']),
+  size: z.number().max(5 * 1024 * 1024) // 5MB以下
+});
+
 // バリデーションエラーのフォーマット
 export function formatZodError(error: z.ZodError): string {
   const messages = error.errors.map(err => {

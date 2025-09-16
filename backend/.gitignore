@@ -39,3 +39,7 @@ coverage/
 
 # Prisma
 prisma/migrations/dev/
+
+# Uploads (except .gitkeep files)
+uploads/**/*
+!uploads/**/.gitkeep

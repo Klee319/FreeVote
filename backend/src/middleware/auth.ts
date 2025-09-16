@@ -149,3 +149,6 @@ export async function optionalAuth(
     next();
   }
 }
+
+// エイリアスとしてauthenticateTokenをエクスポート
+export const authenticateToken = authenticate;

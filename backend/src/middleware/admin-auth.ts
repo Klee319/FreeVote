@@ -5,19 +5,8 @@ import { ApiError } from "../utils/errors";
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "admin@example.com").split(",");
 
-interface JwtPayload {
-  id: string;
-  email: string;
-  role?: string;
-}
-
-declare global {
-  namespace Express {
-    interface Request {
-      user?: JwtPayload;
-    }
-  }
-}
+// auth.tsから型をインポート
+import { JwtPayload } from './auth';
 
 /**
  * 管理者認証ミドルウェア
@@ -38,15 +27,19 @@ export const adminAuth = async (
     const token = authHeader.substring(7);
 
     // トークンを検証
-    const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
 
-    // 管理者権限をチェック
-    if (decoded.role !== "admin" && !ADMIN_EMAILS.includes(decoded.email)) {
+    // 管理者権限をチェック（isAdminフィールドを使用）
+    if (!decoded.isAdmin && !ADMIN_EMAILS.includes(decoded.email)) {
       throw new ApiError(403, "管理者権限が必要です");
     }
 
     // リクエストオブジェクトにユーザー情報を追加
-    req.user = decoded;
+    req.user = {
+      userId: decoded.userId || decoded.id,
+      email: decoded.email,
+      isAdmin: true
+    };
 
     next();
   } catch (error) {
@@ -76,11 +69,15 @@ export const optionalAdminAuth = async (
     }
 
     const token = authHeader.substring(7);
-    const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
 
     // 管理者権限をチェック
-    if (decoded.role === "admin" || ADMIN_EMAILS.includes(decoded.email)) {
-      req.user = decoded;
+    if (decoded.isAdmin || ADMIN_EMAILS.includes(decoded.email)) {
+      req.user = {
+        userId: decoded.userId || decoded.id,
+        email: decoded.email,
+        isAdmin: true
+      };
     }
 
     next();
@@ -102,9 +99,9 @@ export const devAdminAuth = async (
   if (process.env.NODE_ENV === "development") {
     // 開発環境ではデフォルトの管理者として扱う
     req.user = {
-      id: "dev-admin",
+      userId: "dev-admin",
       email: "admin@dev.com",
-      role: "admin",
+      isAdmin: true
     };
     return next();
   }

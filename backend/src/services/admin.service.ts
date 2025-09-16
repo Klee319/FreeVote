@@ -9,16 +9,16 @@ export class AdminService {
    */
   async getDashboardStats() {
     const [totalVotes, totalUsers, activePolls, pendingRequests] = await Promise.all([
-      prisma.pollVotes.count(),
-      prisma.users.count(),
-      prisma.polls.count({
+      prisma.pollVote.count(),
+      prisma.user.count(),
+      prisma.poll.count({
         where: {
           deadline: {
             gt: new Date(),
           },
         },
       }),
-      prisma.userVoteRequests.count({
+      prisma.userVoteRequest.count({
         where: {
           status: "pending",
         },
@@ -29,7 +29,7 @@ export class AdminService {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    const votesTrend = await prisma.pollVotes.groupBy({
+    const votesTrend = await prisma.pollVote.groupBy({
       by: ["votedAt"],
       where: {
         votedAt: {
@@ -87,7 +87,7 @@ export class AdminService {
     }
 
     const [polls, total] = await Promise.all([
-      prisma.polls.findMany({
+      prisma.poll.findMany({
         where,
         skip,
         take: limit,
@@ -100,7 +100,7 @@ export class AdminService {
           },
         },
       }),
-      prisma.polls.count({ where }),
+      prisma.poll.count({ where }),
     ]);
 
     return {
@@ -116,7 +116,7 @@ export class AdminService {
    * 投票作成
    */
   async createPoll(data: any) {
-    const poll = await prisma.polls.create({
+    const poll = await prisma.poll.create({
       data: {
         title: data.title,
         description: data.description,
@@ -141,7 +141,7 @@ export class AdminService {
    */
   async updatePoll(id: string, data: any) {
     // 投票が存在するか確認
-    const existingPoll = await prisma.polls.findUnique({
+    const existingPoll = await prisma.poll.findUnique({
       where: { id },
     });
 
@@ -154,7 +154,7 @@ export class AdminService {
       throw new ApiError(400, "締切後の投票は編集できません");
     }
 
-    const poll = await prisma.polls.update({
+    const poll = await prisma.poll.update({
       where: { id },
       data: {
         title: data.title,
@@ -175,7 +175,7 @@ export class AdminService {
    */
   async deletePoll(id: string) {
     // 投票が存在するか確認
-    const poll = await prisma.polls.findUnique({
+    const poll = await prisma.poll.findUnique({
       where: { id },
       include: {
         _count: {
@@ -190,15 +190,15 @@ export class AdminService {
 
     // 投票がある場合は論理削除
     if (poll._count.votes > 0) {
-      await prisma.polls.update({
+      await prisma.poll.update({
         where: { id },
         data: {
-          deletedAt: new Date(),
+          status: "closed", // deletedの代わりにstatusで管理
         },
       });
     } else {
       // 投票がない場合は物理削除
-      await prisma.polls.delete({
+      await prisma.poll.delete({
         where: { id },
       });
     }
@@ -221,7 +221,7 @@ export class AdminService {
     }
 
     const [requests, total] = await Promise.all([
-      prisma.userVoteRequests.findMany({
+      prisma.userVoteRequest.findMany({
         where,
         skip,
         take: limit,
@@ -229,7 +229,7 @@ export class AdminService {
           createdAt: "desc",
         },
       }),
-      prisma.userVoteRequests.count({ where }),
+      prisma.userVoteRequest.count({ where }),
     ]);
 
     return {
@@ -245,7 +245,7 @@ export class AdminService {
    * ユーザー提案承認
    */
   async approveRequest(id: string) {
-    const request = await prisma.userVoteRequests.findUnique({
+    const request = await prisma.userVoteRequest.findUnique({
       where: { id },
     });
 
@@ -254,20 +254,20 @@ export class AdminService {
     }
 
     // 提案を元に新しい投票を作成
-    const poll = await prisma.polls.create({
+    const poll = await prisma.poll.create({
       data: {
         title: request.title,
         description: request.description,
         isAccentMode: false,
         options: request.options,
         deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7日後
-        categories: ["ユーザー提案"],
+        categories: JSON.stringify(["ユーザー提案"]),
         createdBy: "admin",
       },
     });
 
     // 提案のステータスを更新
-    await prisma.userVoteRequests.update({
+    await prisma.userVoteRequest.update({
       where: { id },
       data: {
         status: "approved",
@@ -281,7 +281,7 @@ export class AdminService {
    * ユーザー提案却下
    */
   async rejectRequest(id: string, reason?: string) {
-    const request = await prisma.userVoteRequests.findUnique({
+    const request = await prisma.userVoteRequest.findUnique({
       where: { id },
     });
 
@@ -289,11 +289,11 @@ export class AdminService {
       throw new ApiError(404, "提案が見つかりません");
     }
 
-    await prisma.userVoteRequests.update({
+    await prisma.userVoteRequest.update({
       where: { id },
       data: {
         status: "rejected",
-        rejectionReason: reason,
+        // rejectionReason: reason, // UserVoteRequestにはこのフィールドがない
       },
     });
   }
@@ -336,19 +336,19 @@ export class AdminService {
     };
 
     if (type === "polls" || type === "all") {
-      data.polls = await prisma.polls.findMany({
+      data.polls = await prisma.poll.findMany({
         where: {
-          deletedAt: null,
+          status: { not: "closed" },
         },
       });
     }
 
     if (type === "votes" || type === "all") {
-      data.votes = await prisma.pollVotes.findMany();
+      data.votes = await prisma.pollVote.findMany();
     }
 
     if (type === "users" || type === "all") {
-      data.users = await prisma.users.findMany({
+      data.users = await prisma.user.findMany({
         select: {
           id: true,
           username: true,
@@ -387,11 +387,11 @@ export class AdminService {
     }
 
     if (role) {
-      where.role = role;
+      where.isAdmin = role === 'admin';
     }
 
     const [users, total] = await Promise.all([
-      prisma.users.findMany({
+      prisma.user.findMany({
         where,
         skip,
         take: limit,
@@ -405,12 +405,12 @@ export class AdminService {
           ageGroup: true,
           prefecture: true,
           gender: true,
-          role: true,
+          isAdmin: true,
           referralCount: true,
           createdAt: true,
         },
       }),
-      prisma.users.count({ where }),
+      prisma.user.count({ where }),
     ]);
 
     return {
@@ -426,14 +426,14 @@ export class AdminService {
    * ユーザー更新
    */
   async updateUser(id: string, data: any) {
-    const user = await prisma.users.update({
+    const user = await prisma.user.update({
       where: { id },
       data: {
         username: data.username,
         ageGroup: data.ageGroup,
         prefecture: data.prefecture,
         gender: data.gender,
-        role: data.role,
+        isAdmin: data.isAdmin || false,
       },
       select: {
         id: true,
@@ -442,7 +442,7 @@ export class AdminService {
         ageGroup: true,
         prefecture: true,
         gender: true,
-        role: true,
+        isAdmin: true,
         referralCount: true,
         createdAt: true,
       },
@@ -455,7 +455,7 @@ export class AdminService {
    * ユーザー削除
    */
   async deleteUser(id: string) {
-    await prisma.users.delete({
+    await prisma.user.delete({
       where: { id },
     });
   }

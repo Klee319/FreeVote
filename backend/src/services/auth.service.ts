@@ -17,9 +17,10 @@ interface TokenPair {
 export class AuthService {
   // アクセストークン生成
   private generateAccessToken(payload: JwtPayload): string {
-    return jwt.sign(payload, config.jwt.secret, {
+    const options: any = {
       expiresIn: config.jwt.accessTokenExpiry,
-    });
+    };
+    return jwt.sign(payload, config.jwt.secret, options);
   }
 
   // リフレッシュトークン生成と保存
