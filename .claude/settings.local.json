@@ -13,7 +13,6 @@
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "playwright",
-    "sqlite",
     "serena"
   ]
 }

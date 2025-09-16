@@ -7,15 +7,6 @@
         "@modelcontextprotocol/server-playwright"
       ]
     },
-    "sqlite": {
-      "command": "mcp-sqlite",
-      "args": [
-        "C:\\Users\\T-319\\Documents\\Program\\ClaudeCodeDev\\products\\Vote_site\\backend\\prisma\\dev.db"
-      ],
-      "env": {
-        "NODE_ENV": "development"
-      }
-    },
     "serena": {
       "command": "uv",
       "args": [
