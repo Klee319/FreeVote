@@ -89,13 +89,48 @@ export async function apiCall<T>(
       };
     }
   } catch (error) {
-    const axiosError = error as AxiosError<{ message?: string; error?: string }>;
+    const axiosError = error as AxiosError<{
+      message?: string;
+      error?: string | { message?: string; code?: string };
+    }>;
 
+    // バックエンドのエラー形式に対応（様々な形式に対応）
+    let errorMessage = 'An unexpected error occurred';
+
+    if (axiosError.response?.data) {
+      const data = axiosError.response.data;
+
+      // 1. error.messageの形式を確認（バックエンドの標準形式）
+      if (typeof data.error === 'object' && data.error !== null) {
+        // エラーオブジェクトからメッセージを取得
+        if ('message' in data.error && typeof data.error.message === 'string') {
+          errorMessage = data.error.message;
+        } else if ('msg' in data.error && typeof (data.error as any).msg === 'string') {
+          errorMessage = (data.error as any).msg;
+        } else {
+          // エラーオブジェクトを文字列に変換
+          errorMessage = JSON.stringify(data.error);
+        }
+      }
+      // 2. 直接messageフィールドがある場合
+      else if (typeof data.message === 'string') {
+        errorMessage = data.message;
+      }
+      // 3. errorが文字列の場合
+      else if (typeof data.error === 'string') {
+        errorMessage = data.error;
+      }
+      // 4. dataそのものが文字列の場合
+      else if (typeof data === 'string') {
+        errorMessage = data;
+      }
+    } else if (axiosError.message) {
+      errorMessage = axiosError.message;
+    }
+
+    // 確実に文字列を返す
     return {
-      error: axiosError.response?.data?.message ||
-             axiosError.response?.data?.error ||
-             axiosError.message ||
-             'An unexpected error occurred',
+      error: String(errorMessage),
       status: 'error',
     };
   }

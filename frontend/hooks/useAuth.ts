@@ -50,9 +50,26 @@ export function useAuth() {
       router.push('/');
       return { success: true };
     } else {
-      setError(response.error || 'ログインに失敗しました');
+      // エラーメッセージを安全に文字列として取得
+      let errorMessage = 'ログインに失敗しました';
+
+      if (response.error) {
+        if (typeof response.error === 'string') {
+          errorMessage = response.error;
+        } else if (typeof response.error === 'object' && response.error !== null) {
+          // エラーオブジェクトの場合、messageプロパティを探す
+          if ('message' in response.error && typeof (response.error as any).message === 'string') {
+            errorMessage = (response.error as any).message;
+          } else {
+            // それでも文字列が取得できない場合はJSONに変換
+            errorMessage = JSON.stringify(response.error);
+          }
+        }
+      }
+
+      setError(errorMessage);
       setLoading(false);
-      return { success: false, error: response.error };
+      return { success: false, error: errorMessage };
     }
   };
 
@@ -68,9 +85,26 @@ export function useAuth() {
       router.push('/');
       return { success: true };
     } else {
-      setError(response.error || '登録に失敗しました');
+      // エラーメッセージを安全に文字列として取得
+      let errorMessage = '登録に失敗しました';
+
+      if (response.error) {
+        if (typeof response.error === 'string') {
+          errorMessage = response.error;
+        } else if (typeof response.error === 'object' && response.error !== null) {
+          // エラーオブジェクトの場合、messageプロパティを探す
+          if ('message' in response.error && typeof (response.error as any).message === 'string') {
+            errorMessage = (response.error as any).message;
+          } else {
+            // それでも文字列が取得できない場合はJSONに変換
+            errorMessage = JSON.stringify(response.error);
+          }
+        }
+      }
+
+      setError(errorMessage);
       setLoading(false);
-      return { success: false, error: response.error };
+      return { success: false, error: errorMessage };
     }
   };
 
@@ -90,9 +124,26 @@ export function useAuth() {
       router.push('/');
       return { success: true };
     } else {
-      setError(response.error || 'SNS連携ログインに失敗しました');
+      // エラーメッセージを安全に文字列として取得
+      let errorMessage = 'SNS連携ログインに失敗しました';
+
+      if (response.error) {
+        if (typeof response.error === 'string') {
+          errorMessage = response.error;
+        } else if (typeof response.error === 'object' && response.error !== null) {
+          // エラーオブジェクトの場合、messageプロパティを探す
+          if ('message' in response.error && typeof (response.error as any).message === 'string') {
+            errorMessage = (response.error as any).message;
+          } else {
+            // それでも文字列が取得できない場合はJSONに変換
+            errorMessage = JSON.stringify(response.error);
+          }
+        }
+      }
+
+      setError(errorMessage);
       setLoading(false);
-      return { success: false, error: response.error };
+      return { success: false, error: errorMessage };
     }
   };
 
