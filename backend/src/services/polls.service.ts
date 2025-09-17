@@ -51,8 +51,11 @@ export class PollsService {
           { deadline: { gt: new Date() } },
         ];
       } else {
-        // 期間外の投票のみ（期限が過去）
-        where.deadline = { lt: new Date() };
+        // 期間外の投票のみ（期限が設定されており、かつ過去）
+        where.AND = [
+          { deadline: { not: null } },
+          { deadline: { lt: new Date() } }
+        ];
       }
     }
     // activeパラメータがない場合はすべての投票を表示（フィルタなし）

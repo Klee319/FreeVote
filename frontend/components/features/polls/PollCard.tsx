@@ -10,7 +10,9 @@ interface PollCardProps {
 }
 
 export function PollCard({ poll, showTrending = false }: PollCardProps) {
-  const calculateTimeRemaining = (deadline: string) => {
+  const calculateTimeRemaining = (deadline: string | null) => {
+    if (!deadline) return '無期限';
+
     const now = new Date();
     const end = new Date(deadline);
     const diff = end.getTime() - now.getTime();

@@ -64,13 +64,24 @@ export function usePolls() {
       // APIレスポンスからpollオブジェクトを正しく抽出
       if (response.data.poll) {
         // 新しいレスポンス形式：{ poll: {...}, results: {...} }
-        setCurrentPoll(response.data.poll);
-        // resultsデータも必要に応じて管理可能
+        // resultsの情報をpollオブジェクトにマージ
+        const mergedPoll = {
+          ...response.data.poll,
+          totalVotes: response.data.results?.totalVotes || 0,
+          voteDistribution: response.data.results?.options?.reduce(
+            (acc: Record<number, number>, opt: any) => {
+              acc[opt.option] = opt.count;
+              return acc;
+            },
+            {}
+          ) || {},
+        };
+        setCurrentPoll(mergedPoll);
+        // 投票結果を含めた完全なデータを返す
         if (response.data.results) {
-          // 投票結果を含めた完全なデータを返す
-          return { poll: response.data.poll, results: response.data.results };
+          return { poll: mergedPoll, results: response.data.results };
         }
-        return response.data.poll;
+        return mergedPoll;
       } else {
         // 後方互換性：直接pollオブジェクトが返される場合
         setCurrentPoll(response.data);

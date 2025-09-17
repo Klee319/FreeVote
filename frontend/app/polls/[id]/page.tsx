@@ -46,7 +46,9 @@ export default function PollDetailPage() {
     }
   }, [hasVoted]);
 
-  const calculateTimeRemaining = (deadline: string) => {
+  const calculateTimeRemaining = (deadline: string | null) => {
+    if (!deadline) return { text: '無期限', isEnded: false };
+
     const now = new Date();
     const end = new Date(deadline);
     const diff = end.getTime() - now.getTime();
@@ -62,10 +64,13 @@ export default function PollDetailPage() {
     return { text: `残り${minutes}分`, isEnded: false };
   };
 
-  const handleVoteComplete = (optionIndex: number) => {
+  const handleVoteComplete = async (optionIndex: number) => {
     setSelectedOption(optionIndex);
     setHasVoted(true);
     setShowResults(true);
+
+    // 投票後に最新の投票データを再取得
+    await fetchPoll(params.id);
   };
 
   const handleShare = () => {
