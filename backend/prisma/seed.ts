@@ -123,13 +123,47 @@ async function main() {
       shareMessage: '私が最も使うSNSは#OPTION#！',
       shareHashtags: 'SNS,ソーシャルメディア',
     },
+    {
+      title: '2024年ベストアニメ【終了】',
+      description: '2024年に放送されたアニメで最も良かった作品は？',
+      options: [
+        { label: 'フリーレン', thumbnailUrl: 'https://example.com/frieren.jpg' },
+        { label: '薬屋のひとりごと', thumbnailUrl: 'https://example.com/kusuriya.jpg' },
+        { label: 'ダンジョン飯', thumbnailUrl: 'https://example.com/dungeon.jpg' },
+        { label: 'その他', thumbnailUrl: 'https://example.com/other-anime.jpg' },
+      ],
+      categories: ['エンタメ', 'アニメ'],
+      shareMessage: '2024年のベストアニメは#OPTION#！',
+      shareHashtags: 'アニメ,2024年',
+      deadline: new Date('2024-12-31T23:59:59'), // 過去の日付
+    },
+    {
+      title: '年末年始の過ごし方【終了】',
+      description: '2024年の年末年始はどう過ごしましたか？',
+      options: [
+        { label: '実家に帰省', thumbnailUrl: 'https://example.com/home.jpg' },
+        { label: '旅行', thumbnailUrl: 'https://example.com/travel.jpg' },
+        { label: '家でゆっくり', thumbnailUrl: 'https://example.com/relax.jpg' },
+        { label: '仕事・勉強', thumbnailUrl: 'https://example.com/work.jpg' },
+      ],
+      categories: ['生活', 'イベント'],
+      shareMessage: '年末年始は#OPTION#で過ごしました！',
+      shareHashtags: '年末年始,正月',
+      deadline: new Date('2025-01-07T23:59:59'), // 過去の日付
+    },
   ];
 
   const createdPolls = [];
   for (const pollData of polls) {
     const poll = await prisma.poll.create({
       data: {
-        ...pollData,
+        title: pollData.title,
+        description: pollData.description,
+        options: JSON.stringify(pollData.options),
+        categories: JSON.stringify(pollData.categories),
+        shareMessage: pollData.shareMessage,
+        shareHashtags: pollData.shareHashtags,
+        deadline: pollData.deadline,
         createdBy: adminUser.id,
         viewCount: Math.floor(Math.random() * 1000),
       },
@@ -210,7 +244,15 @@ async function main() {
 
   for (const requestData of requests) {
     await prisma.userVoteRequest.create({
-      data: requestData,
+      data: {
+        title: requestData.title,
+        description: requestData.description,
+        options: JSON.stringify(requestData.options),
+        categories: JSON.stringify(requestData.categories),
+        likeCount: requestData.likeCount,
+        status: requestData.status,
+        userId: requestData.userId,
+      },
     });
   }
 

@@ -13,6 +13,7 @@ export class PollsController {
       sort: req.query.sort as 'new' | 'trending' | 'voteCount' | undefined,
       page: req.query.page ? parseInt(req.query.page as string, 10) : 1,
       limit: req.query.limit ? parseInt(req.query.limit as string, 10) : 20,
+      active: req.query.active === 'true' ? true : req.query.active === 'false' ? false : undefined,
     };
 
     const result = await pollsService.getPolls(filters);

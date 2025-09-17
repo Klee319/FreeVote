@@ -139,7 +139,7 @@ export async function apiCall<T>(
 // API methods
 export const api = {
   // Polls
-  getPolls: (params?: { category?: string; sort?: string; search?: string }) =>
+  getPolls: (params?: { category?: string; sort?: string; search?: string; active?: boolean; order?: string }) =>
     apiCall<any>('GET', '/polls', null, params),
 
   getPoll: (id: string) =>

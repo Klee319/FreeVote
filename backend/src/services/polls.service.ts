@@ -11,6 +11,7 @@ interface PollFilters {
   sort?: 'new' | 'trending' | 'voteCount';
   page?: number;
   limit?: number;
+  active?: boolean;
 }
 
 interface VoteData {
@@ -31,6 +32,7 @@ export class PollsService {
       sort = 'trending',
       page = 1,
       limit = 20,
+      active,
     } = filters;
 
     const skip = (page - 1) * limit;
@@ -38,11 +40,22 @@ export class PollsService {
     // 検索条件構築
     const where: any = {
       status: 'active',
-      OR: [
-        { deadline: null },
-        { deadline: { gt: new Date() } },
-      ],
     };
+
+    // activeパラメータに応じて期間フィルタを適用
+    if (active !== undefined) {
+      if (active) {
+        // 期間中の投票のみ（期限なし または 期限が未来）
+        where.OR = [
+          { deadline: null },
+          { deadline: { gt: new Date() } },
+        ];
+      } else {
+        // 期間外の投票のみ（期限が過去）
+        where.deadline = { lt: new Date() };
+      }
+    }
+    // activeパラメータがない場合はすべての投票を表示（フィルタなし）
 
     if (category) {
       where.categories = { has: category };
