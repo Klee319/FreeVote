@@ -5,7 +5,7 @@ export interface User {
   email?: string;
   ageGroup: string;
   prefecture: string;
-  gender: 'male' | 'female' | 'other';
+  gender: '男性' | '女性' | 'その他';
   referralCount: number;
   createdAt: string;
   updatedAt: string;
@@ -98,7 +98,7 @@ export interface RegisterData extends LoginCredentials {
   username?: string;
   ageGroup: string;
   prefecture: string;
-  gender: 'male' | 'female' | 'other';
+  gender: '男性' | '女性' | 'その他';
 }
 
 export interface AuthTokens {

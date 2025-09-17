@@ -24,7 +24,7 @@ export default function RegisterPage() {
     username: '',
     ageGroup: '',
     prefecture: '',
-    gender: 'other',
+    gender: 'その他',
   });
 
   const [passwordConfirm, setPasswordConfirm] = useState('');
@@ -183,7 +183,7 @@ export default function RegisterPage() {
                 <Select
                   value={formData.gender}
                   onValueChange={(value) =>
-                    setFormData({ ...formData, gender: value as 'male' | 'female' | 'other' })
+                    setFormData({ ...formData, gender: value as '男性' | '女性' | 'その他' })
                   }
                   disabled={isLoading}
                 >
