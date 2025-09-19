@@ -42,20 +42,25 @@ export class PollsService {
       status: 'active',
     };
 
+    // 複数の条件を正しく組み合わせるためのAND配列
+    const andConditions: any[] = [];
+
     // activeパラメータに応じて期間フィルタを適用
     if (active !== undefined) {
       if (active) {
         // 期間中の投票のみ（期限なし または 期限が未来）
-        where.OR = [
-          { deadline: null },
-          { deadline: { gt: new Date() } },
-        ];
+        andConditions.push({
+          OR: [
+            { deadline: null },
+            { deadline: { gt: new Date() } },
+          ],
+        });
       } else {
         // 期間外の投票のみ（期限が設定されており、かつ過去）
-        where.AND = [
+        andConditions.push(
           { deadline: { not: null } },
           { deadline: { lt: new Date() } }
-        ];
+        );
       }
     }
     // activeパラメータがない場合はすべての投票を表示（フィルタなし）
@@ -65,14 +70,17 @@ export class PollsService {
     }
 
     if (search) {
-      where.AND = [
-        {
-          OR: [
-            { title: { contains: search, mode: 'insensitive' } },
-            { description: { contains: search, mode: 'insensitive' } },
-          ],
-        },
-      ];
+      andConditions.push({
+        OR: [
+          { title: { contains: search } },
+          { description: { contains: search } },
+        ],
+      });
+    }
+
+    // AND条件が存在する場合のみwhere.ANDを設定
+    if (andConditions.length > 0) {
+      where.AND = andConditions;
     }
 
     // ソート条件
