@@ -14,20 +14,26 @@ export default function NewPollPage() {
   const handleSubmit = async (data: any) => {
     setLoading(true);
     try {
-      // API呼び出しのシミュレーション
-      console.log("Creating new poll:", data);
+      // optionsをJSON文字列に変換
+      const pollData = {
+        ...data,
+        options: JSON.stringify(data.options),
+        categories: JSON.stringify([data.category]),
+        deadline: data.deadline?.toISOString(),
+      };
 
-      // TODO: 実際のAPI呼び出しを実装
-      // const response = await fetch("/api/admin/polls", {
-      //   method: "POST",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify(data),
-      // });
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/polls`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(pollData),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create poll");
+      }
 
       // 成功時は一覧ページにリダイレクト
-      setTimeout(() => {
-        router.push("/admin/polls");
-      }, 1000);
+      router.push("/admin/polls");
     } catch (error) {
       console.error("Failed to create poll:", error);
       alert("投票の作成に失敗しました");

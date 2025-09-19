@@ -11,6 +11,7 @@ export class PollsController {
       category: req.query.category as string | undefined,
       search: req.query.search as string | undefined,
       sort: req.query.sort as 'new' | 'trending' | 'voteCount' | undefined,
+      order: req.query.order as 'asc' | 'desc' | undefined,
       page: req.query.page ? parseInt(req.query.page as string, 10) : 1,
       limit: req.query.limit ? parseInt(req.query.limit as string, 10) : 20,
       active: req.query.active === 'true' ? true : req.query.active === 'false' ? false : undefined,

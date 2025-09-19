@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { PollList } from '@/components/features/polls/PollList';
+import { RankingPollList } from '@/components/features/polls/RankingPollList';
 import { SearchBar } from '@/components/features/search/SearchBar';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { usePolls } from '@/hooks/usePolls';
-import { TrendingUp, Clock, Users } from 'lucide-react';
+import { TrendingUp, Clock, Users, Calendar, Filter } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export default function Home() {
   const searchParams = useSearchParams();
@@ -34,8 +35,8 @@ export default function Home() {
     fetchPolls(params);
   }, [searchQuery, sortBy, sortOrder, showActivePollsOnly, fetchPolls]);
 
-  const handleSortChange = (value: string) => {
-    setSortBy(value as 'trending' | 'new' | 'voteCount');
+  const handleSortChange = (value: 'trending' | 'new' | 'voteCount') => {
+    setSortBy(value);
   };
 
   const handleSortOrderToggle = () => {
@@ -66,78 +67,125 @@ export default function Home() {
       )}
 
       {/* Sort and Filter Controls */}
-      <div className="mb-6 space-y-4">
-        <div className="flex flex-wrap items-center gap-4">
-          {/* Sort Dropdown */}
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium">並び替え:</label>
-            <Select value={sortBy} onValueChange={handleSortChange}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="並び替え" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="voteCount">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4" />
-                    投票数
-                  </div>
-                </SelectItem>
-                <SelectItem value="trending">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4" />
-                    急上昇
-                  </div>
-                </SelectItem>
-                <SelectItem value="new">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4" />
-                    新着
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
+      <div className="mb-8 space-y-4">
+        {/* セグメンテッドコントロール（並び替え） */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+            <Filter className="w-4 h-4" />
+            並び替え
+          </label>
+          <div className="inline-flex rounded-lg border p-1 bg-muted/30">
+            <Button
+              variant={sortBy === 'voteCount' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => handleSortChange('voteCount')}
+              className={cn(
+                "rounded-md transition-all",
+                sortBy === 'voteCount'
+                  ? "shadow-sm"
+                  : "hover:bg-transparent hover:text-primary"
+              )}
+            >
+              <Users className="w-4 h-4 mr-2" />
+              投票数順
+            </Button>
+            <Button
+              variant={sortBy === 'new' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => handleSortChange('new')}
+              className={cn(
+                "rounded-md transition-all",
+                sortBy === 'new'
+                  ? "shadow-sm"
+                  : "hover:bg-transparent hover:text-primary"
+              )}
+            >
+              <Clock className="w-4 h-4 mr-2" />
+              新着順
+            </Button>
+            <Button
+              variant={sortBy === 'trending' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => handleSortChange('trending')}
+              className={cn(
+                "rounded-md transition-all",
+                sortBy === 'trending'
+                  ? "shadow-sm"
+                  : "hover:bg-transparent hover:text-primary"
+              )}
+            >
+              <TrendingUp className="w-4 h-4 mr-2" />
+              締切間近
+            </Button>
           </div>
+        </div>
 
-          {/* Sort Order Toggle */}
-          <div className="flex items-center gap-2">
+        {/* フィルターオプション */}
+        <div className="flex flex-wrap items-center gap-6">
+          {/* 表示順 */}
+          <div className="flex items-center gap-3">
             <label htmlFor="sort-order" className="text-sm font-medium">
               表示順:
             </label>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">昇順</span>
+            <div className="flex items-center gap-2 rounded-lg border px-3 py-1 bg-background">
+              <span className={cn(
+                "text-sm transition-colors",
+                sortOrder === 'asc' ? "text-primary font-medium" : "text-muted-foreground"
+              )}>
+                昇順
+              </span>
               <Switch
                 id="sort-order"
                 checked={sortOrder === 'desc'}
                 onCheckedChange={handleSortOrderToggle}
+                className="data-[state=checked]:bg-primary"
               />
-              <span className="text-sm text-muted-foreground">降順</span>
+              <span className={cn(
+                "text-sm transition-colors",
+                sortOrder === 'desc' ? "text-primary font-medium" : "text-muted-foreground"
+              )}>
+                降順
+              </span>
             </div>
           </div>
 
-          {/* Active Polls Filter */}
-          <div className="flex items-center gap-2">
-            <label htmlFor="active-filter" className="text-sm font-medium">
-              投票期間フィルタ:
+          {/* 投票期間フィルタ */}
+          <div className="flex items-center gap-3">
+            <label htmlFor="active-filter" className="text-sm font-medium flex items-center gap-2">
+              <Calendar className="w-4 h-4" />
+              期間:
             </label>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">期間外</span>
+            <div className="flex items-center gap-2 rounded-lg border px-3 py-1 bg-background">
+              <span className={cn(
+                "text-sm transition-colors",
+                !showActivePollsOnly ? "text-primary font-medium" : "text-muted-foreground"
+              )}>
+                すべて
+              </span>
               <Switch
                 id="active-filter"
                 checked={showActivePollsOnly}
                 onCheckedChange={handleActiveToggle}
+                className="data-[state=checked]:bg-primary"
               />
-              <span className="text-sm text-muted-foreground">期間中</span>
+              <span className={cn(
+                "text-sm transition-colors",
+                showActivePollsOnly ? "text-primary font-medium" : "text-muted-foreground"
+              )}>
+                期間中のみ
+              </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Poll List */}
+      {/* Ranking Poll List */}
       <div>
-        <PollList
+        <RankingPollList
           polls={polls}
           loading={isLoading}
-          columns={3}
+          showTrending={sortBy === 'trending'}
+          sortBy={sortBy}
         />
       </div>
     </div>

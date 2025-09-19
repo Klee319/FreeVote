@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -64,10 +64,45 @@ const mockPolls = [
 ];
 
 export default function PollsManagementPage() {
-  const [polls, setPolls] = useState(mockPolls);
+  const [polls, setPolls] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchPolls();
+  }, []);
+
+  const fetchPolls = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/polls`);
+      if (response.ok) {
+        const data = await response.json();
+        const pollsData = data.data?.polls || [];
+        // データ形式を整形
+        const formattedPolls = pollsData.map((poll: any) => ({
+          ...poll,
+          voteCount: poll.votes?.length || 0,
+          category: Array.isArray(poll.categories) ? poll.categories[0] :
+                    (typeof poll.categories === 'string' ? JSON.parse(poll.categories)[0] : ''),
+          createdAt: new Date(poll.createdAt).toLocaleDateString('ja-JP'),
+          deadline: poll.deadline ? new Date(poll.deadline).toLocaleDateString('ja-JP') : null,
+        }));
+        setPolls(formattedPolls);
+      } else {
+        // エラー時はモックデータを使用
+        setPolls(mockPolls);
+      }
+    } catch (error) {
+      console.error("Failed to fetch polls:", error);
+      // エラー時はモックデータを使用
+      setPolls(mockPolls);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // フィルタリング処理
   const filteredPolls = polls.filter((poll) => {
@@ -78,9 +113,21 @@ export default function PollsManagementPage() {
     return matchesSearch && matchesStatus && matchesCategory;
   });
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm("この投票を削除してもよろしいですか？")) {
-      setPolls(polls.filter((poll) => poll.id !== id));
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/polls/${id}`, {
+          method: "DELETE",
+        });
+        if (response.ok) {
+          setPolls(polls.filter((poll) => poll.id !== id));
+        } else {
+          alert("投票の削除に失敗しました");
+        }
+      } catch (error) {
+        console.error("Failed to delete poll:", error);
+        alert("投票の削除に失敗しました");
+      }
     }
   };
 
@@ -170,10 +217,16 @@ export default function PollsManagementPage() {
       </div>
 
       {/* 投票テーブル */}
-      <PollTable
-        polls={filteredPolls}
-        onDelete={handleDelete}
-      />
+      {loading ? (
+        <Card className="p-8">
+          <p className="text-center text-gray-500">読み込み中...</p>
+        </Card>
+      ) : (
+        <PollTable
+          polls={filteredPolls}
+          onDelete={handleDelete}
+        />
+      )}
     </div>
   );
 }

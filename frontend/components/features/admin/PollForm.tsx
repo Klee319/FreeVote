@@ -27,15 +27,18 @@ import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { CalendarIcon, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ImageUploadWithCrop } from "./ImageUploadWithCrop";
 
 const pollFormSchema = z.object({
   title: z.string().min(1, "タイトルは必須です"),
   description: z.string().min(1, "説明は必須です"),
   category: z.string().min(1, "カテゴリーを選択してください"),
+  thumbnailUrl: z.string().optional(),
   isAccentMode: z.boolean(),
   options: z.array(z.object({
     label: z.string().min(1, "選択肢は必須です"),
     thumbnailUrl: z.string().optional(),
+    pitchPattern: z.string().optional(),
   })).min(2, "最低2つの選択肢が必要です").max(4, "選択肢は最大4つまでです"),
   deadline: z.date({
     required_error: "締切日を選択してください",
@@ -54,10 +57,11 @@ interface PollFormProps {
 
 export default function PollForm({ initialData, onSubmit, loading }: PollFormProps) {
   const [isAccentMode, setIsAccentMode] = useState(initialData?.isAccentMode || false);
+  const [thumbnailUrl, setThumbnailUrl] = useState(initialData?.thumbnailUrl || "");
   const [options, setOptions] = useState(
     initialData?.options || [
-      { label: "", thumbnailUrl: "" },
-      { label: "", thumbnailUrl: "" },
+      { label: "", thumbnailUrl: "", pitchPattern: "" },
+      { label: "", thumbnailUrl: "", pitchPattern: "" },
     ]
   );
 
@@ -73,6 +77,7 @@ export default function PollForm({ initialData, onSubmit, loading }: PollFormPro
       title: initialData?.title || "",
       description: initialData?.description || "",
       category: initialData?.category || "",
+      thumbnailUrl: initialData?.thumbnailUrl || "",
       isAccentMode: initialData?.isAccentMode || false,
       options: options,
       deadline: initialData?.deadline || undefined,
@@ -85,7 +90,7 @@ export default function PollForm({ initialData, onSubmit, loading }: PollFormPro
 
   const addOption = () => {
     if (options.length < 4) {
-      const newOptions = [...options, { label: "", thumbnailUrl: "" }];
+      const newOptions = [...options, { label: "", thumbnailUrl: "", pitchPattern: "" }];
       setOptions(newOptions);
       setValue("options", newOptions);
     }
@@ -211,6 +216,24 @@ export default function PollForm({ initialData, onSubmit, loading }: PollFormPro
               アクセントモードを有効にする
             </Label>
           </div>
+
+          {/* サムネイル画像アップロード */}
+          <div>
+            <Label>投票サムネイル画像（任意）</Label>
+            <p className="text-sm text-muted-foreground mb-2">
+              投票一覧に表示される画像を設定できます
+            </p>
+            <ImageUploadWithCrop
+              value={thumbnailUrl}
+              onChange={(url) => {
+                setThumbnailUrl(url);
+                setValue("thumbnailUrl", url);
+              }}
+              aspectRatio={16 / 9}
+              maxWidth={1600}
+              maxHeight={900}
+            />
+          </div>
         </div>
       </Card>
 
@@ -232,31 +255,47 @@ export default function PollForm({ initialData, onSubmit, loading }: PollFormPro
         </div>
         <div className="space-y-3">
           {options.map((option, index) => (
-            <div key={index} className="flex gap-3 items-start">
-              <div className="flex-1">
-                <Input
-                  placeholder={`選択肢 ${index + 1}`}
-                  value={option.label}
-                  onChange={(e) => updateOption(index, "label", e.target.value)}
-                />
+            <div key={index} className="space-y-2">
+              <div className="flex gap-3 items-start">
+                <div className="flex-1">
+                  <Input
+                    placeholder={`選択肢 ${index + 1}`}
+                    value={option.label}
+                    onChange={(e) => updateOption(index, "label", e.target.value)}
+                  />
+                </div>
+                <div className="flex-1">
+                  <Input
+                    placeholder="サムネイルURL（任意）"
+                    value={option.thumbnailUrl}
+                    onChange={(e) => updateOption(index, "thumbnailUrl", e.target.value)}
+                  />
+                </div>
+                {options.length > 2 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeOption(index)}
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                )}
               </div>
-              <div className="flex-1">
-                <Input
-                  placeholder="サムネイルURL（任意）"
-                  value={option.thumbnailUrl}
-                  onChange={(e) => updateOption(index, "thumbnailUrl", e.target.value)}
-                />
-              </div>
-              {options.length > 2 && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => removeOption(index)}
-                  className="text-red-600 hover:text-red-700"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
+              {/* アクセントモード時の音高設定 */}
+              {isAccentMode && (
+                <div className="ml-4">
+                  <Input
+                    placeholder="音高パターン（例: LHHH、HLL など）"
+                    value={option.pitchPattern || ""}
+                    onChange={(e) => updateOption(index, "pitchPattern", e.target.value)}
+                    className="max-w-xs"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    H: 高音、L: 低音で音高パターンを入力してください
+                  </p>
+                </div>
               )}
             </div>
           ))}
