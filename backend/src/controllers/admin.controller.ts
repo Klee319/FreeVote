@@ -48,7 +48,13 @@ export class AdminController {
   async createPoll(req: Request, res: Response, next: NextFunction) {
     try {
       const pollData = req.body;
-      const createdBy = (req as any).user?.id || "admin"; // 認証実装後に更新
+      let createdBy = (req as any).user?.id;
+
+      // ユーザーIDが指定されていない場合は管理者ユーザーを取得または作成
+      if (!createdBy) {
+        const adminUser = await adminService.getOrCreateAdminUser();
+        createdBy = adminUser.id;
+      }
 
       const poll = await adminService.createPoll({
         ...pollData,

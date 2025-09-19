@@ -1,7 +1,14 @@
 import { PrismaClient } from "@prisma/client";
 import { ApiError } from "../utils/errors";
+import bcrypt from "bcrypt";
+import crypto from "crypto";
+import { config } from "../config/env";
 
 const prisma = new PrismaClient();
+
+// 管理者ユーザーキャッシュ（パフォーマンス改善）
+let adminUserCache: { user: any; timestamp: number } | null = null;
+const ADMIN_CACHE_TTL = 5 * 60 * 1000; // 5分間キャッシュ
 
 export class AdminService {
   /**
@@ -467,38 +474,127 @@ export class AdminService {
   async approveRequest(id: string, adminComment?: string) {
     const request = await prisma.userVoteRequest.findUnique({
       where: { id },
+      include: {
+        user: true, // ユーザー情報も含めて取得
+      },
     });
 
     if (!request) {
       throw new ApiError(404, "提案が見つかりません");
     }
 
-    // 提案を元に新しい投票を作成
-    const poll = await prisma.poll.create({
-      data: {
-        title: request.title,
-        description: request.description,
-        isAccentMode: false,
-        options: request.options,
-        deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7日後
-        categories: request.categories || JSON.stringify(["ユーザー提案"]),
-        createdBy: "admin",
-      },
-    });
+    // 作成者のユーザーIDを決定
+    let creatorUserId: string;
 
-    // 提案のステータスを更新
-    await prisma.userVoteRequest.update({
-      where: { id },
-      data: {
-        status: "approved",
-        adminComment: adminComment,
-        reviewedAt: new Date(),
-        reviewedBy: "admin", // 認証実装後に更新
-      },
-    });
+    // 1. リクエストにユーザーIDがある場合は、そのユーザーが存在することを確認
+    if (request.userId) {
+      // ユーザーの存在確認（includeで既に取得済み）
+      if (request.user) {
+        creatorUserId = request.userId;
+      } else {
+        // ユーザーIDはあるが実際のユーザーが存在しない場合（削除されたユーザー等）
+        // 管理者ユーザーを使用
+        const adminUser = await this.getOrCreateAdminUser();
+        creatorUserId = adminUser.id;
+      }
+    } else {
+      // 2. userIdがnullの場合は管理者ユーザーを取得または作成
+      const adminUser = await this.getOrCreateAdminUser();
+      creatorUserId = adminUser.id;
+    }
 
-    return poll;
+    try {
+      // 提案を元に新しい投票を作成
+      const poll = await prisma.poll.create({
+        data: {
+          title: request.title,
+          description: request.description,
+          isAccentMode: false,
+          options: request.options,
+          deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7日後
+          categories: request.categories || JSON.stringify(["ユーザー提案"]),
+          createdBy: creatorUserId,
+        },
+      });
+
+      // 提案のステータスを更新
+      await prisma.userVoteRequest.update({
+        where: { id },
+        data: {
+          status: "approved",
+          adminComment: adminComment,
+          reviewedAt: new Date(),
+          reviewedBy: creatorUserId, // 実際の管理者IDを使用
+        },
+      });
+
+      return poll;
+    } catch (error) {
+      console.error("投票作成エラー:", error);
+      throw new ApiError(500, "投票の作成に失敗しました");
+    }
   }
+
+  /**
+   * 管理者ユーザーを取得または作成
+   */
+  async getOrCreateAdminUser() {
+    // キャッシュチェック（パフォーマンス改善）
+    if (adminUserCache && (Date.now() - adminUserCache.timestamp) < ADMIN_CACHE_TTL) {
+      return adminUserCache.user;
+    }
+
+    // 既存の管理者ユーザーを取得
+    let adminUser = await prisma.user.findFirst({
+      where: { isAdmin: true },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    if (!adminUser) {
+      // 管理者ユーザーが存在しない場合は作成
+      // セキュリティ: 環境変数からパスワードを取得、デフォルトはランダム生成
+      const defaultPassword = config.admin.defaultPassword || crypto.randomBytes(32).toString('hex');
+      const adminPassword = await bcrypt.hash(defaultPassword, 10);
+
+      try {
+        adminUser = await prisma.user.create({
+          data: {
+            username: 'admin',
+            email: 'admin@example.com',
+            passwordHash: adminPassword,
+            ageGroup: '30代',
+            prefecture: '東京都',
+            gender: 'その他',
+            isAdmin: true,
+          },
+        });
+      } catch (error) {
+        // ユーザー名が既に存在する場合の対処
+        const existingUser = await prisma.user.findUnique({
+          where: { username: 'admin' },
+        });
+
+        if (existingUser) {
+          // 既存のadminユーザーを管理者に昇格
+          adminUser = await prisma.user.update({
+            where: { id: existingUser.id },
+            data: { isAdmin: true },
+          });
+        } else {
+          throw error;
+        }
+      }
+    }
+
+    // キャッシュを更新
+    adminUserCache = {
+      user: adminUser,
+      timestamp: Date.now()
+    };
+
+    return adminUser;
+  }
+
 
   /**
    * ユーザー提案却下
@@ -512,6 +608,9 @@ export class AdminService {
       throw new ApiError(404, "提案が見つかりません");
     }
 
+    // 管理者ユーザーを取得または作成
+    const adminUser = await this.getOrCreateAdminUser();
+
     await prisma.userVoteRequest.update({
       where: { id },
       data: {
@@ -519,7 +618,7 @@ export class AdminService {
         rejectionReason: reason,
         adminComment: adminComment,
         reviewedAt: new Date(),
-        reviewedBy: "admin", // 認証実装後に更新
+        reviewedBy: adminUser.id, // 実際の管理者IDを使用
       },
     });
   }
@@ -534,11 +633,14 @@ export class AdminService {
       errors: [] as any[],
     };
 
+    // 管理者ユーザーを取得または作成
+    const adminUser = await this.getOrCreateAdminUser();
+
     for (const pollData of polls) {
       try {
         await this.createPoll({
           ...pollData,
-          createdBy: "admin",
+          createdBy: adminUser.id,
         });
         results.success++;
       } catch (error) {
