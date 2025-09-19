@@ -188,7 +188,7 @@ export function RankingPollCard({ poll, rank, showTrending = false }: RankingPol
           </div>
 
           {/* 投票分布のプレビュー（上位3位のみ） */}
-          {isTopThree && poll.voteDistribution && poll.totalVotes > 0 && (
+          {isTopThree && poll.voteDistribution && (poll.totalVotes ?? 0) > 0 && (
             <div className="mt-3 pt-3 border-t">
               <div className="space-y-1.5">
                 {poll.options.slice(0, 2).map((option, index) => {

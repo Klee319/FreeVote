@@ -1,6 +1,5 @@
 import { Metadata } from "next";
 import AdminSidebar from "@/components/layout/AdminSidebar";
-import AdminHeader from "@/components/features/admin/AdminHeader";
 
 export const metadata: Metadata = {
   title: "管理画面 - みんなの投票",
@@ -19,9 +18,6 @@ export default function AdminLayout({
 
       {/* メインコンテンツエリア */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* ヘッダー */}
-        <AdminHeader />
-
         {/* ページコンテンツ */}
         <main className="flex-1 overflow-y-auto bg-white">
           <div className="container mx-auto px-6 py-8">

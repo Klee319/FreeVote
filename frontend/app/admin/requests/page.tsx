@@ -70,12 +70,25 @@ export default function RequestsPage() {
 
       const response = await fetch(`/api/admin/requests?${params}`);
       if (response.ok) {
-        const data = await response.json();
-        setRequests(data.data || []);
+        const result = await response.json();
+        // バックエンドのレスポンス構造に合わせて修正
+        // data.requestsが配列、data自体はページング情報を含むオブジェクト
+        if (result.data && result.data.requests && Array.isArray(result.data.requests)) {
+          setRequests(result.data.requests);
+        } else if (result.data && Array.isArray(result.data)) {
+          // 互換性のための対応（dataが直接配列の場合）
+          setRequests(result.data);
+        } else {
+          console.warn("Unexpected API response structure:", result);
+          setRequests([]);
+        }
+      } else {
+        console.error("Failed to fetch requests: HTTP", response.status);
+        setRequests([]);
       }
     } catch (error) {
       console.error("Failed to fetch requests:", error);
-      // モックデータを表示
+      // エラー時はモックデータを表示（開発環境用）
       setRequests([
         {
           id: "1",
@@ -168,10 +181,13 @@ export default function RequestsPage() {
     }
   };
 
-  const filteredRequests = requests.filter(request =>
-    request.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    request.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // requestsが配列でない場合のエラーハンドリング
+  const filteredRequests = Array.isArray(requests)
+    ? requests.filter(request =>
+        request.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        request.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    : [];
 
   return (
     <div className="space-y-6">

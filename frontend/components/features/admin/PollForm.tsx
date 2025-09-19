@@ -41,7 +41,7 @@ const pollFormSchema = z.object({
     pitchPattern: z.string().optional(),
   })).min(2, "最低2つの選択肢が必要です").max(4, "選択肢は最大4つまでです"),
   deadline: z.date({
-    required_error: "締切日を選択してください",
+    message: "締切日を選択してください",
   }),
   shareMessage: z.string().optional(),
   shareHashtags: z.string().optional(),

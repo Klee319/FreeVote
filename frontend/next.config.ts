@@ -26,6 +26,15 @@ const nextConfig: NextConfig = {
     // ビルド時のESLint実行を継続
     ignoreDuringBuilds: false,
   },
+  // APIプロキシ設定 - バックエンドAPIへのリクエストをプロキシ
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: 'http://localhost:5001/api/:path*',
+      },
+    ];
+  },
   // 必要に応じてビルド出力ディレクトリを指定（デフォルトは.next）
   // distDir: '.next',
 };

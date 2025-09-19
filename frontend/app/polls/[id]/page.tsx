@@ -70,7 +70,7 @@ export default function PollDetailPage() {
     setShowResults(true);
 
     // 投票後に最新の投票データを再取得
-    await fetchPoll(params.id);
+    await fetchPoll(pollId);
   };
 
   const handleShare = () => {

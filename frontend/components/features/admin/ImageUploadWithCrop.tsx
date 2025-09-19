@@ -160,8 +160,8 @@ export function ImageUploadWithCrop({
     <>
       <div className="space-y-4">
         {preview ? (
-          <Card className="relative group">
-            <div className="aspect-video w-full overflow-hidden rounded-lg">
+          <Card className="relative group p-0 overflow-hidden">
+            <div className="aspect-video w-full">
               <img
                 src={preview}
                 alt="サムネイル"
