@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { VoteForm } from '@/components/features/polls/VoteForm';
 import { PollResults } from '@/components/features/polls/PollResults';
+import { PollStatistics } from '@/components/features/polls/PollStatistics';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -174,7 +175,7 @@ export default function PollDetailPage() {
           onVoteComplete={handleVoteComplete}
         />
       ) : (
-        <PollResults
+        <PollStatistics
           poll={currentPoll}
           selectedOption={selectedOption}
           isAuthenticated={isAuthenticated}
