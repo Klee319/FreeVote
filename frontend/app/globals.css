@@ -228,8 +228,9 @@
 }
 
 .rdp-selected .rdp-day_button {
-  background-color: oklch(0.205 0 0);
-  color: white;
+  background-color: oklch(0.922 0 0);
+  color: oklch(0.205 0 0);
+  border: 2px solid oklch(0.205 0 0);
 }
 
 .rdp-today .rdp-day_button {
@@ -246,20 +247,28 @@
   cursor: not-allowed;
 }
 
-.rdp-month_caption {
+.rdp-caption {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
   position: relative;
   margin-bottom: 1rem;
+  padding: 0 2rem;
+}
+
+.rdp-caption_label {
+  flex: 1;
+  text-align: center;
 }
 
 .rdp-nav {
+  display: flex;
   position: absolute;
   top: 0;
-  display: flex;
-  width: 100%;
+  left: 0;
+  right: 0;
   justify-content: space-between;
+  padding: 0 0.25rem;
 }
 
 .rdp-button_previous,
@@ -269,9 +278,13 @@
   background: transparent;
   border: 1px solid rgb(226 232 240);
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .rdp-button_previous:hover,
 .rdp-button_next:hover {
   background-color: rgb(241 245 249);
+  opacity: 1;
 }
