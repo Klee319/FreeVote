@@ -74,7 +74,10 @@ router.get(
 
 router.post(
   "/requests/:id/approve",
-  [param("id").notEmpty()],
+  [
+    param("id").notEmpty(),
+    body("adminComment").optional().isString(),
+  ],
   validateRequest,
   adminController.approveRequest
 );
@@ -83,7 +86,8 @@ router.post(
   "/requests/:id/reject",
   [
     param("id").notEmpty(),
-    body("reason").optional().isString(),
+    body("rejectionReason").notEmpty().withMessage("却下理由は必須です"),
+    body("adminComment").optional().isString(),
   ],
   validateRequest,
   adminController.rejectRequest

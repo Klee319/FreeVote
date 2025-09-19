@@ -8,13 +8,19 @@ export class AdminService {
    * ダッシュボード統計取得
    */
   async getDashboardStats() {
-    const [totalVotes, totalUsers, activePolls, pendingRequests] = await Promise.all([
+    const now = new Date();
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const fourteenDaysAgo = new Date();
+    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+
+    const [totalVotes, totalUsers, activePolls, pendingRequests, closingSoonPolls] = await Promise.all([
       prisma.pollVote.count(),
       prisma.user.count(),
       prisma.poll.count({
         where: {
           deadline: {
-            gt: new Date(),
+            gt: now,
           },
         },
       }),
@@ -23,30 +29,202 @@ export class AdminService {
           status: "pending",
         },
       }),
+      // 締切が3日以内の投票
+      prisma.poll.count({
+        where: {
+          deadline: {
+            gt: now,
+            lte: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+          },
+        },
+      }),
     ]);
 
-    // 過去7日間の投票数推移
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    // 過去7日間と14日間の投票数を取得（成長率計算用）
+    const [votesLastWeek, votesPreviousWeek, usersLastWeek, usersPreviousWeek] = await Promise.all([
+      prisma.pollVote.count({
+        where: {
+          votedAt: {
+            gte: sevenDaysAgo,
+          },
+        },
+      }),
+      prisma.pollVote.count({
+        where: {
+          votedAt: {
+            gte: fourteenDaysAgo,
+            lt: sevenDaysAgo,
+          },
+        },
+      }),
+      prisma.user.count({
+        where: {
+          createdAt: {
+            gte: sevenDaysAgo,
+          },
+        },
+      }),
+      prisma.user.count({
+        where: {
+          createdAt: {
+            gte: fourteenDaysAgo,
+            lt: sevenDaysAgo,
+          },
+        },
+      }),
+    ]);
 
-    const votesTrend = await prisma.pollVote.groupBy({
-      by: ["votedAt"],
+    // 成長率を計算
+    const votesGrowth = votesPreviousWeek === 0
+      ? 0
+      : Number(((votesLastWeek - votesPreviousWeek) / votesPreviousWeek * 100).toFixed(1));
+    const usersGrowth = usersPreviousWeek === 0
+      ? 0
+      : Number(((usersLastWeek - usersPreviousWeek) / usersPreviousWeek * 100).toFixed(1));
+
+    // 過去7日間の投票数推移（日別に集計）
+    const votesByDay = await prisma.pollVote.findMany({
       where: {
         votedAt: {
           gte: sevenDaysAgo,
         },
       },
-      _count: true,
+      select: {
+        votedAt: true,
+      },
+    });
+
+    // 日付ごとに集計
+    const votesTrendMap = new Map<string, number>();
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateKey = `${date.getMonth() + 1}/${date.getDate()}`;
+      votesTrendMap.set(dateKey, 0);
+    }
+
+    votesByDay.forEach((vote) => {
+      const date = new Date(vote.votedAt);
+      const dateKey = `${date.getMonth() + 1}/${date.getDate()}`;
+      if (votesTrendMap.has(dateKey)) {
+        votesTrendMap.set(dateKey, (votesTrendMap.get(dateKey) || 0) + 1);
+      }
+    });
+
+    const votesTrend = Array.from(votesTrendMap.entries()).map(([date, votes]) => ({
+      date,
+      votes,
+    }));
+
+    // カテゴリー分布を取得
+    const polls = await prisma.poll.findMany({
+      select: {
+        categories: true,
+        _count: {
+          select: { votes: true },
+        },
+      },
+    });
+
+    const categoryVotesMap = new Map<string, number>();
+    polls.forEach((poll) => {
+      // categoriesがJSON文字列の場合とarrayの場合の両方に対応
+      let categories: string[] = [];
+      if (typeof poll.categories === 'string') {
+        try {
+          categories = JSON.parse(poll.categories);
+        } catch (e) {
+          // パースできない場合は単一カテゴリとして扱う
+          categories = [poll.categories];
+        }
+      } else if (Array.isArray(poll.categories)) {
+        categories = poll.categories;
+      }
+
+      if (Array.isArray(categories)) {
+        categories.forEach((category) => {
+          if (category) {
+            categoryVotesMap.set(
+              category,
+              (categoryVotesMap.get(category) || 0) + poll._count.votes
+            );
+          }
+        });
+      }
+    });
+
+    const totalCategoryVotes = Array.from(categoryVotesMap.values()).reduce((sum, count) => sum + count, 0);
+    const categoryDistribution = Array.from(categoryVotesMap.entries())
+      .map(([name, count]) => ({
+        name,
+        value: totalCategoryVotes === 0 ? 0 : Math.round((count / totalCategoryVotes) * 100),
+      }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5); // 上位5カテゴリーのみ
+
+    // 最近の投票を取得
+    const recentPolls = await prisma.poll.findMany({
+      where: {
+        deadline: {
+          gt: now,
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: 3,
+      select: {
+        id: true,
+        title: true,
+        deadline: true,
+        _count: {
+          select: { votes: true },
+        },
+      },
+    });
+
+    // 最近のリクエストを取得
+    const recentRequests = await prisma.userVoteRequest.findMany({
+      where: {
+        status: "pending",
+      },
+      orderBy: {
+        likeCount: "desc",
+      },
+      take: 3,
+      select: {
+        id: true,
+        title: true,
+        likeCount: true,
+        createdAt: true,
+      },
     });
 
     return {
-      totalVotes,
-      totalUsers,
-      activePolls,
-      pendingRequests,
+      stats: {
+        totalVotes,
+        totalUsers,
+        activePolls,
+        pendingRequests,
+        votesGrowth,
+        usersGrowth,
+        closingSoonPolls,
+      },
       votesTrend,
-      votesGrowth: 12.5, // TODO: 実際の成長率を計算
-      usersGrowth: 8.3,  // TODO: 実際の成長率を計算
+      categoryDistribution,
+      recentPolls: recentPolls.map((poll) => ({
+        id: poll.id,
+        title: poll.title,
+        votes: poll._count.votes,
+        status: "active" as const,
+        deadline: poll.deadline.toISOString().split("T")[0],
+      })),
+      recentRequests: recentRequests.map((request) => ({
+        id: request.id,
+        title: request.title,
+        likes: request.likeCount,
+        date: request.createdAt.toISOString().split("T")[0],
+      })),
     };
   }
 
@@ -228,12 +406,54 @@ export class AdminService {
         orderBy: {
           createdAt: "desc",
         },
+        include: {
+          user: {
+            select: {
+              username: true,
+            },
+          },
+        },
       }),
       prisma.userVoteRequest.count({ where }),
     ]);
 
+    // レスポンスデータの形式を整える
+    const formattedRequests = requests.map((request) => {
+      let categories: string[] = [];
+      let options: string[] = [];
+
+      // categoriesがJSON文字列の場合はパース
+      if (typeof request.categories === 'string') {
+        try {
+          categories = JSON.parse(request.categories);
+        } catch (e) {
+          categories = [request.categories]; // パースできない場合は配列に変換
+        }
+      } else if (Array.isArray(request.categories)) {
+        categories = request.categories;
+      }
+
+      // optionsがJSON文字列の場合はパース
+      if (typeof request.options === 'string') {
+        try {
+          options = JSON.parse(request.options);
+        } catch (e) {
+          options = [request.options]; // パースできない場合は配列に変換
+        }
+      } else if (Array.isArray(request.options)) {
+        options = request.options;
+      }
+
+      return {
+        ...request,
+        categories,
+        options,
+        username: request.user?.username,
+      };
+    });
+
     return {
-      requests,
+      requests: formattedRequests,
       total,
       page,
       limit,
@@ -244,7 +464,7 @@ export class AdminService {
   /**
    * ユーザー提案承認
    */
-  async approveRequest(id: string) {
+  async approveRequest(id: string, adminComment?: string) {
     const request = await prisma.userVoteRequest.findUnique({
       where: { id },
     });
@@ -261,7 +481,7 @@ export class AdminService {
         isAccentMode: false,
         options: request.options,
         deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7日後
-        categories: JSON.stringify(["ユーザー提案"]),
+        categories: request.categories || JSON.stringify(["ユーザー提案"]),
         createdBy: "admin",
       },
     });
@@ -271,6 +491,9 @@ export class AdminService {
       where: { id },
       data: {
         status: "approved",
+        adminComment: adminComment,
+        reviewedAt: new Date(),
+        reviewedBy: "admin", // 認証実装後に更新
       },
     });
 
@@ -280,7 +503,7 @@ export class AdminService {
   /**
    * ユーザー提案却下
    */
-  async rejectRequest(id: string, reason?: string) {
+  async rejectRequest(id: string, reason?: string, adminComment?: string) {
     const request = await prisma.userVoteRequest.findUnique({
       where: { id },
     });
@@ -293,7 +516,10 @@ export class AdminService {
       where: { id },
       data: {
         status: "rejected",
-        // rejectionReason: reason, // UserVoteRequestにはこのフィールドがない
+        rejectionReason: reason,
+        adminComment: adminComment,
+        reviewedAt: new Date(),
+        reviewedBy: "admin", // 認証実装後に更新
       },
     });
   }

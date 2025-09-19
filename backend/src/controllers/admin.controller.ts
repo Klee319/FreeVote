@@ -129,8 +129,9 @@ export class AdminController {
   async approveRequest(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
+      const { adminComment } = req.body;
 
-      const poll = await adminService.approveRequest(id);
+      const poll = await adminService.approveRequest(id, adminComment);
 
       res.json({
         success: true,
@@ -147,9 +148,9 @@ export class AdminController {
   async rejectRequest(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
-      const { reason } = req.body;
+      const { rejectionReason, adminComment } = req.body;
 
-      await adminService.rejectRequest(id, reason);
+      await adminService.rejectRequest(id, rejectionReason, adminComment);
 
       res.json({
         success: true,
