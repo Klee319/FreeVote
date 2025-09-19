@@ -361,17 +361,19 @@ export function PollStatistics({
                       {/* Top 10 prefectures by vote count */}
                       {(() => {
                         const prefectures = Object.entries(currentStatistics.breakdown.prefecture)
-                          .map(([prefecture, distribution]) => ({
-                            prefecture,
-                            total: Object.values(distribution).reduce((sum, count) => sum + count, 0),
-                            topOption: poll.options[
-                              Object.entries(distribution).reduce(
-                                (max, [option, count]) =>
-                                  count > (distribution[max] || 0) ? parseInt(option) : max,
-                                0
-                              )
-                            ].label,
-                          }))
+                          .map(([prefecture, distribution]) => {
+                            const total = Object.values(distribution).reduce((sum, count) => sum + count, 0);
+                            const topOptionIndex = Object.entries(distribution).reduce(
+                              (max, [option, count]) =>
+                                count > (distribution[max] || 0) ? parseInt(option) : max,
+                              0
+                            );
+                            return {
+                              prefecture,
+                              total,
+                              topOption: poll.options[topOptionIndex]?.label || '不明',
+                            };
+                          })
                           .sort((a, b) => b.total - a.total)
                           .slice(0, 10);
 
