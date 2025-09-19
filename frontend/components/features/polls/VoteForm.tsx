@@ -192,13 +192,13 @@ export function VoteForm({ poll, onVoteComplete }: VoteFormProps) {
                     <SelectValue placeholder="年代を選択" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="10s">10代</SelectItem>
-                    <SelectItem value="20s">20代</SelectItem>
-                    <SelectItem value="30s">30代</SelectItem>
-                    <SelectItem value="40s">40代</SelectItem>
-                    <SelectItem value="50s">50代</SelectItem>
-                    <SelectItem value="60s">60代</SelectItem>
-                    <SelectItem value="70s">70代以上</SelectItem>
+                    <SelectItem value="10代">10代</SelectItem>
+                    <SelectItem value="20代">20代</SelectItem>
+                    <SelectItem value="30代">30代</SelectItem>
+                    <SelectItem value="40代">40代</SelectItem>
+                    <SelectItem value="50代">50代</SelectItem>
+                    <SelectItem value="60代">60代</SelectItem>
+                    <SelectItem value="70代以上">70代以上</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -215,9 +215,9 @@ export function VoteForm({ poll, onVoteComplete }: VoteFormProps) {
                     <SelectValue placeholder="性別を選択" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="male">男性</SelectItem>
-                    <SelectItem value="female">女性</SelectItem>
-                    <SelectItem value="other">その他</SelectItem>
+                    <SelectItem value="男性">男性</SelectItem>
+                    <SelectItem value="女性">女性</SelectItem>
+                    <SelectItem value="その他">その他</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

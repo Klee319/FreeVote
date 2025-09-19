@@ -409,6 +409,7 @@ export class PollsService {
             prefecture: true,
             ageGroup: true,
             gender: true,
+            userId: true,
           },
         },
       },
@@ -427,10 +428,13 @@ export class PollsService {
       breakdown: {},
     };
 
+    // ゲスト投票（userIdがない投票）を除外して詳細統計を集計
+    const authenticatedVotes = poll.votes.filter(vote => vote.userId);
+
     if (!filterBy || filterBy === 'age') {
-      // 年代別集計
+      // 年代別集計（登録ユーザーのみ）
       const ageBreakdown: Record<string, Record<number, number>> = {};
-      poll.votes.forEach((vote) => {
+      authenticatedVotes.forEach((vote) => {
         if (vote.ageGroup) {
           if (!ageBreakdown[vote.ageGroup]) {
             ageBreakdown[vote.ageGroup] = {};
@@ -443,9 +447,9 @@ export class PollsService {
     }
 
     if (!filterBy || filterBy === 'gender') {
-      // 性別別集計
+      // 性別別集計（登録ユーザーのみ）
       const genderBreakdown: Record<string, Record<number, number>> = {};
-      poll.votes.forEach((vote) => {
+      authenticatedVotes.forEach((vote) => {
         if (vote.gender) {
           if (!genderBreakdown[vote.gender]) {
             genderBreakdown[vote.gender] = {};
@@ -458,9 +462,9 @@ export class PollsService {
     }
 
     if (!filterBy || filterBy === 'prefecture') {
-      // 都道府県別集計
+      // 都道府県別集計（登録ユーザーのみ）
       const prefectureBreakdown: Record<string, Record<number, number>> = {};
-      poll.votes.forEach((vote) => {
+      authenticatedVotes.forEach((vote) => {
         if (!prefectureBreakdown[vote.prefecture]) {
           prefectureBreakdown[vote.prefecture] = {};
         }
