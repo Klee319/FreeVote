@@ -9,6 +9,7 @@ interface PollFilters {
   category?: string;
   search?: string;
   sort?: 'new' | 'trending' | 'voteCount';
+  order?: 'asc' | 'desc';
   page?: number;
   limit?: number;
   active?: boolean;
@@ -30,6 +31,7 @@ export class PollsService {
       category,
       search,
       sort = 'trending',
+      order = 'desc',
       page = 1,
       limit = 20,
       active,
@@ -85,17 +87,19 @@ export class PollsService {
 
     // ソート条件
     let orderBy: any = {};
+    const sortDirection = order || 'desc';
+
     switch (sort) {
       case 'new':
-        orderBy = { createdAt: 'desc' };
+        orderBy = { createdAt: sortDirection };
         break;
       case 'voteCount':
-        orderBy = { votes: { _count: 'desc' } };
+        orderBy = { votes: { _count: sortDirection } };
         break;
       case 'trending':
       default:
         // トレンディングは別途計算が必要（簡易版として閲覧数を使用）
-        orderBy = { viewCount: 'desc' };
+        orderBy = { viewCount: sortDirection };
         break;
     }
 
