@@ -29,6 +29,9 @@ export class AuthorizationError extends AppError {
   }
 }
 
+// ForbiddenError は AuthorizationError のエイリアス
+export class ForbiddenError extends AuthorizationError {}
+
 export class NotFoundError extends AppError {
   constructor(message: string = 'リソースが見つかりません') {
     super(message, 404);

@@ -13,10 +13,10 @@ const apiClient: AxiosInstance = axios.create({
   timeout: 30000,
 });
 
-// Request interceptor to add auth token
+// Request interceptor to add auth token and user token
 apiClient.interceptors.request.use(
   (config) => {
-    // Get token from localStorage or auth store
+    // Get auth token from localStorage or auth store
     const authStorage = localStorage.getItem('auth-storage');
     if (authStorage) {
       try {
@@ -28,6 +28,18 @@ apiClient.interceptors.request.use(
         console.error('Failed to parse auth storage:', error);
       }
     }
+
+    // Get user token from localStorage (for guest users)
+    // Extract pollId from URL if present (e.g., /polls/:id/...)
+    const urlMatch = config.url?.match(/\/polls\/([^/]+)/);
+    if (urlMatch && urlMatch[1]) {
+      const pollId = urlMatch[1];
+      const userToken = localStorage.getItem(`vote-token-${pollId}`);
+      if (userToken) {
+        config.headers['x-user-token'] = userToken;
+      }
+    }
+
     return config;
   },
   (error) => {
@@ -189,6 +201,13 @@ export const api = {
 
   getUserReferrals: (userId: string) =>
     apiCall<any>('GET', `/users/${userId}/referrals`),
+
+  // Stats Access
+  checkStatsAccess: (pollId: string) =>
+    apiCall<any>('GET', `/polls/${pollId}/check-stats-access`),
+
+  grantStatsAccess: (pollId: string, userToken: string) =>
+    apiCall<any>('POST', `/polls/${pollId}/grant-stats-access`, { userToken }),
 
   // Comments
   getComments: (pollId: string, page: number = 1, limit: number = 10) =>

@@ -144,3 +144,11 @@ export interface CommentLikeData {
   commentId: string;
   userToken?: string;
 }
+
+// Stats Access types
+export interface StatsAccessInfo {
+  hasAccess: boolean;
+  expiresAt?: string;
+  grantedAt?: string;
+  platform?: string;
+}

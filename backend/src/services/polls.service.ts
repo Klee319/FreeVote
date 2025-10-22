@@ -1,9 +1,11 @@
 import { PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
-import { NotFoundError, ValidationError, ConflictError } from '../utils/errors';
+import { NotFoundError, ValidationError, ConflictError, ForbiddenError } from '../utils/errors';
 import { voteSchema } from '../utils/validation';
+import { StatsAccessService } from './stats-access.service';
 
 const prisma = new PrismaClient();
+const statsAccessService = new StatsAccessService();
 
 interface PollFilters {
   category?: string;
@@ -413,7 +415,27 @@ export class PollsService {
   }
 
   // 詳細統計取得
-  async getStats(pollId: string, filterBy?: 'age' | 'gender' | 'prefecture') {
+  async getStats(
+    pollId: string,
+    filterBy?: 'age' | 'gender' | 'prefecture',
+    userToken?: string,
+    userId?: string
+  ) {
+    // アクセス権限チェック
+    if (!userToken) {
+      throw new ForbiddenError('ユーザートークンが必要です');
+    }
+
+    const hasAccess = await statsAccessService.canAccessDetailStats(
+      pollId,
+      userToken,
+      userId
+    );
+
+    if (!hasAccess) {
+      throw new ForbiddenError('詳細統計へのアクセス権限がありません');
+    }
+
     const poll = await prisma.poll.findUnique({
       where: { id: pollId },
       include: {
@@ -489,5 +511,56 @@ export class PollsService {
     }
 
     return stats;
+  }
+
+  // シェアメタデータ取得
+  async getShareMetadata(pollId: string) {
+    const poll = await prisma.poll.findUnique({
+      where: { id: pollId },
+      include: {
+        votes: {
+          select: {
+            option: true,
+          },
+        },
+        comments: {
+          select: {
+            id: true,
+          },
+        },
+      },
+    });
+
+    if (!poll) {
+      throw new NotFoundError('投票が見つかりません');
+    }
+
+    const parsedOptions = typeof poll.options === 'string' ? JSON.parse(poll.options) : poll.options;
+    const parsedCategories = typeof poll.categories === 'string' ? JSON.parse(poll.categories) : poll.categories;
+
+    // 総投票数を計算
+    const totalVotes = poll.votes.length;
+
+    // 各選択肢の投票数を計算
+    const voteCounts = new Map<number, number>();
+    poll.votes.forEach((vote) => {
+      voteCounts.set(vote.option, (voteCounts.get(vote.option) || 0) + 1);
+    });
+
+    return {
+      title: poll.title,
+      description: poll.description,
+      options: parsedOptions,
+      categories: parsedCategories,
+      totalVotes,
+      commentCount: poll.commentCount,
+      thumbnailUrl: poll.thumbnailUrl,
+      deadline: poll.deadline,
+      voteCounts: Array.from(voteCounts.entries()).map(([option, count]) => ({
+        option,
+        count,
+        percentage: totalVotes > 0 ? (count / totalVotes) * 100 : 0,
+      })),
+    };
   }
 }

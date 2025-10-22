@@ -184,6 +184,7 @@ export default function PollDetailPage() {
             poll={currentPoll}
             selectedOption={selectedOption}
             isAuthenticated={isAuthenticated}
+            onShare={handleShare}
           />
         )}
       </div>

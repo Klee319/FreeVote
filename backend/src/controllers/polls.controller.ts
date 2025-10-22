@@ -72,7 +72,21 @@ export class PollsController {
   getStats = asyncHandler(async (req: Request, res: Response, _next: NextFunction) => {
     const { id } = req.params;
     const filterBy = req.query.filterBy as 'age' | 'gender' | 'prefecture' | undefined;
-    const result = await pollsService.getStats(id, filterBy);
+    const userToken = req.headers['x-user-token'] as string | undefined;
+    const userId = req.user?.userId;
+
+    const result = await pollsService.getStats(id, filterBy, userToken, userId);
+
+    res.json({
+      success: true,
+      data: result,
+    });
+  });
+
+  // シェアメタデータ取得
+  getShareMetadata = asyncHandler(async (req: Request, res: Response, _next: NextFunction) => {
+    const { id } = req.params;
+    const result = await pollsService.getShareMetadata(id);
 
     res.json({
       success: true,

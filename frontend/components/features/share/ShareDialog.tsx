@@ -12,10 +12,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Poll } from '@/types';
 import { usePolls } from '@/hooks/usePolls';
+import { useStatsAccess } from '@/hooks/useStatsAccess';
 import { useAuthStore } from '@/stores/authStore';
-import { Copy, Twitter, Facebook, Link2 } from 'lucide-react';
+import { Copy, Twitter, Facebook, Link2, CheckCircle2 } from 'lucide-react';
 
 interface ShareDialogProps {
   poll: Poll;
@@ -25,10 +27,13 @@ interface ShareDialogProps {
 
 export function ShareDialog({ poll, selectedOption, onClose }: ShareDialogProps) {
   const { getShareMessage } = usePolls();
+  const { grantAccess, hasAccess } = useStatsAccess(poll.id);
   const { user } = useAuthStore();
   const [shareMessage, setShareMessage] = useState('');
   const [shareUrl, setShareUrl] = useState('');
   const [copied, setCopied] = useState(false);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [isGrantingAccess, setIsGrantingAccess] = useState(false);
 
   useEffect(() => {
     const generateShareContent = async () => {
@@ -70,6 +75,21 @@ export function ShareDialog({ poll, selectedOption, onClose }: ShareDialogProps)
     }
   };
 
+  const handleShareSuccess = async (platform: string) => {
+    if (user && !hasAccess) {
+      setIsGrantingAccess(true);
+      try {
+        await grantAccess(platform);
+        setShowSuccessMessage(true);
+        setTimeout(() => setShowSuccessMessage(false), 5000);
+      } catch (error) {
+        console.error('Failed to grant stats access:', error);
+      } finally {
+        setIsGrantingAccess(false);
+      }
+    }
+  };
+
   const shareToTwitter = () => {
     const text = encodeURIComponent(shareMessage);
     const url = encodeURIComponent(shareUrl);
@@ -77,6 +97,7 @@ export function ShareDialog({ poll, selectedOption, onClose }: ShareDialogProps)
       `https://twitter.com/intent/tweet?text=${text}&url=${url}`,
       '_blank'
     );
+    handleShareSuccess('twitter');
   };
 
   const shareToFacebook = () => {
@@ -85,6 +106,7 @@ export function ShareDialog({ poll, selectedOption, onClose }: ShareDialogProps)
       `https://www.facebook.com/sharer/sharer.php?u=${url}`,
       '_blank'
     );
+    handleShareSuccess('facebook');
   };
 
   const shareToLine = () => {
@@ -93,6 +115,7 @@ export function ShareDialog({ poll, selectedOption, onClose }: ShareDialogProps)
       `https://line.me/R/msg/text/?${fullMessage}`,
       '_blank'
     );
+    handleShareSuccess('line');
   };
 
   return (
@@ -109,6 +132,15 @@ export function ShareDialog({ poll, selectedOption, onClose }: ShareDialogProps)
             )}
           </DialogDescription>
         </DialogHeader>
+
+        {showSuccessMessage && (
+          <Alert className="bg-green-50 border-green-200">
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-green-800">
+              シェアありがとうございます！詳細統計に7日間アクセスできるようになりました
+            </AlertDescription>
+          </Alert>
+        )}
 
         <div className="space-y-4">
           {/* Share Message */}
@@ -151,6 +183,7 @@ export function ShareDialog({ poll, selectedOption, onClose }: ShareDialogProps)
           <div className="grid grid-cols-3 gap-2">
             <Button
               onClick={shareToTwitter}
+              disabled={isGrantingAccess}
               className="bg-[#1DA1F2] hover:bg-[#1a8cd8] text-white"
             >
               <Twitter className="h-4 w-4 mr-2" />
@@ -158,6 +191,7 @@ export function ShareDialog({ poll, selectedOption, onClose }: ShareDialogProps)
             </Button>
             <Button
               onClick={shareToFacebook}
+              disabled={isGrantingAccess}
               className="bg-[#4267B2] hover:bg-[#365899] text-white"
             >
               <Facebook className="h-4 w-4 mr-2" />
@@ -165,6 +199,7 @@ export function ShareDialog({ poll, selectedOption, onClose }: ShareDialogProps)
             </Button>
             <Button
               onClick={shareToLine}
+              disabled={isGrantingAccess}
               className="bg-[#00C300] hover:bg-[#00a000] text-white"
             >
               <Link2 className="h-4 w-4 mr-2" />

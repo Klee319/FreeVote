@@ -61,6 +61,7 @@ model User {
   shareRankings ShareRanking[]  // シェアランキング
   comments      PollComment[]  // コメント
   commentLikes  CommentLike[]  // コメントいいね
+  detailStatsAccesses DetailStatsAccess[]  // 詳細統計アクセス権限
 
   @@index([email])
   @@index([provider, providerId])
@@ -110,6 +111,7 @@ model Poll {
   shareActivities   UserShareActivity[]  // シェア活動
   comments      PollComment[]  // コメント
   commentCount  Int         @default(0)  // コメント数
+  detailStatsAccesses DetailStatsAccess[]  // 詳細統計アクセス権限
 
   @@index([status])
   @@index([createdAt])
@@ -277,4 +279,22 @@ model CommentLike {
   @@unique([commentId, userToken]) // 同一コメントに対して同じユーザートークンで重複いいね不可
   @@index([commentId])
   @@index([userId])
+}
+
+// 詳細統計アクセス権限モデル
+model DetailStatsAccess {
+  id          String   @id @default(uuid())
+  pollId      String
+  poll        Poll     @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  userToken   String   // ゲストユーザー識別用トークン
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  grantedAt   DateTime @default(now())
+  expiresAt   DateTime // アクセス権限の有効期限
+  grantedBy   String   // 権限を付与したユーザーID
+
+  @@unique([pollId, userToken]) // 同一投票に対して同じユーザートークンで重複付与不可
+  @@index([expiresAt])
+  @@index([userToken])
+  @@index([pollId, userId])
 }
