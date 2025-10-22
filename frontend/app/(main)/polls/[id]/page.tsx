@@ -190,10 +190,7 @@ export default function PollDetailPage() {
       </div>
 
       {/* Comment Section */}
-      <CommentSection
-        pollId={pollId}
-        userToken={localStorage.getItem(`vote-token-${pollId}`) || undefined}
-      />
+      <CommentSection pollId={pollId} />
 
       {/* Share Dialog */}
       {showShareDialog && (

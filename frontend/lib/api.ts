@@ -249,22 +249,22 @@ export const api = {
     apiCall<any>('POST', `/polls/${pollId}/share-grant-access`),
 
   // Comments
-  getComments: (pollId: string, page: number = 1, limit: number = 10) =>
+  getComments: (pollId: string, page: number = 1, limit: number = 10, sort: 'new' | 'popular' = 'new') =>
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    apiCall<any>('GET', `/polls/${pollId}/comments`, null, { page, limit }),
+    apiCall<any>('GET', `/polls/${pollId}/comments`, null, { page, limit, sort }),
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  createComment: (data: any) =>
+  createComment: (pollId: string, data: any) =>
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    apiCall<any>('POST', '/comments', data),
+    apiCall<any>('POST', `/polls/${pollId}/comments`, data),
 
-  deleteComment: (commentId: string, userToken?: string) =>
+  deleteComment: (pollId: string, commentId: string, userToken?: string) =>
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    apiCall<any>('DELETE', `/comments/${commentId}`, { userToken }),
+    apiCall<any>('DELETE', `/polls/${pollId}/comments/${commentId}`, { userToken }),
 
-  toggleCommentLike: (commentId: string, userToken?: string) =>
+  toggleCommentLike: (pollId: string, commentId: string, userToken?: string) =>
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    apiCall<any>('POST', `/comments/${commentId}/like`, { userToken }),
+    apiCall<any>('POST', `/polls/${pollId}/comments/${commentId}/like`, { userToken }),
 
   // Admin (protected endpoints)
   admin: {

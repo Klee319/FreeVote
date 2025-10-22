@@ -7,7 +7,6 @@ import type { Comment } from '@/types';
 interface CommentListProps {
   comments: Comment[];
   pollId: string;
-  userToken?: string;
   isLoading: boolean;
   onCommentUpdate: () => void;
 }
@@ -15,7 +14,6 @@ interface CommentListProps {
 export function CommentList({
   comments,
   pollId,
-  userToken,
   isLoading,
   onCommentUpdate,
 }: CommentListProps) {
@@ -47,13 +45,13 @@ export function CommentList({
 
   return (
     <div className="space-y-4">
-      {comments.map((comment) => (
+      {comments.map((comment, index) => (
         <CommentItem
           key={comment.id}
           comment={comment}
           pollId={pollId}
-          userToken={userToken}
           onCommentUpdate={onCommentUpdate}
+          isLast={index === comments.length - 1}
         />
       ))}
     </div>

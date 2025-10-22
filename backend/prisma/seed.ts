@@ -1,3 +1,5 @@
+// モックデータ生成スクリプト(現在は使用していません)
+/*
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
@@ -61,7 +63,7 @@ async function main() {
   // サンプル投票データ作成
   const polls = [
     {
-      title: '好きな季節は？',
+      title: '好きな季節は?',
       description: '日本の四季の中で、あなたが一番好きな季節を教えてください。',
       options: [
         { label: '春', thumbnailUrl: 'https://example.com/spring.jpg' },
@@ -70,48 +72,48 @@ async function main() {
         { label: '冬', thumbnailUrl: 'https://example.com/winter.jpg' },
       ],
       categories: ['生活', 'アンケート'],
-      shareMessage: '私の好きな季節は#OPTION#です！みんなも投票しよう！',
+      shareMessage: '私の好きな季節は#OPTION#です!みんなも投票しよう!',
       shareHashtags: '季節,投票,みんなの投票',
     },
     {
-      title: '朝食派？夕食派？',
-      description: '一日の中で最も重要だと思う食事はどれですか？',
+      title: '朝食派?夕食派?',
+      description: '一日の中で最も重要だと思う食事はどれですか?',
       options: [
         { label: '朝食', thumbnailUrl: 'https://example.com/breakfast.jpg' },
         { label: '昼食', thumbnailUrl: 'https://example.com/lunch.jpg' },
         { label: '夕食', thumbnailUrl: 'https://example.com/dinner.jpg' },
       ],
       categories: ['生活', '食事'],
-      shareMessage: '私は#OPTION#派！あなたは？',
+      shareMessage: '私は#OPTION#派!あなたは?',
       shareHashtags: '食事,ライフスタイル',
     },
     {
-      title: '犬派？猫派？',
-      description: 'ペットとして飼うならどちら？',
+      title: '犬派?猫派?',
+      description: 'ペットとして飼うならどちら?',
       options: [
         { label: '犬派', thumbnailUrl: 'https://example.com/dog.jpg' },
         { label: '猫派', thumbnailUrl: 'https://example.com/cat.jpg' },
         { label: 'どちらも好き', thumbnailUrl: 'https://example.com/both.jpg' },
       ],
       categories: ['ペット', 'アンケート'],
-      shareMessage: '私は#OPTION#です！',
+      shareMessage: '私は#OPTION#です!',
       shareHashtags: 'ペット,犬猫,投票',
       deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7日後
     },
     {
       title: 'リモートワーク vs オフィス勤務',
-      description: '働き方として理想的なのは？',
+      description: '働き方として理想的なのは?',
       options: [
         { label: 'フルリモート', thumbnailUrl: 'https://example.com/remote.jpg' },
-        { label: 'ハイブリッド（週2-3日出社）', thumbnailUrl: 'https://example.com/hybrid.jpg' },
+        { label: 'ハイブリッド(週2-3日出社)', thumbnailUrl: 'https://example.com/hybrid.jpg' },
         { label: 'フルオフィス勤務', thumbnailUrl: 'https://example.com/office.jpg' },
       ],
       categories: ['仕事', 'ライフスタイル'],
-      shareMessage: '理想の働き方は#OPTION#！',
+      shareMessage: '理想の働き方は#OPTION#!',
       shareHashtags: 'リモートワーク,働き方改革',
     },
     {
-      title: '最も使うSNSは？',
+      title: '最も使うSNSは?',
       description: '日常的に最もよく使うSNSを教えてください。',
       options: [
         { label: 'X (Twitter)', thumbnailUrl: 'https://example.com/twitter.jpg' },
@@ -120,12 +122,12 @@ async function main() {
         { label: 'その他', thumbnailUrl: 'https://example.com/other.jpg' },
       ],
       categories: ['テクノロジー', 'SNS'],
-      shareMessage: '私が最も使うSNSは#OPTION#！',
+      shareMessage: '私が最も使うSNSは#OPTION#!',
       shareHashtags: 'SNS,ソーシャルメディア',
     },
     {
       title: '2024年ベストアニメ【終了】',
-      description: '2024年に放送されたアニメで最も良かった作品は？',
+      description: '2024年に放送されたアニメで最も良かった作品は?',
       options: [
         { label: 'フリーレン', thumbnailUrl: 'https://example.com/frieren.jpg' },
         { label: '薬屋のひとりごと', thumbnailUrl: 'https://example.com/kusuriya.jpg' },
@@ -133,13 +135,13 @@ async function main() {
         { label: 'その他', thumbnailUrl: 'https://example.com/other-anime.jpg' },
       ],
       categories: ['エンタメ', 'アニメ'],
-      shareMessage: '2024年のベストアニメは#OPTION#！',
+      shareMessage: '2024年のベストアニメは#OPTION#!',
       shareHashtags: 'アニメ,2024年',
       deadline: new Date('2024-12-31T23:59:59'), // 過去の日付
     },
     {
       title: '年末年始の過ごし方【終了】',
-      description: '2024年の年末年始はどう過ごしましたか？',
+      description: '2024年の年末年始はどう過ごしましたか?',
       options: [
         { label: '実家に帰省', thumbnailUrl: 'https://example.com/home.jpg' },
         { label: '旅行', thumbnailUrl: 'https://example.com/travel.jpg' },
@@ -147,7 +149,7 @@ async function main() {
         { label: '仕事・勉強', thumbnailUrl: 'https://example.com/work.jpg' },
       ],
       categories: ['生活', 'イベント'],
-      shareMessage: '年末年始は#OPTION#で過ごしました！',
+      shareMessage: '年末年始は#OPTION#で過ごしました!',
       shareHashtags: '年末年始,正月',
       deadline: new Date('2025-01-07T23:59:59'), // 過去の日付
     },
@@ -214,7 +216,7 @@ async function main() {
   const requests = [
     {
       title: '最も好きなプログラミング言語',
-      description: '開発者の皆さん、最も好きなプログラミング言語を投票で決めましょう！',
+      description: '開発者の皆さん、最も好きなプログラミング言語を投票で決めましょう!',
       options: [
         { label: 'JavaScript/TypeScript' },
         { label: 'Python' },
@@ -228,7 +230,7 @@ async function main() {
     },
     {
       title: '好きなコーヒーの飲み方',
-      description: 'コーヒーはどのように飲むのが好きですか？',
+      description: 'コーヒーはどのように飲むのが好きですか?',
       options: [
         { label: 'ブラック' },
         { label: 'ミルク入り' },
@@ -268,12 +270,12 @@ async function main() {
     {
       key: 'trending_threshold',
       value: JSON.stringify(100),
-      description: 'トレンディング表示の閾値（閲覧数）',
+      description: 'トレンディング表示の閾値(閲覧数)',
     },
     {
       key: 'share_message_threshold',
       value: JSON.stringify(5),
-      description: 'シェアメッセージの接戦判定閾値（％）',
+      description: 'シェアメッセージの接戦判定閾値(%)',
     },
     {
       key: 'max_poll_options',
@@ -290,7 +292,7 @@ async function main() {
 
   console.log('✅ アプリ設定データを作成しました');
 
-  console.log('\n🎉 シードデータの作成が完了しました！');
+  console.log('\n🎉 シードデータの作成が完了しました!');
   console.log('\n📝 テストアカウント:');
   console.log('   管理者: admin@example.com / admin123');
   console.log('   ユーザー1: user1@example.com / user1123');
@@ -306,3 +308,4 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+*/

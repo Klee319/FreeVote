@@ -120,17 +120,24 @@ export interface AuthTokens {
 // Comment types
 export interface Comment {
   id: string;
-  content: string;
   pollId: string;
-  userId?: string;
-  username?: string;
-  userToken?: string;
-  parentId?: string;
-  likeCount: number;
-  isLikedByUser?: boolean;
-  replies?: Comment[];
+  content: string;
   createdAt: string;
-  updatedAt: string;
+  user: {
+    id: string;
+    username: string;
+  } | null;
+  parentId: string | null;
+  parent?: {
+    id: string;
+    user: {
+      id: string;
+      username: string;
+    } | null;
+  } | null;
+  replies: Comment[];
+  likeCount: number;
+  isLiked: boolean;
 }
 
 export interface CreateCommentData {
@@ -141,6 +148,7 @@ export interface CreateCommentData {
 }
 
 export interface CommentLikeData {
+  pollId: string;
   commentId: string;
   userToken?: string;
 }

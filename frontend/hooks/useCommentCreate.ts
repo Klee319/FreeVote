@@ -11,7 +11,8 @@ export function useCommentCreate() {
     setIsCreating(true);
 
     try {
-      const response = await api.createComment(data);
+      const { pollId, ...commentData } = data;
+      const response = await api.createComment(pollId, commentData);
 
       if (response.status === 'success') {
         toast({

@@ -3,53 +3,41 @@
 import { useState } from 'react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { MessageCircle, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
-import { CommentReplyForm } from './CommentReplyForm';
+import { MessageCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { CommentForm } from './CommentForm';
 import { CommentLikeButton } from './CommentLikeButton';
-import { useCommentDelete } from '@/hooks/useCommentDelete';
-import { useAuthStore } from '@/stores/authStore';
+import { CommentDeleteButton } from './CommentDeleteButton';
 import type { Comment } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
 import { ja } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 interface CommentItemProps {
   comment: Comment;
   pollId: string;
-  userToken?: string;
   onCommentUpdate: () => void;
   depth?: number;
+  isLast?: boolean;
 }
 
 export function CommentItem({
   comment,
   pollId,
-  userToken,
   onCommentUpdate,
   depth = 0,
+  isLast = false,
 }: CommentItemProps) {
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [showReplies, setShowReplies] = useState(true);
   const [showAllReplies, setShowAllReplies] = useState(false);
-  const { user } = useAuthStore();
-  const { deleteComment, isDeleting } = useCommentDelete();
 
-  const handleDelete = async () => {
-    if (window.confirm('コメントを削除しますか?')) {
-      await deleteComment(comment.id);
-      onCommentUpdate();
-    }
-  };
-
-  const handleReplySubmit = () => {
+  const handleReplySuccess = () => {
     setShowReplyForm(false);
     onCommentUpdate();
   };
 
   const getUserDisplayName = () => {
-    if (comment.username) {
-      return comment.username;
-    }
-    return 'ゲストユーザー';
+    return comment.user?.username || 'ゲストユーザー';
   };
 
   const getTimeAgo = () => {
@@ -63,18 +51,8 @@ export function CommentItem({
     }
   };
 
-  const canDelete = () => {
-    if (user?.id && comment.userId === user.id) {
-      return true;
-    }
-    if (userToken && comment.userToken === userToken) {
-      return true;
-    }
-    return false;
-  };
-
-  // Show max 2 levels of nesting
-  const maxDepth = 2;
+  // Show max 3 levels of nesting
+  const maxDepth = 3;
   const isMaxDepth = depth >= maxDepth;
 
   // Show first 3 replies, hide rest behind "もっと見る"
@@ -85,32 +63,62 @@ export function CommentItem({
     (comment.replies?.length || 0) > 3 && !showAllReplies;
 
   return (
-    <div className={`${depth > 0 ? 'ml-8 border-l-2 border-muted pl-4' : ''}`}>
-      <div className="flex gap-3">
-        <Avatar className="h-8 w-8">
-          <AvatarFallback className="bg-primary/10 text-primary text-xs">
-            {getUserDisplayName().charAt(0).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
+    <div className="relative">
+      {/* スレッド線 */}
+      {depth > 0 && (
+        <div
+          className={cn(
+            'absolute left-0 top-0 w-0.5 bg-gradient-to-b from-border to-transparent',
+            isLast ? 'h-12' : 'h-full'
+          )}
+        />
+      )}
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="font-medium text-sm">{getUserDisplayName()}</span>
+      <div
+        className={cn(
+          'flex gap-3 group relative transition-colors duration-200',
+          depth > 0 && 'ml-12',
+          'hover:bg-muted/30 -mx-2 px-2 py-2 rounded-lg'
+        )}
+      >
+        {/* アバター */}
+        <div className="flex-shrink-0">
+          <Avatar className="h-10 w-10 ring-2 ring-background transition-all duration-200 group-hover:ring-primary/20">
+            <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-semibold">
+              {getUserDisplayName().charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+        </div>
+
+        {/* コンテンツ */}
+        <div className="flex-1 min-w-0 space-y-2">
+          {/* ヘッダー */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-semibold text-sm hover:underline cursor-pointer">
+              {getUserDisplayName()}
+            </span>
             <span className="text-xs text-muted-foreground">
               {getTimeAgo()}
             </span>
+            {comment.parent && (
+              <span className="text-xs text-primary">
+                返信先: @{comment.parent.user?.username || 'ゲストユーザー'}
+              </span>
+            )}
           </div>
 
-          <p className="text-sm mb-2 whitespace-pre-wrap break-words">
+          {/* コメント本文 */}
+          <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
             {comment.content}
           </p>
 
-          <div className="flex items-center gap-2">
+          {/* アクションボタン */}
+          <div className="flex items-center gap-1 -ml-2">
             <CommentLikeButton
+              pollId={pollId}
               commentId={comment.id}
               likeCount={comment.likeCount}
-              isLiked={comment.isLikedByUser || false}
-              userToken={userToken}
+              isLiked={comment.isLiked}
             />
 
             {!isMaxDepth && (
@@ -118,58 +126,56 @@ export function CommentItem({
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowReplyForm(!showReplyForm)}
-                className="h-7 text-xs"
+                className={cn(
+                  'h-8 px-3 hover:bg-primary/10 hover:text-primary transition-colors',
+                  showReplyForm && 'bg-primary/10 text-primary'
+                )}
               >
-                <MessageCircle className="h-3 w-3 mr-1" />
-                返信
+                <MessageCircle className="h-4 w-4 mr-1.5" />
+                <span className="text-sm">返信</span>
               </Button>
             )}
 
-            {canDelete() && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleDelete}
-                disabled={isDeleting}
-                className="h-7 text-xs text-destructive hover:text-destructive"
-              >
-                <Trash2 className="h-3 w-3 mr-1" />
-                削除
-              </Button>
-            )}
+            <CommentDeleteButton
+              pollId={pollId}
+              commentId={comment.id}
+              userId={comment.user?.id || null}
+              onSuccess={onCommentUpdate}
+            />
           </div>
 
-          {/* Reply Form */}
+          {/* 返信フォーム */}
           {showReplyForm && (
-            <div className="mt-3">
-              <CommentReplyForm
+            <div className="mt-3 animate-in slide-in-from-top-2 duration-200">
+              <CommentForm
                 pollId={pollId}
                 parentId={comment.id}
-                userToken={userToken}
-                onSubmit={handleReplySubmit}
+                onSuccess={handleReplySuccess}
                 onCancel={() => setShowReplyForm(false)}
+                placeholder={`@${getUserDisplayName()} に返信...`}
+                showCancelButton={true}
               />
             </div>
           )}
 
-          {/* Replies */}
+          {/* 返信 */}
           {comment.replies && comment.replies.length > 0 && (
-            <div className="mt-4">
+            <div className="mt-3 space-y-3">
               {!isMaxDepth && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowReplies(!showReplies)}
-                  className="h-7 text-xs mb-2"
+                  className="h-8 px-3 text-xs font-medium hover:bg-primary/10 hover:text-primary transition-colors"
                 >
                   {showReplies ? (
                     <>
-                      <ChevronUp className="h-3 w-3 mr-1" />
+                      <ChevronUp className="h-3.5 w-3.5 mr-1.5" />
                       返信を隠す ({comment.replies.length})
                     </>
                   ) : (
                     <>
-                      <ChevronDown className="h-3 w-3 mr-1" />
+                      <ChevronDown className="h-3.5 w-3.5 mr-1.5" />
                       返信を表示 ({comment.replies.length})
                     </>
                   )}
@@ -177,15 +183,15 @@ export function CommentItem({
               )}
 
               {showReplies && (
-                <div className="space-y-4">
-                  {visibleReplies.map((reply) => (
+                <div className="space-y-3">
+                  {visibleReplies.map((reply, index) => (
                     <CommentItem
                       key={reply.id}
                       comment={reply}
                       pollId={pollId}
-                      userToken={userToken}
                       onCommentUpdate={onCommentUpdate}
                       depth={depth + 1}
+                      isLast={index === visibleReplies.length - 1 && !hasMoreReplies}
                     />
                   ))}
 
@@ -194,10 +200,16 @@ export function CommentItem({
                       variant="link"
                       size="sm"
                       onClick={() => setShowAllReplies(true)}
-                      className="h-auto p-0 text-xs"
+                      className="h-auto p-0 text-xs text-primary hover:text-primary/80 font-medium"
                     >
                       さらに{comment.replies.length - 3}件の返信を表示
                     </Button>
+                  )}
+
+                  {isMaxDepth && hasMoreReplies && (
+                    <div className="text-xs text-muted-foreground italic pl-4 border-l-2 border-dashed border-muted">
+                      これ以上の階層は表示されません
+                    </div>
                   )}
                 </div>
               )}

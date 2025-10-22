@@ -7,17 +7,17 @@ import { useCommentLike } from '@/hooks/useCommentLike';
 import { cn } from '@/lib/utils';
 
 interface CommentLikeButtonProps {
+  pollId: string;
   commentId: string;
   likeCount: number;
   isLiked: boolean;
-  userToken?: string;
 }
 
 export function CommentLikeButton({
+  pollId,
   commentId,
   likeCount: initialLikeCount,
   isLiked: initialIsLiked,
-  userToken,
 }: CommentLikeButtonProps) {
   const [likeCount, setLikeCount] = useState(initialLikeCount);
   const [isLiked, setIsLiked] = useState(initialIsLiked);
@@ -31,10 +31,7 @@ export function CommentLikeButton({
     setIsLiked(!isLiked);
     setLikeCount(isLiked ? likeCount - 1 : likeCount + 1);
 
-    const success = await toggleLike({
-      commentId,
-      userToken,
-    });
+    const success = await toggleLike(pollId, commentId);
 
     if (!success) {
       // Revert on failure
@@ -50,17 +47,19 @@ export function CommentLikeButton({
       onClick={handleLike}
       disabled={isToggling}
       className={cn(
-        'h-7 text-xs transition-all',
-        isLiked && 'text-red-500 hover:text-red-600'
+        'h-8 px-3 transition-all duration-200',
+        isLiked
+          ? 'text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950'
+          : 'hover:bg-primary/10 hover:text-primary'
       )}
     >
       <Heart
         className={cn(
-          'h-3 w-3 mr-1 transition-all',
-          isLiked && 'fill-current animate-pulse'
+          'h-4 w-4 mr-1.5 transition-transform duration-200',
+          isLiked && 'fill-current scale-110'
         )}
       />
-      {likeCount > 0 && <span>{likeCount}</span>}
+      <span className="text-sm font-medium">{likeCount}</span>
     </Button>
   );
 }

@@ -130,11 +130,11 @@ export class PollsController {
       return;
     }
 
-    const hasAccess = await pollsService.hasUserSharedOrHasAccess(id, userToken, userId);
+    const accessInfo = await pollsService.getStatsAccessInfo(id, userToken, userId);
 
     res.json({
       success: true,
-      data: { hasAccess },
+      data: accessInfo,
     });
   });
 }

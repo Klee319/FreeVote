@@ -1,21 +1,15 @@
 import { useState } from 'react';
-import api from '@/lib/api';
-import { CommentLikeData } from '@/types';
+import { apiCall } from '@/lib/api';
 
 export function useCommentLike() {
   const [isToggling, setIsToggling] = useState(false);
 
-  const toggleLike = async (data: CommentLikeData): Promise<boolean> => {
+  const toggleLike = async (pollId: string, commentId: string): Promise<boolean> => {
     setIsToggling(true);
 
     try {
-      const response = await api.toggleCommentLike(data.commentId, data.userToken);
-
-      if (response.status === 'success') {
-        return true;
-      } else {
-        return false;
-      }
+      const response = await apiCall('POST', `/polls/${pollId}/comments/${commentId}/like`, {});
+      return response.status === 'success';
     } catch (err) {
       return false;
     } finally {

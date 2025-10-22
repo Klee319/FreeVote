@@ -1,33 +1,23 @@
 import { useState } from 'react';
-import api from '@/lib/api';
+import { apiCall } from '@/lib/api';
 import { useToast } from './use-toast';
 
 export function useCommentDelete() {
   const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
 
-  const deleteComment = async (
-    commentId: string,
-    userToken?: string
-  ): Promise<boolean> => {
+  const deleteComment = async (pollId: string, commentId: string): Promise<void> => {
     setIsDeleting(true);
 
     try {
-      const response = await api.deleteComment(commentId, userToken);
-
+      const response = await apiCall('DELETE', `/polls/${pollId}/comments/${commentId}`);
       if (response.status === 'success') {
         toast({
           title: 'コメントを削除しました',
           description: 'コメントが正常に削除されました。',
         });
-        return true;
       } else {
-        toast({
-          title: 'エラー',
-          description: response.error || 'コメントの削除に失敗しました',
-          variant: 'destructive',
-        });
-        return false;
+        throw new Error(response.error);
       }
     } catch (err) {
       toast({
@@ -35,7 +25,7 @@ export function useCommentDelete() {
         description: 'コメントの削除に失敗しました',
         variant: 'destructive',
       });
-      return false;
+      throw err;
     } finally {
       setIsDeleting(false);
     }

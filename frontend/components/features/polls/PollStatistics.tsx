@@ -181,20 +181,13 @@ export function PollStatistics({
         </CardContent>
       </Card>
 
-      {/* Detailed Statistics (for authenticated users with access) */}
-      {isAuthenticated ? (
-        isLoadingAccess ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin" />
-          </div>
-        ) : !hasAccess ? (
-          <DetailAccessPrompt
-            poll={poll}
-            expiresAt={expiresAt}
-            onShare={onShare || (() => {})}
-          />
-        ) : (
-          <Card>
+      {/* Detailed Statistics (for users with access) */}
+      {isLoadingAccess ? (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      ) : hasAccess ? (
+        <Card>
             <CardHeader>
               <CardTitle>詳細統計</CardTitle>
             </CardHeader>
@@ -415,7 +408,12 @@ export function PollStatistics({
               </Tabs>
             </CardContent>
           </Card>
-        )
+      ) : isAuthenticated ? (
+        <DetailAccessPrompt
+          poll={poll}
+          expiresAt={expiresAt}
+          onShare={onShare || (() => {})}
+        />
       ) : (
         <Card>
           <CardContent className="py-8 text-center">

@@ -546,6 +546,39 @@ export class PollsService {
     return await statsAccessService.canAccessDetailStats(pollId, userToken, userId);
   }
 
+  /**
+   * 詳細統計アクセス情報を取得（詳細版）
+   * @param pollId - 投票ID
+   * @param userToken - ユーザートークン
+   * @param userId - ユーザーID（オプション）
+   * @returns 詳細なアクセス情報
+   */
+  async getStatsAccessInfo(
+    pollId: string,
+    userToken: string,
+    userId?: string
+  ): Promise<{
+    hasAccess: boolean;
+    expiresAt?: Date;
+    grantedAt?: Date;
+  }> {
+    // 登録ユーザーの場合は常にアクセス可能
+    if (userId) {
+      return {
+        hasAccess: true,
+      };
+    }
+
+    // ゲストユーザーの場合、DetailStatsAccessの詳細情報を取得
+    const accessInfo = await statsAccessService.checkAccess(pollId, userToken);
+
+    return {
+      hasAccess: accessInfo.hasAccess,
+      expiresAt: accessInfo.expiresAt || undefined,
+      grantedAt: accessInfo.grantedAt || undefined,
+    };
+  }
+
   // シェアメタデータ取得
   async getShareMetadata(pollId: string): Promise<ShareMetadata> {
     const poll = await prisma.poll.findUnique({

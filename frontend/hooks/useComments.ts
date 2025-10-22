@@ -1,8 +1,8 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import api from '@/lib/api';
 import { Comment } from '@/types';
 
-export function useComments(pollId: string) {
+export function useComments(pollId: string, sort: 'new' | 'popular' = 'new') {
   const [comments, setComments] = useState<Comment[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
@@ -14,7 +14,7 @@ export function useComments(pollId: string) {
       setError(null);
 
       try {
-        const response = await api.getComments(pollId, page, limit);
+        const response = await api.getComments(pollId, page, limit, sort);
 
         if (response.status === 'success' && response.data) {
           setComments(response.data.comments || []);
@@ -28,8 +28,13 @@ export function useComments(pollId: string) {
         setIsLoading(false);
       }
     },
-    [pollId]
+    [pollId, sort]
   );
+
+  // sortが変更されたら自動的にページ1を取得
+  useEffect(() => {
+    fetchComments(1);
+  }, [fetchComments]);
 
   return {
     comments,

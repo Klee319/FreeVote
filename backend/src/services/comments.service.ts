@@ -165,9 +165,20 @@ export class CommentsService {
         throw new ValidationError('異なる投票のコメントには返信できません');
       }
 
-      // 返信の返信は許可しない（ネストレベル1まで）
-      if (parentComment.parentId) {
-        throw new ValidationError('返信に対する返信はできません');
+      // 返信の深さをチェック（最大3階層）
+      let depth = 1;
+      let currentParent: { id: string; parentId: string | null } = parentComment;
+      while (currentParent.parentId && depth < 3) {
+        const nextParent = await prisma.pollComment.findUnique({
+          where: { id: currentParent.parentId },
+          select: { id: true, parentId: true }
+        });
+        if (!nextParent) break;
+        currentParent = nextParent;
+        depth++;
+      }
+      if (depth >= 3) {
+        throw new ValidationError('返信は最大3階層までです');
       }
     }
 
