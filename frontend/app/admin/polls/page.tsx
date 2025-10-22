@@ -13,7 +13,19 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import PollTable from "@/components/features/admin/PollTable";
-import { Plus, Search, Filter } from "lucide-react";
+import { Plus, Search } from "lucide-react";
+
+interface Poll {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  status: string;
+  voteCount: number;
+  createdAt: string;
+  deadline: string | null;
+  isAccentMode: boolean;
+}
 
 // モックデータ
 const mockPolls = [
@@ -64,7 +76,7 @@ const mockPolls = [
 ];
 
 export default function PollsManagementPage() {
-  const [polls, setPolls] = useState<any[]>([]);
+  const [polls, setPolls] = useState<Poll[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -82,7 +94,7 @@ export default function PollsManagementPage() {
         const data = await response.json();
         const pollsData = data.data?.polls || [];
         // データ形式を整形
-        const formattedPolls = pollsData.map((poll: any) => ({
+        const formattedPolls = pollsData.map((poll: Record<string, unknown>) => ({
           ...poll,
           voteCount: poll.votes?.length || 0,
           category: Array.isArray(poll.categories) ? poll.categories[0] :

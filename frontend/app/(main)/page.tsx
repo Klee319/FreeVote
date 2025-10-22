@@ -22,7 +22,7 @@ export default function Home() {
   const searchQuery = searchParams.get('search') || '';
 
   useEffect(() => {
-    const params: any = {
+    const params: Record<string, string | boolean> = {
       sort: sortBy,
       order: sortOrder,
       active: showActivePollsOnly,

@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { VoteForm } from '@/components/features/polls/VoteForm';
 import { PollResults } from '@/components/features/polls/PollResults';
 import { PollStatistics } from '@/components/features/polls/PollStatistics';
+import { CommentSection } from '@/components/features/comments/CommentSection';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -169,18 +170,29 @@ export default function PollDetailPage() {
       </Card>
 
       {/* Main Content */}
-      {!hasVoted && !timeInfo.isEnded ? (
-        <VoteForm
-          poll={currentPoll}
-          onVoteComplete={handleVoteComplete}
-        />
-      ) : (
-        <PollStatistics
-          poll={currentPoll}
-          selectedOption={selectedOption}
-          isAuthenticated={isAuthenticated}
-        />
-      )}
+      <div className="space-y-6">
+        {!hasVoted && !timeInfo.isEnded && (
+          <VoteForm
+            poll={currentPoll}
+            onVoteComplete={handleVoteComplete}
+          />
+        )}
+
+        {/* Always show results after voting or if poll has ended */}
+        {(hasVoted || timeInfo.isEnded || (currentPoll.totalVotes && currentPoll.totalVotes > 0)) && (
+          <PollStatistics
+            poll={currentPoll}
+            selectedOption={selectedOption}
+            isAuthenticated={isAuthenticated}
+          />
+        )}
+      </div>
+
+      {/* Comment Section */}
+      <CommentSection
+        pollId={pollId}
+        userToken={localStorage.getItem(`vote-token-${pollId}`) || undefined}
+      />
 
       {/* Share Dialog */}
       {showShareDialog && (

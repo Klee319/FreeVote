@@ -78,6 +78,17 @@ export interface PollStatistics {
   byGender?: {
     [gender: string]: VoteDistribution;
   };
+  breakdown?: {
+    age?: {
+      [ageGroup: string]: VoteDistribution;
+    };
+    gender?: {
+      [gender: string]: VoteDistribution;
+    };
+    prefecture?: {
+      [prefecture: string]: VoteDistribution;
+    };
+  };
 }
 
 // API Response types
@@ -104,4 +115,32 @@ export interface RegisterData extends LoginCredentials {
 export interface AuthTokens {
   accessToken: string;
   refreshToken: string;
+}
+
+// Comment types
+export interface Comment {
+  id: string;
+  content: string;
+  pollId: string;
+  userId?: string;
+  username?: string;
+  userToken?: string;
+  parentId?: string;
+  likeCount: number;
+  isLikedByUser?: boolean;
+  replies?: Comment[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateCommentData {
+  pollId: string;
+  content: string;
+  parentId?: string;
+  userToken?: string;
+}
+
+export interface CommentLikeData {
+  commentId: string;
+  userToken?: string;
 }

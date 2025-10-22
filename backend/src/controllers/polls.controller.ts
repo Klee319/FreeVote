@@ -28,7 +28,12 @@ export class PollsController {
   // 投票詳細取得
   getPollById = asyncHandler(async (req: Request, res: Response, _next: NextFunction) => {
     const { id } = req.params;
-    const result = await pollsService.getPollById(id);
+
+    // userTokenをヘッダーから取得
+    const userToken = req.headers['x-user-token'] as string | undefined;
+    const userId = req.user?.userId;
+
+    const result = await pollsService.getPollById(id, userToken, userId);
 
     res.json({
       success: true,

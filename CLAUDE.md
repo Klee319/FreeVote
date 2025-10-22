@@ -25,6 +25,8 @@ Please ensure that the instructions described here are also applied to sub-agent
 * For information that frequently changes or is updated, especially regarding technical stacks (e.g., official API/library references), always perform a search to verify the latest details.
 * Since your knowledge is about one year out of date, please use Gemini CLI for searches.※ For detailed instructions, please refer to ./ref/system/search.md.
 
+## Other Rules
+* When reviewing or debugging, start the server and use Chrome DevTools MCP. If the port is already in use, attempt to reuse the existing port connection before starting a new one.
 ## Notes for Thinking, Reasoning, and Deliberation
 * **Deep Thinking (ultrathink):** Always think deeply. If you reach a conclusion quickly, there's a chance you have not deliberated through the necessary steps—review your output accordingly.
 * **Critical Thinking about Conclusions:** Before output, examine whether the thinking and conclusion are truly optimal and whether they truly match what the user is seeking.

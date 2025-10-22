@@ -152,7 +152,7 @@ export class PollsService {
   }
 
   // 投票詳細取得
-  async getPollById(id: string, userToken?: string, userId?: string) {
+  async getPollById(id: string) {
     const poll = await prisma.poll.findUnique({
       where: { id },
       include: {
@@ -162,7 +162,6 @@ export class PollsService {
             prefecture: true,
             ageGroup: true,
             gender: true,
-            userToken: true,
           },
         },
         creator: {
@@ -185,12 +184,6 @@ export class PollsService {
       where: { id },
       data: { viewCount: { increment: 1 } },
     });
-
-    // 投票済みかチェック
-    let hasVoted = false;
-    if (userToken) {
-      hasVoted = poll.votes.some(vote => vote.userToken === userToken);
-    }
 
     // 集計データの計算
     const voteCounts = new Map<number, number>();
@@ -231,8 +224,13 @@ export class PollsService {
     // レスポンス整形
     const totalVotes = poll.votes.length;
     const parsedOptions = typeof poll.options === 'string' ? JSON.parse(poll.options) : poll.options;
-    
-    const response: any = {
+    const results = Array.from({ length: parsedOptions.length }, (_, i) => ({
+      option: i,
+      count: voteCounts.get(i) || 0,
+      percentage: totalVotes > 0 ? ((voteCounts.get(i) || 0) / totalVotes) * 100 : 0,
+    }));
+
+    return {
       poll: {
         id: poll.id,
         title: poll.title,
@@ -252,27 +250,15 @@ export class PollsService {
         createdAt: poll.createdAt,
         createdBy: poll.creator.username || 'Unknown',
       },
-    };
-
-    // 投票済みの場合のみresultsを返す
-    if (hasVoted) {
-      const results = Array.from({ length: parsedOptions.length }, (_, i) => ({
-        option: i,
-        count: voteCounts.get(i) || 0,
-        percentage: totalVotes > 0 ? ((voteCounts.get(i) || 0) / totalVotes) * 100 : 0,
-      }));
-
-      response.results = {
+      results: {
         totalVotes,
         options: results,
         topOption: results.reduce((max, curr) =>
           curr.count > max.count ? curr : max,
           results[0]
         ),
-      };
-    }
-
-    return response;
+      },
+    };
   }
 
   // 投票する

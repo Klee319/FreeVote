@@ -59,6 +59,8 @@ model User {
   pollSuggestions PollSuggestion[]
   shareActivities UserShareActivity[]  // シェア活動記録
   shareRankings ShareRanking[]  // シェアランキング
+  comments      PollComment[]  // コメント
+  commentLikes  CommentLike[]  // コメントいいね
 
   @@index([email])
   @@index([provider, providerId])
@@ -106,6 +108,8 @@ model Poll {
   votes             PollVote[]
   referrals         UserReferral[]
   shareActivities   UserShareActivity[]  // シェア活動
+  comments      PollComment[]  // コメント
+  commentCount  Int         @default(0)  // コメント数
 
   @@index([status])
   @@index([createdAt])
@@ -235,4 +239,42 @@ model AppSettings {
   updatedAt         DateTime @updatedAt
 
   @@index([key])
+}
+// 投票コメントモデル
+model PollComment {
+  id          String   @id @default(uuid())
+  pollId      String
+  poll        Poll     @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  content     String   // コメント内容（最大500文字）
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userToken   String   // ゲストユーザー識別用トークン
+  guestName   String?  // ゲストユーザー名
+  parentId    String?  // 返信先コメントID
+  parent      PollComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies     PollComment[] @relation("CommentReplies")
+  likeCount   Int      @default(0)
+  likes       CommentLike[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([pollId])
+  @@index([userId])
+  @@index([parentId])
+  @@index([createdAt])
+}
+
+// コメントいいねモデル
+model CommentLike {
+  id        String   @id @default(uuid())
+  commentId String
+  comment   PollComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  userToken String   // ゲストユーザー識別用トークン
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+
+  @@unique([commentId, userToken]) // 同一コメントに対して同じユーザートークンで重複いいね不可
+  @@index([commentId])
+  @@index([userId])
 }

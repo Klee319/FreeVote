@@ -7,11 +7,27 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
+interface PollFormData {
+  title: string;
+  description: string;
+  category: string;
+  thumbnailUrl?: string;
+  isAccentMode: boolean;
+  options: Array<{
+    label: string;
+    thumbnailUrl?: string;
+    pitchPattern?: string;
+  }>;
+  deadline: Date;
+  shareMessage?: string;
+  shareHashtags?: string;
+}
+
 export default function NewPollPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (data: any) => {
+  const handleSubmit = async (data: PollFormData) => {
     setLoading(true);
     try {
       // optionsをJSON文字列に変換

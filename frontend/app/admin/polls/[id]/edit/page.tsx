@@ -8,6 +8,22 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
+interface PollFormData {
+  title: string;
+  description: string;
+  category: string;
+  thumbnailUrl?: string;
+  isAccentMode: boolean;
+  options: Array<{
+    label: string;
+    thumbnailUrl?: string;
+    pitchPattern?: string;
+  }>;
+  deadline: Date;
+  shareMessage?: string;
+  shareHashtags?: string;
+}
+
 // モックデータ
 const mockPoll = {
   title: "好きなラーメンの種類は？",
@@ -29,7 +45,7 @@ export default function EditPollPage() {
   const router = useRouter();
   const params = useParams();
   const [loading, setLoading] = useState(false);
-  const [pollData, setPollData] = useState<any>(null);
+  const [pollData, setPollData] = useState<PollFormData | null>(null);
 
   useEffect(() => {
     // データ取得のシミュレーション
@@ -38,7 +54,7 @@ export default function EditPollPage() {
     }, 500);
   }, [params.id]);
 
-  const handleSubmit = async (data: any) => {
+  const handleSubmit = async (data: PollFormData) => {
     setLoading(true);
     try {
       // API呼び出しのシミュレーション

@@ -87,11 +87,11 @@ export function PollStatistics({
 
     const ageGroups = Object.keys(currentStatistics.breakdown.age);
     return poll.options.map((option, index) => {
-      const data: any = {
+      const data: Record<string, string | number> = {
         name: option.label,
       };
       ageGroups.forEach((age) => {
-        data[age] = currentStatistics.breakdown.age[age][index] || 0;
+        data[age] = currentStatistics.breakdown?.age?.[age]?.[index] || 0;
       });
       return data;
     });

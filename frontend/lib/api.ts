@@ -190,6 +190,19 @@ export const api = {
   getUserReferrals: (userId: string) =>
     apiCall<any>('GET', `/users/${userId}/referrals`),
 
+  // Comments
+  getComments: (pollId: string, page: number = 1, limit: number = 10) =>
+    apiCall<any>('GET', `/polls/${pollId}/comments`, null, { page, limit }),
+
+  createComment: (data: any) =>
+    apiCall<any>('POST', '/comments', data),
+
+  deleteComment: (commentId: string, userToken?: string) =>
+    apiCall<any>('DELETE', `/comments/${commentId}`, { userToken }),
+
+  toggleCommentLike: (commentId: string, userToken?: string) =>
+    apiCall<any>('POST', `/comments/${commentId}/like`, { userToken }),
+
   // Admin (protected endpoints)
   admin: {
     createPoll: (data: any) =>
