@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { NotFoundError, ValidationError, ConflictError, ForbiddenError } from '../utils/errors';
 import { voteSchema } from '../utils/validation';
 import { StatsAccessService } from './stats-access.service';
+import { ShareMetadata, PollOption } from '../types/poll.types';
 
 const prisma = new PrismaClient();
 const statsAccessService = new StatsAccessService();
@@ -514,7 +515,7 @@ export class PollsService {
   }
 
   // シェアメタデータ取得
-  async getShareMetadata(pollId: string) {
+  async getShareMetadata(pollId: string): Promise<ShareMetadata> {
     const poll = await prisma.poll.findUnique({
       where: { id: pollId },
       include: {
@@ -535,8 +536,8 @@ export class PollsService {
       throw new NotFoundError('投票が見つかりません');
     }
 
-    const parsedOptions = typeof poll.options === 'string' ? JSON.parse(poll.options) : poll.options;
-    const parsedCategories = typeof poll.categories === 'string' ? JSON.parse(poll.categories) : poll.categories;
+    const parsedOptions: PollOption[] = typeof poll.options === 'string' ? JSON.parse(poll.options) : poll.options;
+    const parsedCategories: string[] = typeof poll.categories === 'string' ? JSON.parse(poll.categories) : poll.categories;
 
     // 総投票数を計算
     const totalVotes = poll.votes.length;
