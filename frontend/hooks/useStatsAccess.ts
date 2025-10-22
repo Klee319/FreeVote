@@ -20,7 +20,7 @@ export function useStatsAccess(pollId: string) {
     setError(null);
 
     try {
-      const response = await api.checkStatsAccess(pollId);
+      const response = await api.hasStatsAccess(pollId);
 
       if (response.status === 'success' && response.data) {
         setAccess(response.data);
@@ -41,18 +41,12 @@ export function useStatsAccess(pollId: string) {
   const grantAccess = useCallback(async (platform: string) => {
     if (!pollId) return { success: false, error: '投票IDが不正です' };
 
-    // Get userToken from localStorage
-    const userToken = localStorage.getItem(`vote-token-${pollId}`);
-    if (!userToken) {
-      setError('ユーザートークンが見つかりません。先に投票してください。');
-      return { success: false, error: 'ユーザートークンが見つかりません' };
-    }
-
     try {
-      const response = await api.grantStatsAccess(pollId, userToken);
+      const response = await api.grantStatsAccessOnShare(pollId);
 
-      if (response.status === 'success' && response.data) {
-        setAccess(response.data);
+      if (response.status === 'success') {
+        // Re-check access status after granting
+        await checkAccess();
         return { success: true };
       } else {
         setError(response.error || 'アクセス許可に失敗しました');
@@ -63,7 +57,7 @@ export function useStatsAccess(pollId: string) {
       setError('アクセス許可に失敗しました');
       return { success: false, error: 'アクセス許可に失敗しました' };
     }
-  }, [pollId]);
+  }, [pollId, checkAccess]);
 
   useEffect(() => {
     checkAccess();

@@ -5,9 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { Poll, PollStatistics } from '@/types';
+import { Poll } from '@/types';
 import { usePolls } from '@/hooks/usePolls';
-import { BarChart, MapPin, Users, TrendingUp } from 'lucide-react';
+import { BarChart, Users, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 
 interface PollResultsProps {
@@ -195,21 +195,21 @@ export function PollResults({
               </TabsContent>
 
               <TabsContent value="prefecture" className="mt-4">
-                <div className="flex items-center justify-between mb-4">
-                  <p className="text-sm text-muted-foreground">
-                    都道府県ごとの投票傾向
-                  </p>
-                  <Button variant="outline" size="sm" asChild>
-                    <Link href={`/polls/${poll.id}/stats`}>
-                      <MapPin className="h-4 w-4 mr-2" />
-                      地図で見る
-                    </Link>
-                  </Button>
-                </div>
                 {currentStatistics?.byPrefecture ? (
-                  <p className="text-sm text-muted-foreground">
-                    詳細な地域別統計は地図表示ページでご覧ください。
-                  </p>
+                  <div className="space-y-3">
+                    <p className="text-sm text-muted-foreground mb-3">
+                      都道府県ごとの投票傾向
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      詳細な統計は統計ページでご確認ください。
+                    </p>
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={`/polls/${poll.id}/stats`}>
+                        <TrendingUp className="h-4 w-4 mr-2" />
+                        詳細統計を見る
+                      </Link>
+                    </Button>
+                  </div>
                 ) : (
                   <p className="text-muted-foreground">地域別データを読み込み中...</p>
                 )}
@@ -223,9 +223,9 @@ export function PollResults({
             <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
             <h3 className="font-semibold mb-2">詳細統計を見るには登録が必要です</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              年代別・性別・地域別の詳細な統計情報や、
+              年代別・性別・地域別の詳細な統計情報を
               <br />
-              地図での可視化機能をご利用いただけます。
+              ご利用いただけます。
             </p>
             <div className="flex gap-2 justify-center">
               <Button asChild>

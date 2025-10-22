@@ -76,7 +76,7 @@ export function ShareDialog({ poll, selectedOption, onClose }: ShareDialogProps)
   };
 
   const handleShareSuccess = async (platform: string) => {
-    if (user && !hasAccess) {
+    if (!hasAccess) {
       setIsGrantingAccess(true);
       try {
         await grantAccess(platform);

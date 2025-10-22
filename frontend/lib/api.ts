@@ -67,10 +67,13 @@ apiClient.interceptors.response.use(
 );
 
 // Generic API call wrapper
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function apiCall<T>(
   method: 'GET' | 'POST' | 'PUT' | 'DELETE',
   endpoint: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data?: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   params?: any
 ): Promise<ApiResponse<T>> {
   try {
@@ -90,6 +93,7 @@ export async function apiCall<T>(
     } else if (response.data?.success) {
       // dataフィールドがない成功レスポンス（削除など）
       return {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         data: response.data as any,
         status: 'success',
       };
@@ -117,7 +121,9 @@ export async function apiCall<T>(
         // エラーオブジェクトからメッセージを取得
         if ('message' in data.error && typeof data.error.message === 'string') {
           errorMessage = data.error.message;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } else if ('msg' in data.error && typeof (data.error as any).msg === 'string') {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           errorMessage = (data.error as any).msg;
         } else {
           // エラーオブジェクトを文字列に変換
@@ -149,94 +155,140 @@ export async function apiCall<T>(
 }
 
 // API methods
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const api = {
   // Polls
   getPolls: (params?: { category?: string; sort?: string; search?: string; active?: boolean; order?: string }) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     apiCall<any>('GET', '/polls', null, params),
 
   getPoll: (id: string) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     apiCall<any>('GET', `/polls/${id}`),
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   votePoll: (id: string, voteData: any) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     apiCall<any>('POST', `/polls/${id}/votes`, voteData),
 
   getPollStats: (id: string, filterBy?: string) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     apiCall<any>('GET', `/polls/${id}/stats`, null, { filterBy }),
 
   getPollByPrefecture: (id: string) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     apiCall<any>('GET', `/polls/${id}/top-by-prefecture`),
 
   getShareMessage: (id: string, option: number) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     apiCall<any>('GET', `/polls/${id}/share-message`, null, { option }),
 
   // Auth
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   register: (data: any) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     apiCall<any>('POST', '/auth/register', data),
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   login: (credentials: any) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     apiCall<any>('POST', '/auth/login', credentials),
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   socialLogin: (data: any) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     apiCall<any>('POST', '/auth/social-login', data),
 
   logout: () =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     apiCall<any>('POST', '/auth/logout'),
 
   refreshToken: (refreshToken: string) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     apiCall<any>('POST', '/auth/refresh', { refreshToken }),
 
   getMe: () =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     apiCall<any>('GET', '/auth/me'),
 
   // Requests
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   submitRequest: (data: any) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     apiCall<any>('POST', '/requests', data),
 
   likeRequest: (id: string) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     apiCall<any>('POST', `/requests/${id}/like`),
 
   // Referrals
   trackReferral: (data: { sharedBy: string; pollId: string; visitorToken: string }) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     apiCall<any>('POST', '/referrals/visit', data),
 
   getUserReferrals: (userId: string) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     apiCall<any>('GET', `/users/${userId}/referrals`),
 
   // Stats Access
   checkStatsAccess: (pollId: string) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     apiCall<any>('GET', `/polls/${pollId}/check-stats-access`),
 
   grantStatsAccess: (pollId: string, userToken: string) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     apiCall<any>('POST', `/polls/${pollId}/grant-stats-access`, { userToken }),
+
+  // Share-based Stats Access (simplified for guest users)
+  hasStatsAccess: (pollId: string) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    apiCall<any>('GET', `/polls/${pollId}/has-stats-access`),
+
+  grantStatsAccessOnShare: (pollId: string) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    apiCall<any>('POST', `/polls/${pollId}/share-grant-access`),
 
   // Comments
   getComments: (pollId: string, page: number = 1, limit: number = 10) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     apiCall<any>('GET', `/polls/${pollId}/comments`, null, { page, limit }),
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   createComment: (data: any) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     apiCall<any>('POST', '/comments', data),
 
   deleteComment: (commentId: string, userToken?: string) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     apiCall<any>('DELETE', `/comments/${commentId}`, { userToken }),
 
   toggleCommentLike: (commentId: string, userToken?: string) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     apiCall<any>('POST', `/comments/${commentId}/like`, { userToken }),
 
   // Admin (protected endpoints)
   admin: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     createPoll: (data: any) =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       apiCall<any>('POST', '/admin/polls', data),
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     updatePoll: (id: string, data: any) =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       apiCall<any>('PUT', `/admin/polls/${id}`, data),
 
     deletePoll: (id: string) =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       apiCall<any>('DELETE', `/admin/polls/${id}`),
 
     getRequests: () =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       apiCall<any>('GET', '/admin/requests'),
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     importPolls: (data: any) =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       apiCall<any>('POST', '/admin/import', data),
   },
 };

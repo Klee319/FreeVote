@@ -514,6 +514,38 @@ export class PollsService {
     return stats;
   }
 
+  // シェア時の詳細統計アクセス権限付与
+  async grantStatsAccessOnShare(pollId: string, userToken: string, userId?: string): Promise<void> {
+    // 投票の存在確認
+    const poll = await prisma.poll.findUnique({
+      where: { id: pollId },
+    });
+
+    if (!poll) {
+      throw new NotFoundError('投票が見つかりません');
+    }
+
+    // 登録ユーザーの場合は何もしない（既にアクセス権限あり）
+    if (userId) {
+      return;
+    }
+
+    // ゲストユーザーの場合、7日間のアクセス権限を付与
+    const grantedBy = poll.createdBy; // 投票作成者を付与者とする
+    await statsAccessService.grantAccess(pollId, userToken, grantedBy, 7);
+  }
+
+  // ユーザーがシェア済みか確認
+  async hasUserSharedOrHasAccess(pollId: string, userToken: string, userId?: string): Promise<boolean> {
+    // 登録ユーザーの場合は常にtrue
+    if (userId) {
+      return true;
+    }
+
+    // ゲストユーザーの場合、DetailStatsAccessを確認
+    return await statsAccessService.canAccessDetailStats(pollId, userToken, userId);
+  }
+
   // シェアメタデータ取得
   async getShareMetadata(pollId: string): Promise<ShareMetadata> {
     const poll = await prisma.poll.findUnique({
@@ -554,7 +586,7 @@ export class PollsService {
       options: parsedOptions,
       categories: parsedCategories,
       totalVotes,
-      commentCount: poll.commentCount,
+      commentCount: poll.comments.length,
       thumbnailUrl: poll.thumbnailUrl,
       deadline: poll.deadline,
       voteCounts: Array.from(voteCounts.entries()).map(([option, count]) => ({

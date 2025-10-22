@@ -20,7 +20,7 @@ import {
 import { Poll } from '@/types';
 import { usePolls } from '@/hooks/usePolls';
 import { useStatsAccess } from '@/hooks/useStatsAccess';
-import { BarChart as BarChartIcon, MapPin, Users, TrendingUp, Loader2 } from 'lucide-react';
+import { BarChart as BarChartIcon, Users, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { DetailAccessPrompt } from './DetailAccessPrompt';
@@ -46,13 +46,13 @@ export function PollStatistics({
   const [isLoadingStats, setIsLoadingStats] = useState(false);
 
   useEffect(() => {
-    if (poll.id && isAuthenticated && hasAccess) {
+    if (poll.id && hasAccess) {
       setIsLoadingStats(true);
       fetchPollStatistics(poll.id).finally(() => {
         setIsLoadingStats(false);
       });
     }
-  }, [poll.id, isAuthenticated, hasAccess, fetchPollStatistics]);
+  }, [poll.id, hasAccess, fetchPollStatistics]);
 
   const calculatePercentage = (count: number, total: number) => {
     if (total === 0) return 0;
@@ -356,17 +356,9 @@ export function PollStatistics({
 
                 <TabsContent value="prefecture" className="mt-6">
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm text-muted-foreground">
-                        都道府県ごとの投票傾向
-                      </p>
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={`/polls/${poll.id}/map`}>
-                          <MapPin className="h-4 w-4 mr-2" />
-                          地図で見る
-                        </Link>
-                      </Button>
-                    </div>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      都道府県ごとの投票傾向
+                    </p>
 
                     {isLoadingStats ? (
                       <div className="flex items-center justify-center py-8">

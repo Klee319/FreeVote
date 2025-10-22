@@ -93,4 +93,48 @@ export class PollsController {
       data: result,
     });
   });
+
+  // シェア時の詳細統計アクセス権限付与
+  grantStatsAccessOnShare = asyncHandler(async (req: Request, res: Response, _next: NextFunction) => {
+    const { id } = req.params;
+    const userToken = req.headers['x-user-token'] as string;
+    const userId = req.user?.userId;
+
+    if (!userToken) {
+      res.status(400).json({
+        success: false,
+        error: 'User token is required',
+      });
+      return;
+    }
+
+    await pollsService.grantStatsAccessOnShare(id, userToken, userId);
+
+    res.json({
+      success: true,
+      message: 'Access granted successfully',
+    });
+  });
+
+  // シェア済みまたは詳細統計アクセス権限確認
+  checkStatsAccess = asyncHandler(async (req: Request, res: Response, _next: NextFunction) => {
+    const { id } = req.params;
+    const userToken = req.headers['x-user-token'] as string;
+    const userId = req.user?.userId;
+
+    if (!userToken) {
+      res.json({
+        success: true,
+        data: { hasAccess: false },
+      });
+      return;
+    }
+
+    const hasAccess = await pollsService.hasUserSharedOrHasAccess(id, userToken, userId);
+
+    res.json({
+      success: true,
+      data: { hasAccess },
+    });
+  });
 }

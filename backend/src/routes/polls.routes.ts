@@ -16,7 +16,11 @@ router.get('/:id/top-by-prefecture', pollsController.getTopByPrefecture);
 router.get('/:id/stats', optionalAuth, pollsController.getStats);
 router.get('/:id/share-metadata', pollsController.getShareMetadata);
 
-// 詳細統計アクセス権限関連エンドポイント
+// シェア関連エンドポイント
+router.post('/:id/share-grant-access', optionalAuth, pollsController.grantStatsAccessOnShare);
+router.get('/:id/has-stats-access', optionalAuth, pollsController.checkStatsAccess);
+
+// 詳細統計アクセス権限関連エンドポイント（既存）
 router.post('/:id/grant-stats-access', optionalAuth, statsAccessController.grantAccess);
 router.get('/:id/check-stats-access', optionalAuth, statsAccessController.checkAccess);
 

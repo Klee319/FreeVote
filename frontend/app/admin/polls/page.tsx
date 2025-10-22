@@ -23,7 +23,7 @@ interface Poll {
   status: string;
   voteCount: number;
   createdAt: string;
-  deadline: string | null;
+  deadline: string;
   isAccentMode: boolean;
 }
 
@@ -96,11 +96,11 @@ export default function PollsManagementPage() {
         // データ形式を整形
         const formattedPolls = pollsData.map((poll: Record<string, unknown>) => ({
           ...poll,
-          voteCount: poll.votes?.length || 0,
+          voteCount: Array.isArray(poll.votes) ? poll.votes.length : 0,
           category: Array.isArray(poll.categories) ? poll.categories[0] :
                     (typeof poll.categories === 'string' ? JSON.parse(poll.categories)[0] : ''),
-          createdAt: new Date(poll.createdAt).toLocaleDateString('ja-JP'),
-          deadline: poll.deadline ? new Date(poll.deadline).toLocaleDateString('ja-JP') : null,
+          createdAt: new Date(poll.createdAt as string).toLocaleDateString('ja-JP'),
+          deadline: poll.deadline ? new Date(poll.deadline as string).toLocaleDateString('ja-JP') : '',
         }));
         setPolls(formattedPolls);
       } else {
