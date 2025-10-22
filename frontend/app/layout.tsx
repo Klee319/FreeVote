@@ -6,6 +6,9 @@ import { Toaster } from "@/components/ui/toaster";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  ),
   title: "みんなの投票 - 誰でも簡単に参加できる投票プラットフォーム",
   description: "みんなの投票は、誰でも簡単に投票に参加でき、SNSで拡散しやすいプラットフォームです。アクセント投票から時事ネタまで、様々なテーマの投票に参加しましょう。",
   keywords: "投票,アンケート,アクセント,方言,SNS,シェア,ランキング",

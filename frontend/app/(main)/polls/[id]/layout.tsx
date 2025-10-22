@@ -129,7 +129,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
         siteName: 'みんなの投票',
         images: [
           {
-            url: `${appUrl}/polls/${id}/opengraph-image`,
+            url: `${appUrl}/api/og?pollId=${id}`,
             width: 1200,
             height: 630,
             alt: metadata.title,
@@ -142,7 +142,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
         card: 'summary_large_image',
         title: metadata.title,
         description: description.slice(0, 160),
-        images: [`${appUrl}/polls/${id}/opengraph-image`],
+        images: [`${appUrl}/api/og?pollId=${id}`],
         creator: '@みんなの投票',
       },
       alternates: {

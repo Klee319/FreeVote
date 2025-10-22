@@ -1,10 +1,8 @@
 import { ImageResponse } from 'next/og';
+import { NextRequest } from 'next/server';
 import { isValidUUID } from '@/lib/validation';
-import { logError } from '@/lib/error-logger';
 
 export const runtime = 'edge';
-export const size = { width: 1200, height: 630 };
-export const contentType = 'image/png';
 
 interface PollOption {
   label: string;
@@ -22,37 +20,30 @@ interface ShareMetadata {
   totalVotes: number;
   commentCount: number;
   thumbnailUrl: string | null;
-  deadline: string | null;
+  deadline: Date | null;
 }
 
-// テキスト切り詰めユーティリティ関数
 function truncateText(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
   return text.slice(0, maxLength - 3) + '...';
 }
 
-export default async function Image({ params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: NextRequest) {
   try {
-    // Next.js 15では params が Promise になったため await が必要
-    const { id } = await params;
+    const { searchParams } = new URL(request.url);
+    const pollId = searchParams.get('pollId');
 
-    // UUID検証（SSRF脆弱性対策）
-    if (!isValidUUID(id)) {
-      logError('generateOGImage', new Error(`Invalid poll ID format: ${id}`));
-      throw new Error('Invalid poll ID format');
+    if (!pollId || !isValidUUID(pollId)) {
+      return new Response('Invalid poll ID', { status: 400 });
     }
 
     // APIからデータ取得
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
-    const response = await fetch(`${apiUrl}/polls/${id}/share-metadata`, {
-      next: {
-        revalidate: 60,  // 1分ごとに再検証
-      },
+    const response = await fetch(`${apiUrl}/polls/${pollId}/share-metadata`, {
+      next: { revalidate: 60 },
     });
 
     if (!response.ok) {
-      const status = response.status;
-      logError('generateOGImage', new Error(`Failed to fetch poll metadata: ${status}`));
       throw new Error('Failed to fetch poll metadata');
     }
 
@@ -252,89 +243,30 @@ export default async function Image({ params }: { params: Promise<{ id: string }
               boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
             }}
           >
-            <div
-              style={{
-                display: 'flex',
-                gap: '40px',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: '18px',
-                    color: '#666',
-                    display: 'flex',
-                  }}
-                >
+            <div style={{ display: 'flex', gap: '40px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <div style={{ fontSize: '18px', color: '#666', display: 'flex' }}>
                   総投票数
                 </div>
-                <div
-                  style={{
-                    fontSize: '36px',
-                    fontWeight: 'bold',
-                    color: '#667eea',
-                    display: 'flex',
-                  }}
-                >
+                <div style={{ fontSize: '36px', fontWeight: 'bold', color: '#667eea', display: 'flex' }}>
                   {metadata.totalVotes}
                 </div>
               </div>
 
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: '18px',
-                    color: '#666',
-                    display: 'flex',
-                  }}
-                >
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <div style={{ fontSize: '18px', color: '#666', display: 'flex' }}>
                   コメント
                 </div>
-                <div
-                  style={{
-                    fontSize: '36px',
-                    fontWeight: 'bold',
-                    color: '#764ba2',
-                    display: 'flex',
-                  }}
-                >
+                <div style={{ fontSize: '36px', fontWeight: 'bold', color: '#764ba2', display: 'flex' }}>
                   {metadata.commentCount || 0}
                 </div>
               </div>
 
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: '18px',
-                    color: '#666',
-                    display: 'flex',
-                  }}
-                >
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <div style={{ fontSize: '18px', color: '#666', display: 'flex' }}>
                   締切
                 </div>
-                <div
-                  style={{
-                    fontSize: '28px',
-                    fontWeight: 'bold',
-                    color: '#333',
-                    display: 'flex',
-                  }}
-                >
+                <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#333', display: 'flex' }}>
                   {deadlineText}
                 </div>
               </div>
@@ -358,11 +290,12 @@ export default async function Image({ params }: { params: Promise<{ id: string }
         </div>
       ),
       {
-        ...size,
+        width: 1200,
+        height: 630,
       }
     );
   } catch (error) {
-    logError('generateOGImage', error);
+    console.error('OG Image generation error:', error);
 
     // エラー時のフォールバック画像
     return new ImageResponse(
@@ -392,7 +325,8 @@ export default async function Image({ params }: { params: Promise<{ id: string }
         </div>
       ),
       {
-        ...size,
+        width: 1200,
+        height: 630,
       }
     );
   }
