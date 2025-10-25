@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { RankingPollList } from '@/components/features/polls/RankingPollList';
 import { SearchBar } from '@/components/features/search/SearchBar';
@@ -10,7 +10,7 @@ import { usePolls } from '@/hooks/usePolls';
 import { TrendingUp, Clock, Users, Calendar, Filter } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export default function Home() {
+function HomeContent() {
   const searchParams = useSearchParams();
   const { polls, isLoading, fetchPolls } = usePolls();
 
@@ -74,62 +74,64 @@ export default function Home() {
             <Filter className="w-4 h-4" />
             並び替え
           </label>
-          <div className="inline-flex rounded-lg border p-1 bg-muted/30">
-            <Button
-              variant={sortBy === 'voteCount' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => handleSortChange('voteCount')}
-              className={cn(
-                "rounded-md transition-all",
-                sortBy === 'voteCount'
-                  ? "shadow-sm"
-                  : "hover:bg-transparent hover:text-primary"
-              )}
-            >
-              <Users className="w-4 h-4 mr-2" />
-              投票数順
-            </Button>
-            <Button
-              variant={sortBy === 'new' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => handleSortChange('new')}
-              className={cn(
-                "rounded-md transition-all",
-                sortBy === 'new'
-                  ? "shadow-sm"
-                  : "hover:bg-transparent hover:text-primary"
-              )}
-            >
-              <Clock className="w-4 h-4 mr-2" />
-              新着順
-            </Button>
-            <Button
-              variant={sortBy === 'trending' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => handleSortChange('trending')}
-              className={cn(
-                "rounded-md transition-all",
-                sortBy === 'trending'
-                  ? "shadow-sm"
-                  : "hover:bg-transparent hover:text-primary"
-              )}
-            >
-              <TrendingUp className="w-4 h-4 mr-2" />
-              締切間近
-            </Button>
+          <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+            <div className="inline-flex rounded-lg border p-1 bg-muted/30 min-w-max">
+              <Button
+                variant={sortBy === 'voteCount' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => handleSortChange('voteCount')}
+                className={cn(
+                  "rounded-md transition-all text-xs md:text-sm whitespace-nowrap",
+                  sortBy === 'voteCount'
+                    ? "shadow-sm"
+                    : "hover:bg-transparent hover:text-primary"
+                )}
+              >
+                <Users className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
+                投票数順
+              </Button>
+              <Button
+                variant={sortBy === 'new' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => handleSortChange('new')}
+                className={cn(
+                  "rounded-md transition-all text-xs md:text-sm whitespace-nowrap",
+                  sortBy === 'new'
+                    ? "shadow-sm"
+                    : "hover:bg-transparent hover:text-primary"
+                )}
+              >
+                <Clock className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
+                新着順
+              </Button>
+              <Button
+                variant={sortBy === 'trending' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => handleSortChange('trending')}
+                className={cn(
+                  "rounded-md transition-all text-xs md:text-sm whitespace-nowrap",
+                  sortBy === 'trending'
+                    ? "shadow-sm"
+                    : "hover:bg-transparent hover:text-primary"
+                )}
+              >
+                <TrendingUp className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
+                締切間近
+              </Button>
+            </div>
           </div>
         </div>
 
         {/* フィルターオプション */}
-        <div className="flex flex-wrap items-center gap-6">
+        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 sm:gap-6">
           {/* 表示順 */}
           <div className="flex items-center gap-3">
-            <label htmlFor="sort-order" className="text-sm font-medium">
+            <label htmlFor="sort-order" className="text-sm font-medium whitespace-nowrap">
               表示順:
             </label>
             <div className="flex items-center gap-2 rounded-lg border px-3 py-1 bg-background">
               <span className={cn(
-                "text-sm transition-colors",
+                "text-xs sm:text-sm transition-colors",
                 sortOrder === 'asc' ? "text-primary font-medium" : "text-muted-foreground"
               )}>
                 昇順
@@ -141,7 +143,7 @@ export default function Home() {
                 className="data-[state=checked]:bg-primary"
               />
               <span className={cn(
-                "text-sm transition-colors",
+                "text-xs sm:text-sm transition-colors",
                 sortOrder === 'desc' ? "text-primary font-medium" : "text-muted-foreground"
               )}>
                 降順
@@ -151,13 +153,13 @@ export default function Home() {
 
           {/* 投票期間フィルタ */}
           <div className="flex items-center gap-3">
-            <label htmlFor="active-filter" className="text-sm font-medium flex items-center gap-2">
+            <label htmlFor="active-filter" className="text-sm font-medium flex items-center gap-2 whitespace-nowrap">
               <Calendar className="w-4 h-4" />
               期間:
             </label>
             <div className="flex items-center gap-2 rounded-lg border px-3 py-1 bg-background">
               <span className={cn(
-                "text-sm transition-colors",
+                "text-xs sm:text-sm transition-colors",
                 !showActivePollsOnly ? "text-primary font-medium" : "text-muted-foreground"
               )}>
                 すべて
@@ -169,7 +171,7 @@ export default function Home() {
                 className="data-[state=checked]:bg-primary"
               />
               <span className={cn(
-                "text-sm transition-colors",
+                "text-xs sm:text-sm transition-colors",
                 showActivePollsOnly ? "text-primary font-medium" : "text-muted-foreground"
               )}>
                 期間中のみ
@@ -189,5 +191,13 @@ export default function Home() {
         />
       </div>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="container mx-auto px-4 py-8">読み込み中...</div>}>
+      <HomeContent />
+    </Suspense>
   );
 }

@@ -36,9 +36,9 @@ export function PollCard({ poll, showTrending = false }: PollCardProps) {
 
   return (
     <Link href={`/polls/${poll.id}`}>
-      <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
+      <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full flex flex-col">
         {poll.thumbnailUrl && (
-          <div className="aspect-video w-full overflow-hidden rounded-t-lg">
+          <div className="aspect-video w-full overflow-hidden rounded-t-lg flex-shrink-0">
             <img
               src={poll.thumbnailUrl}
               alt={poll.title}
@@ -47,9 +47,9 @@ export function PollCard({ poll, showTrending = false }: PollCardProps) {
           </div>
         )}
 
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-2 md:pb-3 flex-shrink-0">
           <div className="flex items-start justify-between gap-2">
-            <CardTitle className="text-lg line-clamp-2">{poll.title}</CardTitle>
+            <CardTitle className="text-base md:text-lg line-clamp-2 flex-1">{poll.title}</CardTitle>
             {showTrending && (
               <Badge variant="destructive" className="shrink-0">
                 <TrendingUp className="w-3 h-3 mr-1" />
@@ -57,25 +57,25 @@ export function PollCard({ poll, showTrending = false }: PollCardProps) {
               </Badge>
             )}
           </div>
-          <CardDescription className="line-clamp-2 mt-2">
+          <CardDescription className="line-clamp-2 mt-1 md:mt-2 text-xs md:text-sm">
             {poll.description}
           </CardDescription>
         </CardHeader>
 
-        <CardContent>
-          <div className="flex flex-wrap gap-2 mb-3">
+        <CardContent className="flex-grow flex flex-col justify-end">
+          <div className="flex flex-wrap gap-1 mb-2 md:mb-3">
             {poll.categories && Array.isArray(poll.categories) &&
               poll.categories.map((category) => (
-                <Badge key={category} variant="secondary">
+                <Badge key={category} variant="secondary" className="text-xs">
                   {category}
                 </Badge>
               ))}
             {poll.isAccentMode && (
-              <Badge variant="outline">アクセント投票</Badge>
+              <Badge variant="outline" className="text-xs">アクセント投票</Badge>
             )}
           </div>
 
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <div className="flex items-center justify-between text-xs md:text-sm text-muted-foreground">
             <div className="flex items-center gap-1">
               <Users className="w-4 h-4" />
               <span>{formatVoteCount(poll.totalVotes)}票</span>
@@ -87,7 +87,7 @@ export function PollCard({ poll, showTrending = false }: PollCardProps) {
           </div>
 
           {poll.voteDistribution && (
-            <div className="mt-3 space-y-1">
+            <div className="mt-2 md:mt-3 space-y-1">
               {poll.options.slice(0, 2).map((option, index) => {
                 const percentage = poll.totalVotes
                   ? ((poll.voteDistribution![index] || 0) / poll.totalVotes) * 100

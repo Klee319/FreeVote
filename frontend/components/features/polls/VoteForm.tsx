@@ -37,9 +37,19 @@ export function VoteForm({ poll, onVoteComplete }: VoteFormProps) {
       return;
     }
 
-    if (!isAuthenticated && !userAttributes.prefecture) {
-      setError('都道府県を選択してください');
-      return;
+    if (!isAuthenticated) {
+      if (!userAttributes.prefecture) {
+        setError('都道府県を選択してください');
+        return;
+      }
+      if (!userAttributes.ageGroup) {
+        setError('年代を選択してください');
+        return;
+      }
+      if (!userAttributes.gender) {
+        setError('性別を選択してください');
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -49,8 +59,8 @@ export function VoteForm({ poll, onVoteComplete }: VoteFormProps) {
     const voteData = {
       option: optionIndex,
       prefecture: userAttributes.prefecture,
-      ageGroup: userAttributes.ageGroup || undefined,
-      gender: userAttributes.gender || undefined,
+      ageGroup: userAttributes.ageGroup,
+      gender: userAttributes.gender,
     };
 
     const result = await submitVote(poll.id, voteData);
@@ -73,14 +83,15 @@ export function VoteForm({ poll, onVoteComplete }: VoteFormProps) {
   const renderAccentPattern = (pitchPattern?: number[]) => {
     if (!pitchPattern || pitchPattern.length === 0) return null;
 
-    const maxHeight = 40;
+    const maxHeightMobile = 30;
+    const maxHeightDesktop = 40;
     return (
-      <div className="flex items-end gap-1 h-12">
+      <div className="flex items-end gap-1 h-10 md:h-12 overflow-x-auto">
         {pitchPattern.map((pitch, index) => (
           <div
             key={index}
-            className="w-6 bg-primary rounded-t"
-            style={{ height: `${pitch * maxHeight}px` }}
+            className="w-4 md:w-6 bg-primary rounded-t flex-shrink-0"
+            style={{ height: `${pitch * maxHeightMobile}px` }}
           />
         ))}
       </div>
@@ -99,18 +110,18 @@ export function VoteForm({ poll, onVoteComplete }: VoteFormProps) {
             {poll.options.map((option, index) => (
               <div
                 key={index}
-                className="border rounded-lg p-4 hover:border-primary transition-colors"
+                className="border rounded-lg p-3 md:p-4 hover:border-primary transition-colors"
               >
-                <div className="flex items-start gap-3">
+                <div className="flex items-start gap-2 md:gap-3">
                   <RadioGroupItem
                     value={index.toString()}
                     id={`option-${index}`}
-                    className="mt-1"
+                    className="mt-0.5 md:mt-1"
                   />
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <Label
                       htmlFor={`option-${index}`}
-                      className="text-base font-medium cursor-pointer"
+                      className="text-sm md:text-base font-medium cursor-pointer break-words"
                     >
                       {option.label}
                     </Label>
@@ -156,11 +167,11 @@ export function VoteForm({ poll, onVoteComplete }: VoteFormProps) {
         {!isAuthenticated && showAttributeForm && (
           <Card className="mt-6">
             <CardHeader>
-              <CardTitle className="text-lg">投票者情報（ゲスト）</CardTitle>
+              <CardTitle className="text-base md:text-lg">投票者情報（ゲスト）</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="prefecture">都道府県 *</Label>
+            <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="prefecture" className="text-sm md:text-base">都道府県 *</Label>
                 <Select
                   value={userAttributes.prefecture}
                   onValueChange={(value) =>
@@ -180,8 +191,8 @@ export function VoteForm({ poll, onVoteComplete }: VoteFormProps) {
                 </Select>
               </div>
 
-              <div>
-                <Label htmlFor="ageGroup">年代（任意）</Label>
+              <div className="space-y-2">
+                <Label htmlFor="ageGroup" className="text-sm md:text-base">年代 *</Label>
                 <Select
                   value={userAttributes.ageGroup}
                   onValueChange={(value) =>
@@ -203,8 +214,8 @@ export function VoteForm({ poll, onVoteComplete }: VoteFormProps) {
                 </Select>
               </div>
 
-              <div>
-                <Label htmlFor="gender">性別（任意）</Label>
+              <div className="space-y-2">
+                <Label htmlFor="gender" className="text-sm md:text-base">性別 *</Label>
                 <Select
                   value={userAttributes.gender}
                   onValueChange={(value) =>

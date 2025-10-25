@@ -65,8 +65,8 @@ export const createPollSchema = z.object({
 export const voteSchema = z.object({
   option: z.number().min(0).max(3),
   prefecture: prefectureSchema,
-  ageGroup: ageGroupSchema.optional(),
-  gender: genderSchema.optional(),
+  ageGroup: ageGroupSchema,
+  gender: genderSchema,
   userToken: z.string().optional(),
 });
 

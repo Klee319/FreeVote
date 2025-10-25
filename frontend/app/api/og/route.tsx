@@ -50,8 +50,13 @@ export async function GET(request: NextRequest) {
     const { data } = await response.json();
     const metadata: ShareMetadata = data;
 
-    // 背景グラデーション
-    const gradient = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+    // 白黒ベースのモダンな配色
+    const bgGradient = 'linear-gradient(135deg, #f5f5f5 0%, #ffffff 100%)';
+    const textPrimary = '#1a1a1a';
+    const textSecondary = '#666666';
+    const accentBlack = '#000000';
+    const lightGray = '#f8f9fa';
+    const borderColor = '#e0e0e0';
 
     // 締切情報の計算
     let deadlineText = '無期限';
@@ -82,37 +87,51 @@ export async function GET(request: NextRequest) {
             height: '100%',
             display: 'flex',
             flexDirection: 'column',
-            background: gradient,
-            padding: '60px',
-            fontFamily: 'sans-serif',
+            background: bgGradient,
+            padding: '0',
+            fontFamily: 'system-ui, -apple-system, sans-serif',
+            position: 'relative',
           }}
         >
-          {/* Header Section */}
+          {/* Header Section - Stylish Title */}
           <div
             style={{
               display: 'flex',
               flexDirection: 'column',
-              marginBottom: '40px',
+              padding: '45px 70px 45px 90px',
+              position: 'relative',
+              borderBottom: `1px solid ${borderColor}`,
             }}
           >
+            {/* Accent Line */}
             <div
               style={{
-                fontSize: '56px',
-                fontWeight: 'bold',
-                color: 'white',
+                position: 'absolute',
+                left: '0',
+                top: '45px',
+                width: '8px',
+                height: '75px',
+                background: accentBlack,
+                display: 'flex',
+              }}
+            />
+
+            <div
+              style={{
+                fontSize: '54px',
+                fontWeight: '900',
+                color: textPrimary,
                 lineHeight: '1.2',
                 marginBottom: '20px',
-                textShadow: '0 2px 10px rgba(0,0,0,0.3)',
+                letterSpacing: '-0.03em',
+                maxHeight: '130px',
                 overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                display: '-webkit-box',
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical',
-                maxHeight: '134px',
                 fontFamily: 'system-ui, -apple-system, sans-serif',
+                display: 'flex',
+                textShadow: '2px 2px 0px rgba(0,0,0,0.05)',
               }}
             >
-              {truncateText(metadata.title, 50)}
+              {truncateText(metadata.title, 42)}
             </div>
 
             {/* Categories */}
@@ -128,16 +147,18 @@ export async function GET(request: NextRequest) {
                   <div
                     key={idx}
                     style={{
-                      backgroundColor: 'rgba(255,255,255,0.2)',
-                      padding: '8px 16px',
-                      borderRadius: '20px',
-                      fontSize: '20px',
+                      backgroundColor: accentBlack,
+                      padding: '6px 18px',
+                      borderRadius: '4px',
+                      fontSize: '16px',
                       color: 'white',
                       display: 'flex',
                       fontFamily: 'system-ui, -apple-system, sans-serif',
+                      fontWeight: '700',
+                      letterSpacing: '0.05em',
                     }}
                   >
-                    {truncateText(category, 10)}
+                    {truncateText(category, 12)}
                   </div>
                 ))}
               </div>
@@ -147,29 +168,29 @@ export async function GET(request: NextRequest) {
           {/* Options List */}
           <div
             style={{
-              flex: 1,
               display: 'flex',
               flexDirection: 'column',
-              gap: '16px',
-              backgroundColor: 'rgba(255,255,255,0.95)',
-              padding: '40px',
-              borderRadius: '20px',
-              boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+              gap: '14px',
+              backgroundColor: 'white',
+              padding: '40px 70px',
+              minHeight: '220px',
             }}
           >
             <div
               style={{
-                fontSize: '28px',
-                fontWeight: 'bold',
-                color: '#333',
-                marginBottom: '10px',
+                fontSize: '24px',
+                fontWeight: '700',
+                color: textPrimary,
+                marginBottom: '6px',
                 display: 'flex',
+                fontFamily: 'system-ui, -apple-system, sans-serif',
+                letterSpacing: '-0.01em',
               }}
             >
               投票の選択肢
             </div>
 
-            {metadata.options.slice(0, 4).map((option, idx) => {
+            {metadata.options.slice(0, 3).map((option, idx) => {
               const optionLabel = typeof option === 'string' ? option : option.label;
               return (
                 <div
@@ -185,7 +206,7 @@ export async function GET(request: NextRequest) {
                       width: '40px',
                       height: '40px',
                       borderRadius: '50%',
-                      backgroundColor: '#667eea',
+                      background: accentBlack,
                       color: 'white',
                       display: 'flex',
                       alignItems: 'center',
@@ -199,33 +220,34 @@ export async function GET(request: NextRequest) {
                   </div>
                   <div
                     style={{
-                      fontSize: '24px',
-                      color: '#333',
+                      fontSize: '22px',
+                      color: textPrimary,
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
                       flex: 1,
                       display: 'flex',
-                      maxWidth: '900px',
                       fontFamily: 'system-ui, -apple-system, sans-serif',
+                      fontWeight: '500',
                     }}
                   >
-                    {truncateText(optionLabel, 40)}
+                    {truncateText(optionLabel, 48)}
                   </div>
                 </div>
               );
             })}
 
-            {metadata.options.length > 4 && (
+            {metadata.options.length > 3 && (
               <div
                 style={{
-                  fontSize: '20px',
-                  color: '#666',
-                  fontStyle: 'italic',
+                  fontSize: '17px',
+                  color: textSecondary,
                   display: 'flex',
+                  marginTop: '4px',
+                  fontFamily: 'system-ui, -apple-system, sans-serif',
                 }}
               >
-                ...他 {metadata.options.length - 4} 件の選択肢
+                ...他 {metadata.options.length - 3} 件の選択肢
               </div>
             )}
           </div>
@@ -236,37 +258,75 @@ export async function GET(request: NextRequest) {
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              marginTop: '40px',
-              padding: '30px 40px',
-              backgroundColor: 'rgba(255,255,255,0.95)',
-              borderRadius: '20px',
-              boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+              padding: '42px 70px 48px 70px',
+              backgroundColor: 'white',
+              borderTop: `1px solid ${borderColor}`,
             }}
           >
-            <div style={{ display: 'flex', gap: '40px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <div style={{ fontSize: '18px', color: '#666', display: 'flex' }}>
+            <div style={{ display: 'flex', gap: '50px', alignItems: 'center' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', minWidth: '100px' }}>
+                <div style={{
+                  fontSize: '15px',
+                  color: textSecondary,
+                  display: 'flex',
+                  marginBottom: '6px',
+                  fontFamily: 'system-ui, -apple-system, sans-serif',
+                  fontWeight: '500',
+                }}>
                   総投票数
                 </div>
-                <div style={{ fontSize: '36px', fontWeight: 'bold', color: '#667eea', display: 'flex' }}>
+                <div style={{
+                  fontSize: '36px',
+                  fontWeight: '800',
+                  color: textPrimary,
+                  display: 'flex',
+                  fontFamily: 'system-ui, -apple-system, sans-serif',
+                }}>
                   {metadata.totalVotes}
                 </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <div style={{ fontSize: '18px', color: '#666', display: 'flex' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', minWidth: '100px' }}>
+                <div style={{
+                  fontSize: '15px',
+                  color: textSecondary,
+                  display: 'flex',
+                  marginBottom: '6px',
+                  fontFamily: 'system-ui, -apple-system, sans-serif',
+                  fontWeight: '500',
+                }}>
                   コメント
                 </div>
-                <div style={{ fontSize: '36px', fontWeight: 'bold', color: '#764ba2', display: 'flex' }}>
+                <div style={{
+                  fontSize: '36px',
+                  fontWeight: '800',
+                  color: textPrimary,
+                  display: 'flex',
+                  fontFamily: 'system-ui, -apple-system, sans-serif',
+                }}>
                   {metadata.commentCount || 0}
                 </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <div style={{ fontSize: '18px', color: '#666', display: 'flex' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', minWidth: '160px' }}>
+                <div style={{
+                  fontSize: '15px',
+                  color: textSecondary,
+                  display: 'flex',
+                  marginBottom: '6px',
+                  fontFamily: 'system-ui, -apple-system, sans-serif',
+                  fontWeight: '500',
+                }}>
                   締切
                 </div>
-                <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#333', display: 'flex' }}>
+                <div style={{
+                  fontSize: '22px',
+                  fontWeight: '800',
+                  color: textPrimary,
+                  display: 'flex',
+                  fontFamily: 'system-ui, -apple-system, sans-serif',
+                  whiteSpace: 'nowrap',
+                }}>
                   {deadlineText}
                 </div>
               </div>
@@ -276,15 +336,20 @@ export async function GET(request: NextRequest) {
             <div
               style={{
                 fontSize: '24px',
-                fontWeight: 'bold',
-                color: '#667eea',
-                backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                padding: '20px 40px',
-                borderRadius: '12px',
+                fontWeight: '700',
+                color: 'white',
+                background: accentBlack,
+                padding: '16px 44px',
+                borderRadius: '8px',
                 display: 'flex',
+                alignItems: 'center',
+                fontFamily: 'system-ui, -apple-system, sans-serif',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+                letterSpacing: '0.02em',
+                whiteSpace: 'nowrap',
               }}
             >
-              👆 クリックして結果を見る
+              👆 投票する
             </div>
           </div>
         </div>

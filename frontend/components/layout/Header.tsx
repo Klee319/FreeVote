@@ -53,19 +53,23 @@ export function Header() {
             {isAuthenticated && user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center space-x-2">
-                    <User className="h-5 w-5" />
-                    <span>{user.username || 'ユーザー'}</span>
-                    {rankBadge && (
-                      <span className={`px-2 py-1 text-xs text-white rounded ${rankBadge.color}`}>
-                        {rankBadge.name}
-                      </span>
-                    )}
-                    {user.referralCount > 0 && (
-                      <span className="text-sm text-muted-foreground">
-                        紹介: {user.referralCount}人
-                      </span>
-                    )}
+                  <Button variant="ghost" className="flex items-center gap-2">
+                    <User className="h-4 w-4 md:h-5 md:w-5" />
+                    <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-2">
+                      <span className="text-sm md:text-base">{user.username || 'ユーザー'}</span>
+                      <div className="flex items-center gap-2">
+                        {rankBadge && (
+                          <span className={`px-2 py-0.5 md:py-1 text-xs text-white rounded ${rankBadge.color}`}>
+                            {rankBadge.name}
+                          </span>
+                        )}
+                        {user.referralCount > 0 && (
+                          <span className="text-xs md:text-sm text-muted-foreground">
+                            紹介: {user.referralCount}人
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
@@ -120,19 +124,21 @@ export function Header() {
 
               {isAuthenticated && user ? (
                 <>
-                  <div className="flex items-center justify-between px-4 py-2 bg-muted rounded">
-                    <span>{user.username || 'ユーザー'}</span>
-                    {rankBadge && (
-                      <span className={`px-2 py-1 text-xs text-white rounded ${rankBadge.color}`}>
-                        {rankBadge.name}
-                      </span>
+                  <div className="flex flex-col gap-2 px-4 py-3 bg-muted rounded">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">{user.username || 'ユーザー'}</span>
+                      {rankBadge && (
+                        <span className={`px-2 py-1 text-xs text-white rounded ${rankBadge.color}`}>
+                          {rankBadge.name}
+                        </span>
+                      )}
+                    </div>
+                    {user.referralCount > 0 && (
+                      <div className="text-xs text-muted-foreground">
+                        紹介人数: {user.referralCount}人
+                      </div>
                     )}
                   </div>
-                  {user.referralCount > 0 && (
-                    <div className="px-4 text-sm text-muted-foreground">
-                      紹介人数: {user.referralCount}人
-                    </div>
-                  )}
                   <Button variant="ghost" className="w-full justify-start" asChild>
                     <Link href="/profile">プロフィール</Link>
                   </Button>

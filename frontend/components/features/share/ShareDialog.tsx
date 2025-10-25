@@ -17,7 +17,7 @@ import { Poll } from '@/types';
 import { usePolls } from '@/hooks/usePolls';
 import { useStatsAccess } from '@/hooks/useStatsAccess';
 import { useAuthStore } from '@/stores/authStore';
-import { Copy, Twitter, Facebook, Link2, CheckCircle2 } from 'lucide-react';
+import { Copy, Twitter, CheckCircle2 } from 'lucide-react';
 
 interface ShareDialogProps {
   poll: Poll;
@@ -100,30 +100,12 @@ export function ShareDialog({ poll, selectedOption, onClose }: ShareDialogProps)
     handleShareSuccess('twitter');
   };
 
-  const shareToFacebook = () => {
-    const url = encodeURIComponent(shareUrl);
-    window.open(
-      `https://www.facebook.com/sharer/sharer.php?u=${url}`,
-      '_blank'
-    );
-    handleShareSuccess('facebook');
-  };
-
-  const shareToLine = () => {
-    const fullMessage = encodeURIComponent(`${shareMessage}\n${shareUrl}`);
-    window.open(
-      `https://line.me/R/msg/text/?${fullMessage}`,
-      '_blank'
-    );
-    handleShareSuccess('line');
-  };
-
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="w-[calc(100%-2rem)] max-w-md mx-auto sm:w-full">
         <DialogHeader>
-          <DialogTitle>投票をシェア</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-lg md:text-xl">投票をシェア</DialogTitle>
+          <DialogDescription className="text-sm md:text-base">
             SNSで投票を共有して、みんなの意見を聞いてみましょう！
             {user && (
               <span className="block mt-1 text-xs">
@@ -136,38 +118,39 @@ export function ShareDialog({ poll, selectedOption, onClose }: ShareDialogProps)
         {showSuccessMessage && (
           <Alert className="bg-green-50 border-green-200">
             <CheckCircle2 className="h-4 w-4 text-green-600" />
-            <AlertDescription className="text-green-800">
+            <AlertDescription className="text-green-800 text-xs sm:text-sm">
               シェアありがとうございます！詳細統計に7日間アクセスできるようになりました
             </AlertDescription>
           </Alert>
         )}
 
-        <div className="space-y-4">
+        <div className="space-y-3 md:space-y-4">
           {/* Share Message */}
           <div>
-            <Label htmlFor="message">シェアメッセージ</Label>
+            <Label htmlFor="message" className="text-sm md:text-base">シェアメッセージ</Label>
             <Textarea
               id="message"
               value={shareMessage}
               onChange={(e) => setShareMessage(e.target.value)}
               rows={4}
-              className="mt-1"
+              className="mt-1 text-sm md:text-base"
             />
           </div>
 
           {/* Share URL */}
           <div>
-            <Label htmlFor="url">シェアURL</Label>
+            <Label htmlFor="url" className="text-sm md:text-base">シェアURL</Label>
             <div className="flex gap-2 mt-1">
               <Input
                 id="url"
                 value={shareUrl}
                 readOnly
-                className="flex-1"
+                className="flex-1 text-xs md:text-sm"
               />
               <Button
                 variant="outline"
                 size="icon"
+                className="flex-shrink-0"
                 onClick={copyToClipboard}
               >
                 {copied ? (
@@ -180,35 +163,19 @@ export function ShareDialog({ poll, selectedOption, onClose }: ShareDialogProps)
           </div>
 
           {/* Social Share Buttons */}
-          <div className="grid grid-cols-3 gap-2">
+          <div>
             <Button
               onClick={shareToTwitter}
               disabled={isGrantingAccess}
-              className="bg-[#1DA1F2] hover:bg-[#1a8cd8] text-white"
+              className="w-full bg-black hover:bg-gray-800 text-white text-sm md:text-base"
             >
               <Twitter className="h-4 w-4 mr-2" />
-              Twitter
-            </Button>
-            <Button
-              onClick={shareToFacebook}
-              disabled={isGrantingAccess}
-              className="bg-[#4267B2] hover:bg-[#365899] text-white"
-            >
-              <Facebook className="h-4 w-4 mr-2" />
-              Facebook
-            </Button>
-            <Button
-              onClick={shareToLine}
-              disabled={isGrantingAccess}
-              className="bg-[#00C300] hover:bg-[#00a000] text-white"
-            >
-              <Link2 className="h-4 w-4 mr-2" />
-              LINE
+              X (Twitter) でシェア
             </Button>
           </div>
 
           {/* Close Button */}
-          <Button onClick={onClose} variant="outline" className="w-full">
+          <Button onClick={onClose} variant="outline" className="w-full text-sm md:text-base">
             閉じる
           </Button>
         </div>

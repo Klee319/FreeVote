@@ -19,6 +19,56 @@ interface CreateCommentData {
 }
 
 export class CommentsService {
+  // 返信を再帰的に取得するヘルパー関数
+  private async getRepliesRecursively(commentId: string, depth: number = 0, maxDepth: number = 3): Promise<any[]> {
+    if (depth >= maxDepth) {
+      return [];
+    }
+
+    const replies = await prisma.pollComment.findMany({
+      where: { parentId: commentId },
+      orderBy: { createdAt: 'asc' },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            avatarUrl: true,
+          },
+        },
+        parent: {
+          select: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // 各返信の更に下の返信を取得
+    const repliesWithChildren = await Promise.all(
+      replies.map(async (reply) => {
+        const childReplies = await this.getRepliesRecursively(reply.id, depth + 1, maxDepth);
+        return {
+          id: reply.id,
+          content: reply.content,
+          user: reply.user,
+          parent: reply.parent,
+          likeCount: reply.likeCount,
+          createdAt: reply.createdAt,
+          updatedAt: reply.updatedAt,
+          replies: childReplies,
+        };
+      })
+    );
+
+    return repliesWithChildren;
+  }
+
   // コメント一覧取得
   async getComments(pollId: string, filters: CommentFilters = {}) {
     const {
@@ -51,7 +101,7 @@ export class CommentsService {
     }
 
     // トップレベルのコメントのみを取得（parentIdがnullのもの）
-    const [comments, total] = await Promise.all([
+    const [topLevelComments, total] = await Promise.all([
       prisma.pollComment.findMany({
         where: {
           pollId,
@@ -68,18 +118,6 @@ export class CommentsService {
               avatarUrl: true,
             },
           },
-          replies: {
-            orderBy: { createdAt: 'asc' },
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  username: true,
-                  avatarUrl: true,
-                },
-              },
-            },
-          },
         },
       }),
       prisma.pollComment.count({
@@ -90,8 +128,19 @@ export class CommentsService {
       }),
     ]);
 
-    // レスポンス整形
-    const formattedComments = comments.map((comment) => ({
+    // 各トップレベルコメントに対して返信を再帰的に取得
+    const comments = await Promise.all(
+      topLevelComments.map(async (comment) => {
+        const replies = await this.getRepliesRecursively(comment.id);
+        return {
+          ...comment,
+          replies,
+        };
+      })
+    );
+
+    // レスポンス整形（再帰的に返信を整形）
+    const formatCommentWithReplies = (comment: any): any => ({
       id: comment.id,
       content: comment.content,
       author: comment.userId ? {
@@ -101,24 +150,16 @@ export class CommentsService {
       } : {
         guestName: comment.guestName || 'ゲスト',
       },
+      parent: comment.parent ? {
+        user: comment.parent.user,
+      } : null,
       likeCount: comment.likeCount,
       createdAt: comment.createdAt,
       updatedAt: comment.updatedAt,
-      replies: comment.replies.map((reply) => ({
-        id: reply.id,
-        content: reply.content,
-        author: reply.userId ? {
-          id: reply.user?.id,
-          username: reply.user?.username,
-          avatarUrl: reply.user?.avatarUrl,
-        } : {
-          guestName: reply.guestName || 'ゲスト',
-        },
-        likeCount: reply.likeCount,
-        createdAt: reply.createdAt,
-        updatedAt: reply.updatedAt,
-      })),
-    }));
+      replies: (comment.replies || []).map((reply: any) => formatCommentWithReplies(reply)),
+    });
+
+    const formattedComments = comments.map((comment) => formatCommentWithReplies(comment));
 
     return {
       comments: formattedComments,
@@ -247,7 +288,7 @@ export class CommentsService {
     };
   }
 
-  // コメントにいいね
+  // コメントにいいね（トグル機能）
   async likeComment(pollId: string, commentId: string, userToken?: string, userId?: string) {
     // コメントの存在確認
     const comment = await prisma.pollComment.findUnique({
@@ -268,7 +309,7 @@ export class CommentsService {
       token = uuidv4();
     }
 
-    // 重複いいねチェック
+    // 既存のいいねをチェック
     const existingLike = await prisma.commentLike.findUnique({
       where: {
         commentId_userToken: {
@@ -278,26 +319,48 @@ export class CommentsService {
       },
     });
 
+    let updatedComment;
+    let action: 'liked' | 'unliked';
+
     if (existingLike) {
-      throw new ConflictError('すでにいいね済みです');
+      // 既にいいねしている場合は削除（トグル）
+      await prisma.commentLike.delete({
+        where: {
+          commentId_userToken: {
+            commentId,
+            userToken: token,
+          },
+        },
+      });
+
+      // コメントのいいね数を減少
+      updatedComment = await prisma.pollComment.update({
+        where: { id: commentId },
+        data: { likeCount: { decrement: 1 } },
+      });
+
+      action = 'unliked';
+    } else {
+      // いいねを保存
+      await prisma.commentLike.create({
+        data: {
+          commentId,
+          userToken: token,
+          userId,
+        },
+      });
+
+      // コメントのいいね数を増加
+      updatedComment = await prisma.pollComment.update({
+        where: { id: commentId },
+        data: { likeCount: { increment: 1 } },
+      });
+
+      action = 'liked';
     }
 
-    // いいねを保存
-    await prisma.commentLike.create({
-      data: {
-        commentId,
-        userToken: token,
-        userId,
-      },
-    });
-
-    // コメントのいいね数を増加
-    const updatedComment = await prisma.pollComment.update({
-      where: { id: commentId },
-      data: { likeCount: { increment: 1 } },
-    });
-
     return {
+      action,
       likeCount: updatedComment.likeCount,
       userToken: token,
     };

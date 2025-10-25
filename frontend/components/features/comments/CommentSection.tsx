@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MessageSquare, ChevronLeft, ChevronRight, Clock, TrendingUp } from 'lucide-react';
+import { MessageSquare, ChevronLeft, ChevronRight, Clock, TrendingUp, LogIn } from 'lucide-react';
 import { CommentList } from './CommentList';
 import { CommentForm } from './CommentForm';
 import { useComments } from '@/hooks/useComments';
@@ -15,6 +16,7 @@ interface CommentSectionProps {
 }
 
 export function CommentSection({ pollId }: CommentSectionProps) {
+  const router = useRouter();
   const [currentPage, setCurrentPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
   const [sortBy, setSortBy] = useState<'new' | 'popular'>('new');
@@ -50,40 +52,57 @@ export function CommentSection({ pollId }: CommentSectionProps) {
     <Card>
       <CardHeader>
         <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <MessageSquare className="h-5 w-5" />
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
+              <MessageSquare className="h-4 w-4 md:h-5 md:w-5" />
               コメント ({comments.length})
             </CardTitle>
             {!showForm && (
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setShowForm(true)}
+                className="w-full md:w-auto"
+                onClick={() => {
+                  if (isAuthenticated) {
+                    setShowForm(true);
+                  } else {
+                    router.push('/auth/login');
+                  }
+                }}
               >
-                コメントを投稿
+                {isAuthenticated ? (
+                  <>
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    コメントを投稿
+                  </>
+                ) : (
+                  <>
+                    <LogIn className="h-4 w-4 mr-2" />
+                    ログインしてコメント
+                  </>
+                )}
               </Button>
             )}
           </div>
           {/* ソート切り替えボタン */}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
             <Button
               variant={sortBy === 'new' ? 'default' : 'outline'}
               size="sm"
               onClick={() => handleSortChange('new')}
-              className="gap-1.5"
+              className="flex-1 sm:flex-initial gap-1.5"
             >
               <Clock className="h-4 w-4" />
-              新着順
+              <span className="text-xs sm:text-sm">新着順</span>
             </Button>
             <Button
               variant={sortBy === 'popular' ? 'default' : 'outline'}
               size="sm"
               onClick={() => handleSortChange('popular')}
-              className="gap-1.5"
+              className="flex-1 sm:flex-initial gap-1.5"
             >
               <TrendingUp className="h-4 w-4" />
-              人気順
+              <span className="text-xs sm:text-sm">人気順</span>
             </Button>
           </div>
         </div>
@@ -109,17 +128,19 @@ export function CommentSection({ pollId }: CommentSectionProps) {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2 mt-6">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mt-6">
             <Button
               variant="outline"
               size="sm"
+              className="w-full sm:w-auto"
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={currentPage === 1}
             >
               <ChevronLeft className="h-4 w-4" />
-              前へ
+              <span className="ml-1">前へ</span>
             </Button>
-            <div className="flex items-center gap-2">
+            {/* デスクトップ: ページ番号ボタン表示 */}
+            <div className="hidden sm:flex items-center gap-2">
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                 let pageNum = i + 1;
                 if (totalPages > 5) {
@@ -147,13 +168,18 @@ export function CommentSection({ pollId }: CommentSectionProps) {
                 );
               })}
             </div>
+            {/* モバイル: ページ数テキスト表示 */}
+            <div className="sm:hidden text-sm text-muted-foreground">
+              {currentPage} / {totalPages}
+            </div>
             <Button
               variant="outline"
               size="sm"
+              className="w-full sm:w-auto"
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
             >
-              次へ
+              <span className="mr-1">次へ</span>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>

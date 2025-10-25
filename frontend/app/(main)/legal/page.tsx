@@ -206,13 +206,13 @@ export default function LegalPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-6 md:py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
+        <div className="text-center mb-8 md:mb-12">
+          <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-3 md:mb-4">
             法的情報
           </h1>
-          <p className="text-gray-600">
+          <p className="text-sm md:text-base text-gray-600 px-2">
             みんなの投票プラットフォームの利用に関する重要な法的情報です
           </p>
         </div>
@@ -225,25 +225,25 @@ export default function LegalPage() {
                 key={section.id}
                 onClick={() => setActiveSection(section.id)}
                 className={`
-                  flex-1 px-6 py-4 text-center font-medium transition-all duration-200
+                  flex-1 px-4 md:px-6 py-3 md:py-4 text-center font-medium transition-all duration-200
                   ${activeSection === section.id
                     ? 'bg-gradient-to-r from-blue-50 to-purple-50 text-blue-600 border-b-2 border-blue-600'
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'}
                 `}
               >
-                <span className="text-xl mr-2">{section.icon}</span>
-                <span>{section.title}</span>
+                <span className="text-lg md:text-xl mr-1 md:mr-2">{section.icon}</span>
+                <span className="text-sm md:text-base">{section.title}</span>
               </button>
             ))}
           </div>
 
           {/* コンテンツエリア */}
-          <div className="p-8 max-h-[600px] overflow-y-auto">
+          <div className="p-4 md:p-8 max-h-[500px] md:max-h-[600px] overflow-y-auto">
             {renderContent()}
           </div>
         </div>
 
-        <div className="mt-8 text-center text-sm text-gray-500">
+        <div className="mt-6 md:mt-8 text-center text-xs md:text-sm text-gray-500 px-2">
           <p>
             これらの法的文書は定期的に更新される場合があります。<br />
             最新の内容を確認するには、定期的にこのページをご確認ください。

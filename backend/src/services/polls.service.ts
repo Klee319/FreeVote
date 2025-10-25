@@ -21,8 +21,8 @@ interface PollFilters {
 interface VoteData {
   option: number;
   prefecture: string;
-  ageGroup?: string;
-  gender?: string;
+  ageGroup: string;
+  gender: string;
   userToken?: string;
   userId?: string;
 }

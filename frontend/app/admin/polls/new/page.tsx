@@ -33,8 +33,8 @@ export default function NewPollPage() {
       // optionsをJSON文字列に変換
       const pollData = {
         ...data,
-        options: JSON.stringify(data.options),
-        categories: JSON.stringify([data.category]),
+        options: data.options, // 配列のまま送信
+        categories: [data.category], // 配列のまま送信
         deadline: data.deadline?.toISOString(),
       };
 
@@ -45,14 +45,16 @@ export default function NewPollPage() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to create poll");
+        const errorData = await response.json();
+        console.error("API Error:", errorData);
+        throw new Error(errorData.error?.message || errorData.message || "Failed to create poll");
       }
 
       // 成功時は一覧ページにリダイレクト
       router.push("/admin/polls");
     } catch (error) {
       console.error("Failed to create poll:", error);
-      alert("投票の作成に失敗しました");
+      alert(`投票の作成に失敗しました: ${error instanceof Error ? error.message : '不明なエラー'}`);
     } finally {
       setLoading(false);
     }

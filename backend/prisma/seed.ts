@@ -1,5 +1,4 @@
-// モックデータ生成スクリプト(現在は使用していません)
-/*
+// モックデータ生成スクリプト
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
@@ -308,4 +307,3 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
-*/

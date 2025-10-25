@@ -141,24 +141,24 @@ export default function SuggestPollPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-6 md:py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
         {/* ヘッダー */}
-        <div className="text-center mb-12">
-          <div className="flex justify-center items-center mb-4">
-            <LightBulbIcon className="w-12 h-12 text-yellow-500 mr-3" />
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+        <div className="text-center mb-8 md:mb-12">
+          <div className="flex justify-center items-center mb-3 md:mb-4">
+            <LightBulbIcon className="w-10 h-10 md:w-12 md:h-12 text-yellow-500 mr-2 md:mr-3" />
+            <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               投票を提案
             </h1>
           </div>
-          <p className="text-gray-600">
+          <p className="text-sm md:text-base text-gray-600 px-2">
             みんなが投票したくなるような面白い投票のアイデアを教えてください！
           </p>
         </div>
 
         {/* フォーム */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-8">
+          <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
             {/* タイトル */}
             <div>
               <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
@@ -345,9 +345,9 @@ export default function SuggestPollPage() {
         </div>
 
         {/* ガイドライン */}
-        <div className="mt-8 bg-blue-50 rounded-xl p-6">
-          <h3 className="text-lg font-semibold text-blue-900 mb-3">投票提案のガイドライン</h3>
-          <ul className="space-y-2 text-sm text-blue-800">
+        <div className="mt-6 md:mt-8 bg-blue-50 rounded-xl p-4 md:p-6">
+          <h3 className="text-base md:text-lg font-semibold text-blue-900 mb-3">投票提案のガイドライン</h3>
+          <ul className="space-y-2 text-xs md:text-sm text-blue-800">
             <li className="flex items-start">
               <span className="mr-2">✓</span>
               <span>多くの人が興味を持つトピックを選んでください</span>

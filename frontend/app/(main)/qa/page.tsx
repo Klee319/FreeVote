@@ -101,23 +101,23 @@ export default function QAPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-6 md:py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
+        <div className="text-center mb-8 md:mb-12">
+          <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-3 md:mb-4">
             よくある質問
           </h1>
-          <p className="text-gray-600">
+          <p className="text-sm md:text-base text-gray-600 px-2">
             みんなの投票プラットフォームの使い方やよくある質問をまとめました
           </p>
         </div>
 
-        <div className="space-y-8">
+        <div className="space-y-6 md:space-y-8">
           {qaData.map((category, categoryIndex) => (
             <div key={categoryIndex} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-50 to-purple-50 px-6 py-4 border-b border-gray-100">
-                <h2 className="text-xl font-semibold text-gray-800 flex items-center">
-                  <span className="text-2xl mr-3">{category.icon}</span>
+              <div className="bg-gradient-to-r from-blue-50 to-purple-50 px-4 md:px-6 py-3 md:py-4 border-b border-gray-100">
+                <h2 className="text-lg md:text-xl font-semibold text-gray-800 flex items-center">
+                  <span className="text-xl md:text-2xl mr-2 md:mr-3">{category.icon}</span>
                   {category.title}
                 </h2>
               </div>
@@ -131,21 +131,21 @@ export default function QAPage() {
                     <div key={itemIndex} className="transition-all duration-200">
                       <button
                         onClick={() => toggleItem(categoryIndex, itemIndex)}
-                        className="w-full px-6 py-4 text-left hover:bg-gray-50 transition-colors duration-150 flex items-center justify-between group"
+                        className="w-full px-4 md:px-6 py-3 md:py-4 text-left hover:bg-gray-50 transition-colors duration-150 flex items-center justify-between group"
                       >
-                        <span className="font-medium text-gray-800 group-hover:text-blue-600 transition-colors">
+                        <span className="font-medium text-sm md:text-base text-gray-800 group-hover:text-blue-600 transition-colors pr-2">
                           {item.question}
                         </span>
                         {isExpanded ? (
-                          <ChevronUpIcon className="w-5 h-5 text-gray-400 group-hover:text-blue-600 transition-colors" />
+                          <ChevronUpIcon className="w-5 h-5 flex-shrink-0 text-gray-400 group-hover:text-blue-600 transition-colors" />
                         ) : (
-                          <ChevronDownIcon className="w-5 h-5 text-gray-400 group-hover:text-blue-600 transition-colors" />
+                          <ChevronDownIcon className="w-5 h-5 flex-shrink-0 text-gray-400 group-hover:text-blue-600 transition-colors" />
                         )}
                       </button>
 
                       {isExpanded && (
-                        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
-                          <p className="text-gray-600 leading-relaxed">
+                        <div className="px-4 md:px-6 py-3 md:py-4 bg-gray-50 border-t border-gray-100">
+                          <p className="text-sm md:text-base text-gray-600 leading-relaxed">
                             {item.answer}
                           </p>
                         </div>
@@ -158,12 +158,12 @@ export default function QAPage() {
           ))}
         </div>
 
-        <div className="mt-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white text-center">
-          <h3 className="text-2xl font-bold mb-4">まだ解決しませんか？</h3>
-          <p className="mb-6">
+        <div className="mt-8 md:mt-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-6 md:p-8 text-white text-center">
+          <h3 className="text-xl md:text-2xl font-bold mb-3 md:mb-4">まだ解決しませんか？</h3>
+          <p className="text-sm md:text-base mb-4 md:mb-6 px-2">
             お探しの答えが見つからない場合は、お気軽にお問い合わせください。
           </p>
-          <button className="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+          <button className="bg-white text-blue-600 px-6 py-3 rounded-lg text-sm md:text-base font-semibold hover:bg-gray-100 transition-colors">
             お問い合わせはこちら
           </button>
         </div>

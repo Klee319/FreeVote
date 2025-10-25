@@ -117,10 +117,10 @@ export default function PollDetailPage() {
       {/* Poll Header */}
       <Card className="mb-6">
         <CardHeader>
-          <div className="flex items-start justify-between">
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
             <div className="flex-1">
-              <CardTitle className="text-2xl mb-2">{currentPoll.title}</CardTitle>
-              <CardDescription className="text-base">
+              <CardTitle className="text-xl md:text-2xl mb-2">{currentPoll.title}</CardTitle>
+              <CardDescription className="text-sm md:text-base">
                 {currentPoll.description}
               </CardDescription>
             </div>
@@ -128,7 +128,7 @@ export default function PollDetailPage() {
               <img
                 src={currentPoll.thumbnailUrl}
                 alt={currentPoll.title}
-                className="w-32 h-32 object-cover rounded ml-4"
+                className="w-full md:w-32 h-48 md:h-32 object-cover rounded"
               />
             )}
           </div>
@@ -136,16 +136,16 @@ export default function PollDetailPage() {
           <div className="flex flex-wrap gap-2 mt-4">
             {currentPoll.categories && Array.isArray(currentPoll.categories) &&
               currentPoll.categories.map((category) => (
-                <Badge key={category} variant="secondary">
+                <Badge key={category} variant="secondary" className="text-xs">
                   {category}
                 </Badge>
               ))}
             {currentPoll.isAccentMode && (
-              <Badge variant="outline">アクセント投票</Badge>
+              <Badge variant="outline" className="text-xs">アクセント投票</Badge>
             )}
           </div>
 
-          <div className="flex items-center gap-4 mt-4 text-sm text-muted-foreground">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-4 text-xs md:text-sm text-muted-foreground">
             <div className="flex items-center gap-1">
               <Users className="h-4 w-4" />
               <span>{currentPoll.totalVotes || 0}人が投票</span>
@@ -160,7 +160,7 @@ export default function PollDetailPage() {
               variant="ghost"
               size="sm"
               onClick={handleShare}
-              className="ml-auto"
+              className="w-full sm:w-auto sm:ml-auto"
             >
               <Share2 className="h-4 w-4 mr-2" />
               シェア

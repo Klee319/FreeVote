@@ -23,9 +23,9 @@ app.use(cors({
   credentials: true,
 }));
 
-// ボディパーサー
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// ボディパーサー（画像データを含むため制限を10MBに設定）
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // 静的ファイルの配信（アップロードされた画像用）
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
